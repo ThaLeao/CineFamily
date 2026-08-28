@@ -31,7 +31,7 @@ async function carregarFilmes() {
 
 
 // ===============================
-// MOSTRAR FILMES NA TELA
+// MOSTRAR FILMES
 // ===============================
 
 function mostrarFilmes(filmes) {
@@ -43,7 +43,6 @@ function mostrarFilmes(filmes) {
         return;
     }
 
-    // A primeira seção de categoria é FILMES
     const secaoFilmes = secoes[0];
 
     const cards = secaoFilmes.querySelector(".cards");
@@ -53,7 +52,6 @@ function mostrarFilmes(filmes) {
         return;
     }
 
-    // Limpa os filmes antigos
     cards.innerHTML = "";
 
     filmes.slice(0, 10).forEach(filme => {
@@ -86,9 +84,193 @@ function mostrarFilmes(filmes) {
             </p>
         `;
 
+        // ===============================
+        // CLICAR NO FILME
+        // ===============================
+
+        card.addEventListener("click", () => {
+            abrirDetalhes(filme);
+        });
+
         cards.appendChild(card);
     });
 }
+
+
+// ===============================
+// TELA DE DETALHES
+// ===============================
+
+function abrirDetalhes(filme) {
+
+    const imagem = filme.poster_path
+        ? `${IMG}${filme.poster_path}`
+        : "";
+
+    const nota = filme.vote_average
+        ? filme.vote_average.toFixed(1)
+        : "N/A";
+
+    const data = filme.release_date
+        ? filme.release_date.split("-").reverse().join("/")
+        : "Não informada";
+
+    const modal = document.createElement("div");
+
+    modal.id = "cinefamily-modal";
+
+    modal.innerHTML = `
+
+        <div class="detalhes-filme">
+
+            <button class="fechar-detalhes">
+                ✕
+            </button>
+
+            <div class="detalhes-conteudo">
+
+                <div class="detalhes-poster">
+
+                    ${
+                        imagem
+                            ? `<img src="${imagem}" alt="${filme.title || "Filme"}">`
+                            : "🎬"
+                    }
+
+                </div>
+
+                <div class="detalhes-info">
+
+                    <span class="categoria">
+                        FILME
+                    </span>
+
+                    <h1>
+                        ${filme.title || "Sem título"}
+                    </h1>
+
+                    <p class="nota">
+                        ⭐ ${nota}
+                    </p>
+
+                    <p class="data">
+                        📅 ${data}
+                    </p>
+
+                    <p class="sinopse">
+                        ${
+                            filme.overview ||
+                            "Sinopse não disponível."
+                        }
+                    </p>
+
+                    <div class="botoes-detalhes">
+
+                        <button class="assistir">
+                            ▶ Assistir agora
+                        </button>
+
+                        <button class="favorito">
+                            ⭐ Favoritar
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    document
+        .querySelector(".fechar-detalhes")
+        .addEventListener("click", fecharDetalhes);
+
+    document
+        .querySelector(".favorito")
+        .addEventListener("click", () => {
+            adicionarFavorito(filme);
+        });
+
+    document
+        .querySelector(".assistir")
+        .addEventListener("click", () => {
+            alert(
+                "O CineFamily ainda não possui o vídeo deste filme. Nesta etapa estamos preparando o catálogo."
+            );
+        });
+}
+
+
+// ===============================
+// FECHAR DETALHES
+// ===============================
+
+function fecharDetalhes() {
+
+    const modal = document.getElementById("cinefamily-modal");
+
+    if (modal) {
+        modal.remove();
+    }
+}
+
+
+// ===============================
+// FAVORITOS
+// ===============================
+
+function adicionarFavorito(filme) {
+
+    let favoritos =
+        JSON.parse(localStorage.getItem("cinefamilyFavoritos")) || [];
+
+    const jaExiste =
+        favoritos.some(item => item.id === filme.id);
+
+    if (jaExiste) {
+
+        alert("Este filme já está nos favoritos.");
+
+        return;
+    }
+
+    favoritos.push({
+        id: filme.id,
+        title: filme.title,
+        poster_path: filme.poster_path,
+        vote_average: filme.vote_average
+    });
+
+    localStorage.setItem(
+        "cinefamilyFavoritos",
+        JSON.stringify(favoritos)
+    );
+
+    alert("⭐ Filme adicionado aos favoritos!");
+}
+
+
+// ===============================
+// FECHAR AO CLICAR FORA
+// ===============================
+
+document.addEventListener("click", event => {
+
+    const modal =
+        document.getElementById("cinefamily-modal");
+
+    if (
+        modal &&
+        event.target === modal
+    ) {
+        fecharDetalhes();
+    }
+
+});
 
 
 // ===============================
