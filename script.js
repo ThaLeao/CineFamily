@@ -189,9 +189,24 @@ const botaoFavorito =
 
 botaoFavorito.addEventListener("click", () => {
 
-    adicionarFavorito(filme);
+const favoritos =
+    JSON.parse(
+        localStorage.getItem("cinefamilyFavoritos")
+    ) || [];
+
+const jaExiste =
+    favoritos.some(item => item.id === filme.id);
+
+if (jaExiste) {
 
     botaoFavorito.textContent = "⭐ Favoritado";
+
+    return;
+}
+
+adicionarFavorito(filme);
+
+botaoFavorito.textContent = "⭐ Favoritado";
 
 });
 
