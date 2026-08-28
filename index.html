@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CineFamily</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- TOPO -->
+    <header>
+
+        <div class="logo">
+            CineFamily
+        </div>
+
+        <nav>
+            <a href="#">TV</a>
+            <a href="#">Destaques</a>
+            <a href="#">Filmes</a>
+            <a href="#">Séries</a>
+            <a href="#">Doramas</a>
+            <a href="#">GL</a>
+            <a href="#">Kids</a>
+            <a href="#">Explorar</a>
+        </nav>
+
+        <div class="acoes">
+            <span>🔎</span>
+            <span>⭐</span>
+            <span>👤</span>
+        </div>
+
+    </header>
+
+
+    <!-- CARROSSEL -->
+    <main>
+
+        <section class="carrossel">
+
+            <div class="slide ativo">
+                <div class="conteudo-slide">
+                    <span class="categoria">FILME</span>
+
+                    <h1>O Último Horizonte</h1>
+
+                    <p>
+                        Uma aventura começa quando quatro amigos
+                        descobrem um lugar que ninguém conhecia.
+                    </p>
+
+                    <button>▶ Assistir agora</button>
+                </div>
+            </div>
+
+
+            <div class="slide">
+                <div class="conteudo-slide">
+                    <span class="categoria">SÉRIE</span>
+
+                    <h1>Além das Estrelas</h1>
+
+                    <p>
+                        Uma equipe embarca em uma missão que pode
+                        mudar o futuro da humanidade.
+                    </p>
+
+                    <button>▶ Assistir agora</button>
+                </div>
+            </div>
+
+
+            <div class="slide">
+                <div class="conteudo-slide">
+                    <span class="categoria">DORAMA</span>
+
+                    <h1>Nosso Destino</h1>
+
+                    <p>
+                        Duas pessoas descobrem que suas histórias
+                        podem estar ligadas de uma forma inesperada.
+                    </p>
+
+                    <button>▶ Assistir agora</button>
+                </div>
+            </div>
+
+
+            <div class="slide">
+                <div class="conteudo-slide">
+                    <span class="categoria">GL</span>
+
+                    <h1>Entre Nós</h1>
+
+                    <p>
+                        Uma história sobre encontros, escolhas
+                        e sentimentos inesperados.
+                    </p>
+
+                    <button>▶ Assistir agora</button>
+                </div>
+            </div>
+
+
+            <!-- BOTÕES DO CARROSSEL -->
+
+            <button class="anterior" onclick="slideAnterior()">❮</button>
+
+            <button class="proximo" onclick="proximoSlide()">❯</button>
+
+
+            <!-- INDICADORES -->
+
+            <div class="indicadores">
+
+                <span class="indicador ativo" onclick="irParaSlide(0)"></span>
+
+                <span class="indicador" onclick="irParaSlide(1)"></span>
+
+                <span class="indicador" onclick="irParaSlide(2)"></span>
+
+                <span class="indicador" onclick="irParaSlide(3)"></span>
+
+            </div>
+
+        </section>
+
+
+        <!-- FILMES -->
+
+        <section class="categoria-secao">
+
+            <h2>🎬 Filmes</h2>
+
+            <div class="cards">
+
+                <div class="card">
+                    <div class="imagem-card">🎬</div>
+                    <h3>O Último Horizonte</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">🚀</div>
+                    <h3>Além das Estrelas</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">🗺️</div>
+                    <h3>A Grande Aventura</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">❤️</div>
+                    <h3>Nosso Destino</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">🕵️</div>
+                    <h3>O Mistério</h3>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- SÉRIES -->
+
+        <section class="categoria-secao">
+
+            <h2>📺 Séries</h2>
+
+            <div class="cards">
+
+                <div class="card">
+                    <div class="imagem-card">🌌</div>
+                    <h3>Além das Estrelas</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">🏙️</div>
+                    <h3>Cidade Secreta</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">🔍</div>
+                    <h3>O Investigador</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">⚔️</div>
+                    <h3>Reino Perdido</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">👽</div>
+                    <h3>Contato</h3>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- DORAMAS -->
+
+        <section class="categoria-secao">
+
+            <h2>🇰🇷 Doramas</h2>
+
+            <div class="cards">
+
+                <div class="card">
+                    <div class="imagem-card">🌸</div>
+                    <h3>Nosso Destino</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">💌</div>
+                    <h3>Carta de Amor</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">☔</div>
+                    <h3>Depois da Chuva</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">🌙</div>
+                    <h3>Uma Noite em Seul</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">🎓</div>
+                    <h3>Nosso Primeiro Dia</h3>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- GL -->
+
+        <section class="categoria-secao">
+
+            <h2>🌈 GL</h2>
+
+            <div class="cards">
+
+                <div class="card">
+                    <div class="imagem-card">💜</div>
+                    <h3>Entre Nós</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">🌈</div>
+                    <h3>Novos Caminhos</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">❤️</div>
+                    <h3>Primeiro Encontro</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">🌙</div>
+                    <h3>Quando Te Encontrei</h3>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- TV -->
+
+        <section class="categoria-secao">
+
+            <h2>📡 TV ao vivo</h2>
+
+            <div class="cards">
+
+                <div class="card tv">
+                    <div class="imagem-card">📺</div>
+                    <h3>CineFamily News</h3>
+                </div>
+
+                <div class="card tv">
+                    <div class="imagem-card">⚽</div>
+                    <h3>CineFamily Esportes</h3>
+                </div>
+
+                <div class="card tv">
+                    <div class="imagem-card">🎵</div>
+                    <h3>CineFamily Music</h3>
+                </div>
+
+                <div class="card tv">
+                    <div class="imagem-card">👧</div>
+                    <h3>CineFamily Kids</h3>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- KIDS -->
+
+        <section class="categoria-secao">
+
+            <h2>👧 Kids</h2>
+
+            <div class="cards">
+
+                <div class="card">
+                    <div class="imagem-card">🦁</div>
+                    <h3>Aventuras na Floresta</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">🚂</div>
+                    <h3>O Trem Mágico</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">🐉</div>
+                    <h3>O Pequeno Dragão</h3>
+                </div>
+
+                <div class="card">
+                    <div class="imagem-card">🚀</div>
+                    <h3>Viagem Espacial</h3>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- JAVASCRIPT -->
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
