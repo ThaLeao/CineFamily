@@ -2,11 +2,15 @@ const TMDB_WORKER = "https://cinefamily-tmdb.thabsleao.workers.dev";
 
 const IMG = "https://image.tmdb.org/t/p/w500";
 
+// ===============================
+// CARREGAR FILMES DO TMDB
+// ===============================
+
 async function carregarFilmes() {
     try {
-        const resposta = await fetch(
-            `${TMDB_WORKER}/filmes`
-        );
+        console.log("CineFamily TMDB Worker online!");
+
+        const resposta = await fetch(`${TMDB_WORKER}/filmes`);
 
         if (!resposta.ok) {
             throw new Error("Erro ao consultar o TMDB");
@@ -25,15 +29,21 @@ async function carregarFilmes() {
     }
 }
 
+
+// ===============================
+// MOSTRAR FILMES NA TELA
+// ===============================
+
 function mostrarFilmes(filmes) {
 
     const secoes = document.querySelectorAll(".categoria-secao");
 
     if (!secoes.length) {
-        console.warn("Nenhuma seção de filmes encontrada.");
+        console.warn("Nenhuma seção encontrada.");
         return;
     }
 
+    // A primeira seção de categoria é FILMES
     const secaoFilmes = secoes[0];
 
     const cards = secaoFilmes.querySelector(".cards");
@@ -43,6 +53,7 @@ function mostrarFilmes(filmes) {
         return;
     }
 
+    // Limpa os filmes antigos
     cards.innerHTML = "";
 
     filmes.slice(0, 10).forEach(filme => {
@@ -59,17 +70,19 @@ function mostrarFilmes(filmes) {
             <div class="imagem-card">
                 ${
                     imagem
-                    ? `<img src="${imagem}" alt="${filme.title || "Filme"}">`
-                    : "🎬"
+                        ? `<img src="${imagem}" alt="${filme.title || "Filme"}">`
+                        : "🎬"
                 }
             </div>
 
             <h3>${filme.title || "Sem título"}</h3>
 
             <p>
-                ⭐ ${filme.vote_average
-                    ? filme.vote_average.toFixed(1)
-                    : "N/A"}
+                ⭐ ${
+                    filme.vote_average
+                        ? filme.vote_average.toFixed(1)
+                        : "N/A"
+                }
             </p>
         `;
 
@@ -77,9 +90,12 @@ function mostrarFilmes(filmes) {
     });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
 
-    console.log("CineFamily iniciado!");
+// ===============================
+// INICIAR CINEFAMILY
+// ===============================
+
+document.addEventListener("DOMContentLoaded", () => {
 
     carregarFilmes();
 
