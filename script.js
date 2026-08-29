@@ -18,9 +18,11 @@ try {
         throw new Error("Erro ao consultar o TMDB");
     }
 
-    const dados = await resposta.json();
+    const dados =
+        await resposta.json();
 
-    const filmes = dados.results || [];
+    const filmes =
+        dados.results || [];
 
     console.log(
         "Filmes recebidos do TMDB:",
@@ -52,37 +54,54 @@ const secoes =
     );
 
 if (!secoes.length) {
+
     console.warn(
         "Nenhuma seção encontrada."
     );
+
     return;
 }
 
-const secaoFilmes = secoes[0];
+
+const secaoFilmes =
+    secoes[0];
+
 
 const cards =
-    secaoFilmes.querySelector(".cards");
+    secaoFilmes.querySelector(
+        ".cards"
+    );
+
 
 if (!cards) {
+
     console.warn(
         "Área de cards não encontrada."
     );
+
     return;
 }
 
+
 cards.innerHTML = "";
+
 
 filmes.slice(0, 10).forEach(filme => {
 
     const card =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
+
 
     card.className = "card";
+
 
     const imagem =
         filme.poster_path
             ? `${IMG}${filme.poster_path}`
             : "";
+
 
     card.innerHTML = `
 
@@ -98,9 +117,11 @@ filmes.slice(0, 10).forEach(filme => {
 
         </div>
 
+
         <h3>
             ${filme.title || "Sem título"}
         </h3>
+
 
         <p>
             ⭐ ${
@@ -112,13 +133,17 @@ filmes.slice(0, 10).forEach(filme => {
 
     `;
 
+
     // Clicar no filme abre os detalhes
     card.addEventListener(
         "click",
         () => {
+
             abrirDetalhes(filme);
+
         }
     );
+
 
     cards.appendChild(card);
 
@@ -132,21 +157,25 @@ filmes.slice(0, 10).forEach(filme => {
 
 function abrirDetalhes(filme) {
 
-// Registrar no histórico
+// Registrar filme no histórico
 registrarHistorico(filme);
+
 
 // Remove modal anterior
 fecharDetalhes();
+
 
 const imagem =
     filme.poster_path
         ? `${IMG}${filme.poster_path}`
         : "";
 
+
 const nota =
     filme.vote_average
         ? filme.vote_average.toFixed(1)
         : "N/A";
+
 
 const data =
     filme.release_date
@@ -156,15 +185,21 @@ const data =
             .join("/")
         : "Não informada";
 
+
 const modal =
-    document.createElement("div");
+    document.createElement(
+        "div"
+    );
+
 
 modal.id =
     "cinefamily-modal";
 
+
 modal.innerHTML = `
 
     <div class="detalhes-filme">
+
 
         <button
             class="fechar-detalhes"
@@ -174,7 +209,9 @@ modal.innerHTML = `
 
         </button>
 
+
         <div class="detalhes-conteudo">
+
 
             <div class="detalhes-poster">
 
@@ -188,23 +225,37 @@ modal.innerHTML = `
 
             </div>
 
+
             <div class="detalhes-info">
 
+
                 <span class="categoria">
+
                     FILME
+
                 </span>
 
+
                 <h1>
+
                     ${filme.title || "Sem título"}
+
                 </h1>
 
+
                 <p class="nota">
+
                     ⭐ ${nota}
+
                 </p>
 
+
                 <p class="data">
+
                     📅 ${data}
+
                 </p>
+
 
                 <p class="sinopse">
 
@@ -215,7 +266,9 @@ modal.innerHTML = `
 
                 </p>
 
+
                 <div class="botoes-detalhes">
+
 
                     <button
                         class="assistir"
@@ -225,6 +278,7 @@ modal.innerHTML = `
 
                     </button>
 
+
                     <button
                         class="favorito"
                         type="button">
@@ -233,17 +287,24 @@ modal.innerHTML = `
 
                     </button>
 
+
                 </div>
+
 
             </div>
 
+
         </div>
+
 
     </div>
 
 `;
 
-document.body.appendChild(modal);
+
+document.body.appendChild(
+    modal
+);
 
 
 // ===============================
@@ -254,6 +315,7 @@ const botaoFechar =
     modal.querySelector(
         ".fechar-detalhes"
     );
+
 
 botaoFechar.addEventListener(
     "click",
@@ -270,17 +332,31 @@ const botaoFavorito =
         ".favorito"
     );
 
-const favoritosSalvos =
-    JSON.parse(
-        localStorage.getItem(
-            "cinefamilyFavoritos"
-        )
-    ) || [];
+
+let favoritosSalvos = [];
+
+
+try {
+
+    favoritosSalvos =
+        JSON.parse(
+            localStorage.getItem(
+                "cinefamilyFavoritos"
+            )
+        ) || [];
+
+} catch (erro) {
+
+    favoritosSalvos = [];
+
+}
+
 
 const jaFavoritado =
     favoritosSalvos.some(
         item => item.id === filme.id
     );
+
 
 if (jaFavoritado) {
 
@@ -294,17 +370,30 @@ botaoFavorito.addEventListener(
     "click",
     () => {
 
-        const favoritos =
-            JSON.parse(
-                localStorage.getItem(
-                    "cinefamilyFavoritos"
-                )
-            ) || [];
+        let favoritos = [];
+
+
+        try {
+
+            favoritos =
+                JSON.parse(
+                    localStorage.getItem(
+                        "cinefamilyFavoritos"
+                    )
+                ) || [];
+
+        } catch (erro) {
+
+            favoritos = [];
+
+        }
+
 
         const jaExiste =
             favoritos.some(
                 item => item.id === filme.id
             );
+
 
         if (jaExiste) {
 
@@ -315,7 +404,11 @@ botaoFavorito.addEventListener(
 
         }
 
-        adicionarFavorito(filme);
+
+        adicionarFavorito(
+            filme
+        );
+
 
         botaoFavorito.textContent =
             "⭐ Favoritado";
@@ -332,6 +425,7 @@ const botaoAssistir =
     modal.querySelector(
         ".assistir"
     );
+
 
 botaoAssistir.addEventListener(
     "click",
@@ -353,6 +447,7 @@ botaoAssistir.addEventListener(
 function registrarHistorico(filme) {
 
 let historico = [];
+
 
 try {
 
@@ -378,6 +473,8 @@ historico =
 
 
 // Coloca o filme mais recente no começo
+// e salva data e hora da visualização
+
 historico.unshift({
 
     id: filme.id,
@@ -390,19 +487,25 @@ historico.unshift({
 
     release_date: filme.release_date,
 
-    overview: filme.overview
+    overview: filme.overview,
+
+    dataVisualizacao:
+        new Date().toISOString()
 
 });
 
 
-// Mantém os 20 últimos filmes
+// Mantém somente os 20 últimos filmes
+
 historico =
     historico.slice(0, 20);
 
 
 localStorage.setItem(
     "cinefamilyHistorico",
-    JSON.stringify(historico)
+    JSON.stringify(
+        historico
+    )
 );
 
 }
@@ -417,6 +520,7 @@ const modal =
     document.getElementById(
         "cinefamily-modal"
     );
+
 
 if (modal) {
 
@@ -433,6 +537,7 @@ if (modal) {
 function adicionarFavorito(filme) {
 
 let favoritos = [];
+
 
 try {
 
@@ -458,10 +563,6 @@ const jaExiste =
 
 if (jaExiste) {
 
-    alert(
-        "Este filme já está nos favoritos."
-    );
-
     return;
 
 }
@@ -486,7 +587,9 @@ favoritos.push({
 
 localStorage.setItem(
     "cinefamilyFavoritos",
-    JSON.stringify(favoritos)
+    JSON.stringify(
+        favoritos
+    )
 );
 
 
@@ -508,6 +611,7 @@ event => {
         document.getElementById(
             "cinefamily-modal"
         );
+
 
     if (
         modal &&
