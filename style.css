@@ -1,4 +1,4 @@
-{
+*{
 box-sizing: border-box;
 margin: 0;
 padding: 0;
@@ -369,7 +369,7 @@ font-weight: bold;
 }
 
 /* =========================
-MENSAGENS VAZIAS
+MENSAGENS
 ========================= */
 
 #nenhum-historico,
