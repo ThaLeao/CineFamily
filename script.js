@@ -1,136 +1,285 @@
 const TMDB_WORKER = "https://cinefamily-tmdb.thabsleao.workers.dev";
 const IMG = "https://image.tmdb.org/t/p/w500";
 
-// ===============================
-// CARREGAR FILMES DO TMDB
-// ===============================
+/* =========================================================
+CARROSSEL
+========================================================= */
+
+let slideAtual = 0;
+
+function mostrarSlide(numero) {
+
+const slides = document.querySelectorAll(".slide");
+const indicadores = document.querySelectorAll(".indicador");
+
+if (!slides.length) {
+    return;
+}
+
+if (numero >= slides.length) {
+    slideAtual = 0;
+}
+
+if (numero < 0) {
+    slideAtual = slides.length - 1;
+}
+
+slides.forEach((slide, indice) => {
+    slide.classList.toggle(
+        "ativo",
+        indice === slideAtual
+    );
+});
+
+indicadores.forEach((indicador, indice) => {
+    indicador.classList.toggle(
+        "ativo",
+        indice === slideAtual
+    );
+});
+
+}
+
+function proximoSlide() {
+
+slideAtual++;
+
+mostrarSlide(slideAtual);
+
+}
+
+function slideAnterior() {
+
+slideAtual--;
+
+mostrarSlide(slideAtual);
+
+}
+
+function irParaSlide(numero) {
+
+slideAtual = numero;
+
+mostrarSlide(slideAtual);
+
+}
+
+/* =========================================================
+CARREGAR FILMES DO TMDB
+========================================================= */
 
 async function carregarFilmes() {
 
-try {
-
-    console.log("CineFamily TMDB Worker online!");
-
-    const resposta = await fetch(`${TMDB_WORKER}/filmes`);
-
-    if (!resposta.ok) {
-        throw new Error("Erro ao consultar o TMDB");
-    }
-
-    const dados = await resposta.json();
-
-    const filmes = dados.results || [];
-
-    console.log("Filmes recebidos:", filmes);
-
-    mostrarFilmes(filmes);
-
-} catch (erro) {
-
-    console.error("Erro CineFamily:", erro);
-
-}
-
-}
-
-// ===============================
-// MOSTRAR FILMES
-// ===============================
-
-function mostrarFilmes(filmes) {
-
-const secoes = document.querySelectorAll(".categoria-secao");
+const secoes =
+    document.querySelectorAll(".categoria-secao");
 
 if (!secoes.length) {
-    console.warn("Nenhuma seção encontrada.");
+    console.warn(
+        "CineFamily: nenhuma seção de filmes encontrada."
+    );
     return;
 }
 
 const secaoFilmes = secoes[0];
 
-const cards = secaoFilmes.querySelector(".cards");
+const cards =
+    secaoFilmes.querySelector(".cards");
 
 if (!cards) {
-    console.warn("Área de cards não encontrada.");
+    console.warn(
+        "CineFamily: área de cards não encontrada."
+    );
+    return;
+}
+
+try {
+
+    console.log(
+        "🎬 CineFamily: conectando ao TMDB..."
+    );
+
+    const resposta =
+        await fetch(
+            `${TMDB_WORKER}/filmes`
+        );
+
+    console.log(
+        "📡 Resposta do Worker:",
+        resposta.status
+    );
+
+    if (!resposta.ok) {
+
+        throw new Error(
+            `Worker respondeu HTTP ${resposta.status}`
+        );
+
+    }
+
+    const dados =
+        await resposta.json();
+
+    console.log(
+        "📦 Dados recebidos do TMDB:",
+        dados
+    );
+
+    const filmes =
+        Array.isArray(dados.results)
+            ? dados.results
+            : [];
+
+    console.log(
+        `🎬 ${filmes.length} filmes recebidos.`
+    );
+
+    if (!filmes.length) {
+
+        console.warn(
+            "O TMDB não retornou filmes."
+        );
+
+        return;
+    }
+
+    mostrarFilmes(filmes);
+
+} catch (erro) {
+
+    console.error(
+        "❌ ERRO AO CARREGAR FILMES:",
+        erro
+    );
+
+    /*
+       IMPORTANTE:
+       Não apagamos os filmes originais
+       da página caso o Worker esteja
+       indisponível.
+    */
+
+}
+
+}
+
+/* =========================================================
+MOSTRAR FILMES
+========================================================= */
+
+function mostrarFilmes(filmes) {
+
+const secoes =
+    document.querySelectorAll(
+        ".categoria-secao"
+    );
+
+if (!secoes.length) {
+    return;
+}
+
+const secaoFilmes = secoes[0];
+
+const cards =
+    secaoFilmes.querySelector(".cards");
+
+if (!cards) {
     return;
 }
 
 cards.innerHTML = "";
 
-filmes.slice(0, 10).forEach(filme => {
+filmes
+    .filter(filme => filme.poster_path)
+    .slice(0, 10)
+    .forEach(filme => {
 
-    const card = document.createElement("div");
+        const card =
+            document.createElement("div");
 
-    card.className = "card";
+        card.className = "card";
 
-    const imagem = filme.poster_path
-        ? `${IMG}${filme.poster_path}`
-        : "";
+        const imagem =
+            `${IMG}${filme.poster_path}`;
 
-    card.innerHTML = `
+        const nota =
+            filme.vote_average
+                ? Number(
+                    filme.vote_average
+                ).toFixed(1)
+                : "N/A";
 
-        <div class="imagem-card">
+        card.innerHTML = `
 
-            ${
-                imagem
-                    ? `<img src="${imagem}" alt="${filme.title || "Filme"}">`
-                    : "🎬"
+            <div class="imagem-card">
+
+                <img
+                    src="${imagem}"
+                    alt="${filme.title || "Filme"}"
+                    loading="lazy"
+                >
+
+            </div>
+
+            <h3>
+                ${filme.title || "Sem título"}
+            </h3>
+
+            <p>
+                ⭐ ${nota}
+            </p>
+
+        `;
+
+        card.addEventListener(
+            "click",
+            () => {
+
+                abrirDetalhes(filme);
+
             }
+        );
 
-        </div>
-
-        <h3>${filme.title || "Sem título"}</h3>
-
-        <p>
-            ⭐ ${
-                filme.vote_average
-                    ? Number(filme.vote_average).toFixed(1)
-                    : "N/A"
-            }
-        </p>
-
-    `;
-
-    // Clique no filme
-    card.addEventListener("click", () => {
-
-        abrirDetalhes(filme);
+        cards.appendChild(card);
 
     });
 
-    cards.appendChild(card);
-
-});
-
 }
 
-// ===============================
-// TELA DE DETALHES
-// ===============================
+/* =========================================================
+DETALHES DO FILME
+========================================================= */
 
 function abrirDetalhes(filme) {
 
-// SALVAR NO HISTÓRICO
 registrarHistorico(filme);
 
-// Fecha modal anterior
 fecharDetalhes();
 
-const imagem = filme.poster_path
-    ? `${IMG}${filme.poster_path}`
-    : "";
+const imagem =
+    filme.poster_path
+        ? `${IMG}${filme.poster_path}`
+        : "";
 
-const nota = filme.vote_average
-    ? Number(filme.vote_average).toFixed(1)
-    : "N/A";
+const nota =
+    filme.vote_average
+        ? Number(
+            filme.vote_average
+        ).toFixed(1)
+        : "N/A";
 
-const data = filme.release_date
-    ? filme.release_date.split("-").reverse().join("/")
-    : "Não informada";
+const data =
+    filme.release_date
+        ? filme.release_date
+            .split("-")
+            .reverse()
+            .join("/")
+        : "Não informada";
 
-const modal = document.createElement("div");
+const modal =
+    document.createElement("div");
 
-modal.id = "cinefamily-modal";
+modal.id =
+    "cinefamily-modal";
 
 modal.innerHTML = `
 
@@ -139,7 +288,9 @@ modal.innerHTML = `
         <button
             class="fechar-detalhes"
             type="button">
+
             ✕
+
         </button>
 
         <div class="detalhes-conteudo">
@@ -148,7 +299,12 @@ modal.innerHTML = `
 
                 ${
                     imagem
-                        ? `<img src="${imagem}" alt="${filme.title || "Filme"}">`
+                        ? `
+                            <img
+                                src="${imagem}"
+                                alt="${filme.title || "Filme"}"
+                            >
+                          `
                         : "🎬"
                 }
 
@@ -173,10 +329,12 @@ modal.innerHTML = `
                 </p>
 
                 <p class="sinopse">
+
                     ${
                         filme.overview ||
                         "Sinopse não disponível."
                     }
+
                 </p>
 
                 <div class="botoes-detalhes">
@@ -184,13 +342,17 @@ modal.innerHTML = `
                     <button
                         class="assistir"
                         type="button">
+
                         ▶ Assistir agora
+
                     </button>
 
                     <button
                         class="favorito"
                         type="button">
+
                         ⭐ Favoritar
+
                     </button>
 
                 </div>
@@ -206,12 +368,12 @@ modal.innerHTML = `
 document.body.appendChild(modal);
 
 
-// ===============================
-// FECHAR
-// ===============================
+/* FECHAR */
 
 const botaoFechar =
-    modal.querySelector(".fechar-detalhes");
+    modal.querySelector(
+        ".fechar-detalhes"
+    );
 
 botaoFechar.addEventListener(
     "click",
@@ -219,37 +381,22 @@ botaoFechar.addEventListener(
 );
 
 
-// ===============================
-// FAVORITO
-// ===============================
+/* FAVORITO */
 
-let favoritos = [];
+const botaoFavorito =
+    modal.querySelector(
+        ".favorito"
+    );
 
-try {
-
-    favoritos =
-        JSON.parse(
-            localStorage.getItem(
-                "cinefamilyFavoritos"
-            )
-        ) || [];
-
-} catch (erro) {
-
-    favoritos = [];
-
-}
-
+const favoritos =
+    obterFavoritos();
 
 const jaFavoritado =
     favoritos.some(
-        item => item.id === filme.id
+        item =>
+            Number(item.id) ===
+            Number(filme.id)
     );
-
-
-const botaoFavorito =
-    modal.querySelector(".favorito");
-
 
 if (jaFavoritado) {
 
@@ -258,10 +405,6 @@ if (jaFavoritado) {
 
 }
 
-
-// ===============================
-// ADICIONAR FAVORITO
-// ===============================
 
 botaoFavorito.addEventListener(
     "click",
@@ -276,23 +419,21 @@ botaoFavorito.addEventListener(
 );
 
 
-// ===============================
-// ASSISTIR
-// ===============================
+/* ASSISTIR */
 
 const botaoAssistir =
-    modal.querySelector(".assistir");
-
+    modal.querySelector(
+        ".assistir"
+    );
 
 botaoAssistir.addEventListener(
     "click",
     () => {
 
-        // Registra novamente para garantir
         registrarHistorico(filme);
 
         alert(
-            "O CineFamily ainda não possui o vídeo deste filme. Nesta etapa estamos preparando o catálogo."
+            "🎬 O CineFamily ainda não possui o vídeo deste filme. O catálogo está sendo preparado."
         );
 
     }
@@ -300,89 +441,88 @@ botaoAssistir.addEventListener(
 
 }
 
-// ===============================
-// HISTÓRICO
-// ===============================
+/* =========================================================
+HISTÓRICO
+========================================================= */
 
-function registrarHistorico(filme) {
-
-let historico = [];
+function obterHistorico() {
 
 try {
 
-    const salvo =
+    const dados =
         localStorage.getItem(
             "cinefamilyHistorico"
         );
 
-    if (salvo) {
-
-        historico =
-            JSON.parse(salvo);
-
+    if (!dados) {
+        return [];
     }
 
-    if (!Array.isArray(historico)) {
+    const historico =
+        JSON.parse(dados);
 
-        historico = [];
-
-    }
+    return Array.isArray(historico)
+        ? historico
+        : [];
 
 } catch (erro) {
 
     console.error(
-        "Erro ao ler histórico:",
+        "❌ Erro ao ler histórico:",
         erro
     );
 
-    historico = [];
+    return [];
 
 }
 
+}
 
-// Remove o mesmo filme
+function registrarHistorico(filme) {
+
+let historico =
+    obterHistorico();
+
 historico =
     historico.filter(
         item =>
-            Number(item.id) !== Number(filme.id)
+            Number(item.id) !==
+            Number(filme.id)
     );
 
-
-// Adiciona no começo
 historico.unshift({
 
     id: filme.id,
 
     title: filme.title,
 
-    poster_path: filme.poster_path,
+    poster_path:
+        filme.poster_path,
 
-    vote_average: filme.vote_average,
+    vote_average:
+        filme.vote_average,
 
-    release_date: filme.release_date,
+    release_date:
+        filme.release_date,
 
-    overview: filme.overview,
+    overview:
+        filme.overview,
 
     dataVisualizacao:
         new Date().toISOString()
 
 });
 
-
-// Máximo de 20 filmes
 historico =
     historico.slice(0, 20);
 
-
-// SALVAR
 localStorage.setItem(
     "cinefamilyHistorico",
     JSON.stringify(historico)
 );
 
-
 console.log(
-    "✅ Histórico salvo:",
+    "🕘 Filme salvo no histórico:",
     filme.title
 );
 
@@ -393,49 +533,64 @@ console.log(
 
 }
 
-// ===============================
-// FAVORITOS
-// ===============================
+/* =========================================================
+FAVORITOS
+========================================================= */
 
-function adicionarFavorito(filme) {
-
-let favoritos = [];
+function obterFavoritos() {
 
 try {
 
-    favoritos =
-        JSON.parse(
-            localStorage.getItem(
-                "cinefamilyFavoritos"
-            )
-        ) || [];
+    const dados =
+        localStorage.getItem(
+            "cinefamilyFavoritos"
+        );
 
-    if (!Array.isArray(favoritos)) {
-
-        favoritos = [];
-
+    if (!dados) {
+        return [];
     }
+
+    const favoritos =
+        JSON.parse(dados);
+
+    return Array.isArray(favoritos)
+        ? favoritos
+        : [];
 
 } catch (erro) {
 
-    favoritos = [];
+    console.error(
+        "❌ Erro ao ler favoritos:",
+        erro
+    );
+
+    return [];
 
 }
 
+}
+
+function adicionarFavorito(filme) {
+
+let favoritos =
+    obterFavoritos();
 
 const jaExiste =
     favoritos.some(
         item =>
-            Number(item.id) === Number(filme.id)
+            Number(item.id) ===
+            Number(filme.id)
     );
 
-
 if (jaExiste) {
+
+    console.log(
+        "⭐ Filme já está nos favoritos."
+    );
 
     return;
 
 }
-
 
 favoritos.push({
 
@@ -443,22 +598,29 @@ favoritos.push({
 
     title: filme.title,
 
-    poster_path: filme.poster_path,
+    poster_path:
+        filme.poster_path,
 
-    vote_average: filme.vote_average,
+    vote_average:
+        filme.vote_average,
 
-    release_date: filme.release_date,
+    release_date:
+        filme.release_date,
 
-    overview: filme.overview
+    overview:
+        filme.overview
 
 });
-
 
 localStorage.setItem(
     "cinefamilyFavoritos",
     JSON.stringify(favoritos)
 );
 
+console.log(
+    "⭐ Favorito salvo:",
+    filme.title
+);
 
 alert(
     "⭐ Filme adicionado aos favoritos!"
@@ -466,9 +628,9 @@ alert(
 
 }
 
-// ===============================
-// FECHAR DETALHES
-// ===============================
+/* =========================================================
+FECHAR DETALHES
+========================================================= */
 
 function fecharDetalhes() {
 
@@ -476,7 +638,6 @@ const modal =
     document.getElementById(
         "cinefamily-modal"
     );
-
 
 if (modal) {
 
@@ -486,9 +647,9 @@ if (modal) {
 
 }
 
-// ===============================
-// FECHAR CLICANDO FORA
-// ===============================
+/* =========================================================
+CLICAR FORA DO MODAL
+========================================================= */
 
 document.addEventListener(
 "click",
@@ -498,7 +659,6 @@ event => {
         document.getElementById(
             "cinefamily-modal"
         );
-
 
     if (
         modal &&
@@ -513,13 +673,19 @@ event => {
 
 );
 
-// ===============================
-// INICIAR CINEFAMILY
-// ===============================
+/* =========================================================
+INICIAR CINEFAMILY
+========================================================= */
 
 document.addEventListener(
 "DOMContentLoaded",
 () => {
+
+    console.log(
+        "🚀 CineFamily iniciado."
+    );
+
+    mostrarSlide(0);
 
     carregarFilmes();
 
