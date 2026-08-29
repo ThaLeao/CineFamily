@@ -1,1 +1,219 @@
+<!DOCTYPE html>
 
+<html lang="pt-BR">
+
+<head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Histórico - CineFamily</title>
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<header>
+
+    <div class="logo">
+        CineFamily
+    </div>
+
+    <nav>
+        <a href="index.html">Início</a>
+        <a href="index.html">Filmes</a>
+        <a href="favoritos.html">⭐ Favoritos</a>
+        <a href="historico.html">🕘 Histórico</a>
+    </nav>
+
+    <div class="acoes">
+        <span>🔎</span>
+        <a href="favoritos.html" title="Meus favoritos">⭐</a>
+        <a href="historico.html" title="Meu histórico">🕘</a>
+        <span>👤</span>
+    </div>
+
+</header>
+
+
+<main>
+
+    <section class="categoria-secao">
+
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;">
+
+            <h1>🕘 Meu Histórico</h1>
+
+            <button
+                id="limpar-historico"
+                type="button">
+                🗑️ Limpar histórico
+            </button>
+
+        </div>
+
+        <div
+            id="lista-historico"
+            class="cards">
+        </div>
+
+        <p
+            id="nenhum-historico"
+            style="display:none;">
+            Você ainda não assistiu a nenhum filme.
+        </p>
+
+    </section>
+
+</main>
+
+
+<script>
+
+    const IMG =
+        "https://image.tmdb.org/t/p/w500";
+
+
+    // ===============================
+    // CARREGAR HISTÓRICO
+    // ===============================
+
+    function carregarHistorico() {
+
+        const lista =
+            document.getElementById(
+                "lista-historico"
+            );
+
+        const mensagem =
+            document.getElementById(
+                "nenhum-historico"
+            );
+
+
+        const historico =
+            JSON.parse(
+                localStorage.getItem(
+                    "cinefamilyHistorico"
+                )
+            ) || [];
+
+
+        if (historico.length === 0) {
+
+            mensagem.style.display = "block";
+
+            return;
+        }
+
+
+        historico.forEach(filme => {
+
+            const card =
+                document.createElement("div");
+
+            card.className = "card";
+
+
+            const imagem =
+                filme.poster_path
+                    ? `${IMG}${filme.poster_path}`
+                    : "";
+
+
+            card.innerHTML = `
+
+                <div class="imagem-card">
+
+                    ${
+                        imagem
+                            ? `<img
+                                src="${imagem}"
+                                alt="${filme.title || "Filme"}">`
+                            : "🎬"
+                    }
+
+                </div>
+
+                <h3>
+                    ${filme.title || "Sem título"}
+                </h3>
+
+                <p>
+                    ⭐ ${
+                        filme.vote_average
+                            ? Number(
+                                filme.vote_average
+                              ).toFixed(1)
+                            : "N/A"
+                    }
+                </p>
+
+            `;
+
+
+            lista.appendChild(card);
+
+        });
+
+    }
+
+
+    // ===============================
+    // LIMPAR HISTÓRICO
+    // ===============================
+
+    function limparHistorico() {
+
+        localStorage.removeItem(
+            "cinefamilyHistorico"
+        );
+
+        document.getElementById(
+            "lista-historico"
+        ).innerHTML = "";
+
+        document.getElementById(
+            "nenhum-historico"
+        ).style.display = "block";
+
+    }
+
+
+    // ===============================
+    // BOTÃO LIMPAR
+    // ===============================
+
+    document
+        .getElementById("limpar-historico")
+        .addEventListener(
+            "click",
+            () => {
+
+                if (
+                    confirm(
+                        "Tem certeza que deseja limpar todo o histórico?"
+                    )
+                ) {
+
+                    limparHistorico();
+
+                }
+
+            }
+        );
+
+
+    // ===============================
+    // INICIAR
+    // ===============================
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        carregarHistorico
+    );
+
+</script>
+
+</body>
+
+</html>
