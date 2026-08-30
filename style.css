@@ -209,7 +209,7 @@ CARDS
 min-width: 180px;
 width: 180px;
 cursor: pointer;
-transition: transform 0.2s;
+transition: transform 0.2s ease;
 }
 
 .card {
@@ -250,15 +250,20 @@ BOTÃO LIMPAR HISTÓRICO
 ========================= */
 
 #limpar-historico {
-padding: 12px 18px;
-border-radius: 6px;
-background: #292930;
-color: white;
+margin-top: 5px;
+padding: 11px 18px;
+border-radius: 8px;
+background: #202027;
+border: 1px solid #33333d;
+color: #ddd;
 font-weight: bold;
+font-size: 14px;
+transition: 0.2s ease;
 }
 
 #limpar-historico {
-background: #3a3a44;
+background: #2b2b35;
+color: white;
 }
 
 /* =========================
@@ -267,15 +272,40 @@ BOTÃO REMOVER FAVORITO
 
 .remover-favorito {
 margin-top: 12px;
-padding: 9px 12px;
-border-radius: 6px;
-background: #292930;
-color: white;
-font-weight: bold;
+width: 100%;
+padding: 10px 14px;
+
+border-radius: 8px;
+
+background: #18181e;
+border: 1px solid #30303a;
+
+color: #aaa;
+
+font-size: 13px;
+font-weight: 600;
+
+cursor: pointer;
+
+transition:
+    background 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.2s ease;
+
 }
 
 .remover-favorito {
-background: #44444f;
+background: #321d21;
+border-color: #71363d;
+color: #ff7b7b;
+
+transform: translateY(-2px);
+
+}
+
+.remover-favorito {
+transform: scale(0.97);
 }
 
 /* =========================
@@ -366,6 +396,11 @@ border-radius: 6px;
 background: #292930;
 color: white;
 font-weight: bold;
+transition: 0.2s ease;
+}
+
+.favorito {
+background: #3a3a44;
 }
 
 /* =========================
