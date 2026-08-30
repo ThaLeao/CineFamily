@@ -7,7 +7,7 @@ function mostrarSlide(numero) {
 const slides = document.querySelectorAll(".slide");
 const indicadores = document.querySelectorAll(".indicador");
 
-```
+
 if (!slides.length) {
     return;
 }
@@ -27,7 +27,7 @@ slides.forEach(function(slide, indice) {
 indicadores.forEach(function(indicador, indice) {
     indicador.classList.toggle("ativo", indice === slideAtual);
 });
-```
+
 
 }
 
@@ -49,7 +49,7 @@ mostrarSlide(slideAtual);
 async function buscarTMDB(endpoint) {
 const resposta = await fetch(TMDB_WORKER + endpoint);
 
-```
+
 console.log("📡 Worker:", endpoint, resposta.status);
 
 if (!resposta.ok) {
@@ -57,7 +57,7 @@ if (!resposta.ok) {
 }
 
 return await resposta.json();
-```
+
 
 }
 
@@ -66,14 +66,14 @@ if (!texto) {
 return "";
 }
 
-```
+
 return String(texto)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
-```
+
 
 }
 
@@ -84,7 +84,7 @@ return conteudo.title || conteudo.name || "Sem título";
 function obterData(conteudo) {
 const data = conteudo.release_date || conteudo.first_air_date;
 
-```
+
 if (!data) {
     return "Não informada";
 }
@@ -96,7 +96,7 @@ if (partes.length !== 3) {
 }
 
 return partes.reverse().join("/");
-```
+
 
 }
 
@@ -144,7 +144,7 @@ card.addEventListener("click", function() {
 });
 
 return card;
-```
+
 
 }
 
@@ -153,7 +153,7 @@ if (!secao) {
 return;
 }
 
-```
+
 const cards = secao.querySelector(".cards");
 
 if (!cards) {
@@ -170,14 +170,14 @@ conteudos
     .forEach(function(conteudo) {
         cards.appendChild(criarCard(conteudo));
     });
-```
+
 
 }
 
 async function carregarFilmes() {
 const secoes = document.querySelectorAll(".categoria-secao");
 
-```
+
 if (!secoes.length) {
     return;
 }
@@ -230,7 +230,7 @@ try {
         erro
     );
 }
-```
+
 
 }
 
@@ -238,7 +238,7 @@ async function realizarBusca() {
 const campo = document.getElementById("campo-busca");
 const resultados = document.getElementById("resultados-busca");
 
-```
+
 if (!campo || !resultados) {
     return;
 }
@@ -320,7 +320,7 @@ try {
     buscaCards.innerHTML =
         "<p>❌ Não foi possível realizar a busca.</p>";
 }
-```
+
 
 }
 
@@ -328,7 +328,7 @@ function configurarBusca() {
 const botaoBusca =
 document.getElementById("botao-busca");
 
-```
+
 const areaBusca =
     document.getElementById("area-busca");
 
@@ -384,14 +384,14 @@ campoBusca.addEventListener(
         }
     }
 );
-```
+
 
 }
 
 async function abrirDetalhes(conteudo, tipo) {
 fecharDetalhes();
+    
 
-```
 registrarHistorico(conteudo);
 
 const modal = document.createElement("div");
@@ -471,7 +471,7 @@ try {
             "<p>❌ Não foi possível carregar os detalhes.</p>";
     }
 }
-```
+
 
 }
 
@@ -654,7 +654,7 @@ if (tipo === "serie") {
         detalhes
     );
 }
-```
+
 
 }
 
@@ -663,7 +663,7 @@ modal,
 conteudo
 ) {
 
-```
+
 const botao =
     modal.querySelector(
         ".favorito"
@@ -701,7 +701,7 @@ botao.addEventListener(
             "⭐ Favoritado";
     }
 );
-```
+
 
 }
 
@@ -710,8 +710,8 @@ modal,
 detalhes,
 tipo
 ) {
+    
 
-```
 const area =
     modal.querySelector(
         ".lista-elenco"
@@ -819,7 +819,7 @@ elenco.forEach(
         area.appendChild(card);
     }
 );
-```
+
 
 }
 
@@ -828,7 +828,7 @@ modal,
 serie
 ) {
 
-```
+
 const lista =
     modal.querySelector(
         ".lista-temporadas"
@@ -913,7 +913,7 @@ if (temporadaValida) {
         episodios
     );
 }
-```
+
 
 }
 
@@ -923,7 +923,7 @@ numeroTemporada,
 area
 ) {
 
-```
+
 area.innerHTML =
     "<p>⏳ Carregando episódios...</p>";
 
@@ -1024,13 +1024,13 @@ try {
     area.innerHTML =
         "<p>❌ Não foi possível carregar os episódios.</p>";
 }
-```
+
 
 }
 
 function obterHistorico() {
 
-```
+
 try {
 
     const dados =
@@ -1060,13 +1060,13 @@ try {
 
     return [];
 }
-```
+
 
 }
 
 function registrarHistorico(conteudo) {
 
-```
+
 let historico =
     obterHistorico();
 
@@ -1120,13 +1120,13 @@ localStorage.setItem(
         historico
     )
 );
-```
+
 
 }
 
 function obterFavoritos() {
 
-```
+
 try {
 
     const dados =
@@ -1156,7 +1156,7 @@ try {
 
     return [];
 }
-```
+
 
 }
 
@@ -1164,7 +1164,7 @@ function adicionarFavorito(
 conteudo
 ) {
 
-```
+
 let favoritos =
     obterFavoritos();
 
@@ -1219,13 +1219,13 @@ localStorage.setItem(
 alert(
     "⭐ Conteúdo adicionado aos favoritos!"
 );
-```
+
 
 }
 
 function fecharDetalhes() {
 
-```
+
 const modal =
     document.getElementById(
         "cinefamily-modal"
@@ -1234,7 +1234,7 @@ const modal =
 if (modal) {
     modal.remove();
 }
-```
+
 
 }
 
@@ -1242,7 +1242,7 @@ document.addEventListener(
 "click",
 function(event) {
 
-```
+
     const modal =
         document.getElementById(
             "cinefamily-modal"
@@ -1255,7 +1255,7 @@ function(event) {
         fecharDetalhes();
     }
 }
-```
+
 
 );
 
@@ -1263,7 +1263,7 @@ document.addEventListener(
 "DOMContentLoaded",
 function() {
 
-```
+
     console.log(
         "🚀 CineFamily iniciado."
     );
@@ -1274,6 +1274,6 @@ function() {
 
     carregarFilmes();
 }
-```
+
 
 );
