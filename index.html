@@ -1,363 +1,624 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>CineFamily</title>
+```
+<title>CineFamily</title>
 
-    <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css">
+```
+
 </head>
 
 <body>
 
-    <!-- TOPO -->
-    <header>
+```
+<!-- =========================
+     TOPO
+========================= -->
 
-        <div class="logo">
-            CineFamily
+<header>
+
+    <div class="logo">
+        CineFamily
+    </div>
+
+    <nav>
+        <a href="#tv">TV</a>
+        <a href="#destaques">Destaques</a>
+        <a href="#filmes">Filmes</a>
+        <a href="#series">Séries</a>
+        <a href="#doramas">Doramas</a>
+        <a href="#gl">GL</a>
+        <a href="#kids">Kids</a>
+        <a href="#explorar">Explorar</a>
+    </nav>
+
+    <div class="acoes">
+
+        <span title="Buscar">
+            🔎
+        </span>
+
+        <a
+            href="favoritos.html"
+            title="Meus favoritos">
+            ⭐
+        </a>
+
+        <a
+            href="historico.html"
+            title="Meu histórico">
+            🕘
+        </a>
+
+        <span title="Perfil">
+            👤
+        </span>
+
+    </div>
+
+</header>
+
+
+<!-- =========================
+     CONTEÚDO PRINCIPAL
+========================= -->
+
+<main>
+
+
+    <!-- =========================
+         CARROSSEL
+    ========================= -->
+
+    <section
+        class="carrossel"
+        id="destaques">
+
+        <div class="slide ativo">
+
+            <div class="conteudo-slide">
+
+                <span class="categoria">
+                    🔥 DESTAQUE
+                </span>
+
+                <h1>
+                    O Último Horizonte
+                </h1>
+
+                <p>
+                    Uma aventura começa quando quatro amigos
+                    descobrem um lugar que ninguém conhecia.
+                </p>
+
+                <button class="assistir">
+                    ▶ Assistir agora
+                </button>
+
+            </div>
+
         </div>
 
-        <nav>
-            <a href="#">TV</a>
-            <a href="#">Destaques</a>
-            <a href="#">Filmes</a>
-            <a href="#">Séries</a>
-            <a href="#">Doramas</a>
-            <a href="#">GL</a>
-            <a href="#">Kids</a>
-            <a href="#">Explorar</a>
-        </nav>
 
-       <div class="acoes">
-    <span>🔎</span>
+        <div class="slide">
 
-    <a href="favoritos.html" title="Meus favoritos">
-        ⭐
-    </a>
+            <div class="conteudo-slide">
 
-    <a href="historico.html" title="Meu histórico">
-        🕘
-    </a>
+                <span class="categoria">
+                    📺 SÉRIE
+                </span>
 
-    <span>👤</span>
-</div>
+                <h1>
+                    Além das Estrelas
+                </h1>
 
-    </header>
+                <p>
+                    Uma equipe embarca em uma missão que pode
+                    mudar o futuro da humanidade.
+                </p>
 
-
-    <!-- CARROSSEL -->
-    <main>
-
-        <section class="carrossel">
-
-            <div class="slide ativo">
-                <div class="conteudo-slide">
-                    <span class="categoria">FILME</span>
-
-                    <h1>O Último Horizonte</h1>
-
-                    <p>
-                        Uma aventura começa quando quatro amigos
-                        descobrem um lugar que ninguém conhecia.
-                    </p>
-
-                    <button>▶ Assistir agora</button>
-                </div>
-            </div>
-
-
-            <div class="slide">
-                <div class="conteudo-slide">
-                    <span class="categoria">SÉRIE</span>
-
-                    <h1>Além das Estrelas</h1>
-
-                    <p>
-                        Uma equipe embarca em uma missão que pode
-                        mudar o futuro da humanidade.
-                    </p>
-
-                    <button>▶ Assistir agora</button>
-                </div>
-            </div>
-
-
-            <div class="slide">
-                <div class="conteudo-slide">
-                    <span class="categoria">DORAMA</span>
-
-                    <h1>Nosso Destino</h1>
-
-                    <p>
-                        Duas pessoas descobrem que suas histórias
-                        podem estar ligadas de uma forma inesperada.
-                    </p>
-
-                    <button>▶ Assistir agora</button>
-                </div>
-            </div>
-
-
-            <div class="slide">
-                <div class="conteudo-slide">
-                    <span class="categoria">GL</span>
-
-                    <h1>Entre Nós</h1>
-
-                    <p>
-                        Uma história sobre encontros, escolhas
-                        e sentimentos inesperados.
-                    </p>
-
-                    <button>▶ Assistir agora</button>
-                </div>
-            </div>
-
-
-            <!-- BOTÕES DO CARROSSEL -->
-
-            <button class="anterior" onclick="slideAnterior()">❮</button>
-
-            <button class="proximo" onclick="proximoSlide()">❯</button>
-
-
-            <!-- INDICADORES -->
-
-            <div class="indicadores">
-
-                <span class="indicador ativo" onclick="irParaSlide(0)"></span>
-
-                <span class="indicador" onclick="irParaSlide(1)"></span>
-
-                <span class="indicador" onclick="irParaSlide(2)"></span>
-
-                <span class="indicador" onclick="irParaSlide(3)"></span>
+                <button class="assistir">
+                    ▶ Assistir agora
+                </button>
 
             </div>
 
-        </section>
+        </div>
 
 
-        <!-- FILMES -->
+        <div class="slide">
 
-        <section class="categoria-secao">
+            <div class="conteudo-slide">
 
-            <h2>🎬 Filmes</h2>
+                <span class="categoria">
+                    🇰🇷 DORAMA
+                </span>
 
-            <div class="cards">
+                <h1>
+                    Nosso Destino
+                </h1>
 
-                <div class="card">
-                    <div class="imagem-card">🎬</div>
-                    <h3>O Último Horizonte</h3>
-                </div>
+                <p>
+                    Duas pessoas descobrem que suas histórias
+                    podem estar ligadas de uma forma inesperada.
+                </p>
 
-                <div class="card">
-                    <div class="imagem-card">🚀</div>
-                    <h3>Além das Estrelas</h3>
-                </div>
-
-                <div class="card">
-                    <div class="imagem-card">🗺️</div>
-                    <h3>A Grande Aventura</h3>
-                </div>
-
-                <div class="card">
-                    <div class="imagem-card">❤️</div>
-                    <h3>Nosso Destino</h3>
-                </div>
-
-                <div class="card">
-                    <div class="imagem-card">🕵️</div>
-                    <h3>O Mistério</h3>
-                </div>
+                <button class="assistir">
+                    ▶ Assistir agora
+                </button>
 
             </div>
 
-        </section>
+        </div>
 
 
-        <!-- SÉRIES -->
+        <div class="slide">
 
-        <section class="categoria-secao">
+            <div class="conteudo-slide">
 
-            <h2>📺 Séries</h2>
+                <span class="categoria">
+                    🌈 GL
+                </span>
 
-            <div class="cards">
+                <h1>
+                    Entre Nós
+                </h1>
 
-                <div class="card">
-                    <div class="imagem-card">🌌</div>
-                    <h3>Além das Estrelas</h3>
-                </div>
+                <p>
+                    Uma história sobre encontros, escolhas
+                    e sentimentos inesperados.
+                </p>
 
-                <div class="card">
-                    <div class="imagem-card">🏙️</div>
-                    <h3>Cidade Secreta</h3>
-                </div>
-
-                <div class="card">
-                    <div class="imagem-card">🔍</div>
-                    <h3>O Investigador</h3>
-                </div>
-
-                <div class="card">
-                    <div class="imagem-card">⚔️</div>
-                    <h3>Reino Perdido</h3>
-                </div>
-
-                <div class="card">
-                    <div class="imagem-card">👽</div>
-                    <h3>Contato</h3>
-                </div>
+                <button class="assistir">
+                    ▶ Assistir agora
+                </button>
 
             </div>
 
-        </section>
+        </div>
 
 
-        <!-- DORAMAS -->
+        <!-- BOTÕES -->
 
-        <section class="categoria-secao">
+        <button
+            class="anterior"
+            onclick="slideAnterior()">
+            ❮
+        </button>
 
-            <h2>🇰🇷 Doramas</h2>
+        <button
+            class="proximo"
+            onclick="proximoSlide()">
+            ❯
+        </button>
 
-            <div class="cards">
 
-                <div class="card">
-                    <div class="imagem-card">🌸</div>
-                    <h3>Nosso Destino</h3>
+        <!-- INDICADORES -->
+
+        <div class="indicadores">
+
+            <span
+                class="indicador ativo"
+                onclick="irParaSlide(0)">
+            </span>
+
+            <span
+                class="indicador"
+                onclick="irParaSlide(1)">
+            </span>
+
+            <span
+                class="indicador"
+                onclick="irParaSlide(2)">
+            </span>
+
+            <span
+                class="indicador"
+                onclick="irParaSlide(3)">
+            </span>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =========================
+         FILMES EM DESTAQUE
+    ========================= -->
+
+    <section
+        class="categoria-secao"
+        id="filmes">
+
+        <h2>
+            🔥 Filmes em destaque
+        </h2>
+
+        <div class="cards">
+
+            <!-- O script.js coloca os filmes do TMDB aqui -->
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =========================
+         MAIS BEM AVALIADOS
+    ========================= -->
+
+    <section
+        class="categoria-secao"
+        id="avaliados">
+
+        <h2>
+            ⭐ Mais bem avaliados
+        </h2>
+
+        <div class="cards">
+
+            <div class="card">
+
+                <div class="imagem-card">
+                    ⭐
                 </div>
 
-                <div class="card">
-                    <div class="imagem-card">💌</div>
-                    <h3>Carta de Amor</h3>
-                </div>
+                <h3>
+                    Em breve
+                </h3>
 
-                <div class="card">
-                    <div class="imagem-card">☔</div>
-                    <h3>Depois da Chuva</h3>
-                </div>
-
-                <div class="card">
-                    <div class="imagem-card">🌙</div>
-                    <h3>Uma Noite em Seul</h3>
-                </div>
-
-                <div class="card">
-                    <div class="imagem-card">🎓</div>
-                    <h3>Nosso Primeiro Dia</h3>
-                </div>
+                <p>
+                    Conteúdos selecionados
+                </p>
 
             </div>
 
-        </section>
+        </div>
+
+    </section>
 
 
-        <!-- GL -->
 
-        <section class="categoria-secao">
+    <!-- =========================
+         LANÇAMENTOS
+    ========================= -->
 
-            <h2>🌈 GL</h2>
+    <section
+        class="categoria-secao"
+        id="lancamentos">
 
-            <div class="cards">
+        <h2>
+            🆕 Lançamentos
+        </h2>
 
-                <div class="card">
-                    <div class="imagem-card">💜</div>
-                    <h3>Entre Nós</h3>
+        <div class="cards">
+
+            <div class="card">
+
+                <div class="imagem-card">
+                    🆕
                 </div>
 
-                <div class="card">
-                    <div class="imagem-card">🌈</div>
-                    <h3>Novos Caminhos</h3>
-                </div>
+                <h3>
+                    Novidades
+                </h3>
 
-                <div class="card">
-                    <div class="imagem-card">❤️</div>
-                    <h3>Primeiro Encontro</h3>
-                </div>
-
-                <div class="card">
-                    <div class="imagem-card">🌙</div>
-                    <h3>Quando Te Encontrei</h3>
-                </div>
+                <p>
+                    Em breve
+                </p>
 
             </div>
 
-        </section>
+        </div>
+
+    </section>
 
 
-        <!-- TV -->
 
-        <section class="categoria-secao">
+    <!-- =========================
+         SÉRIES
+    ========================= -->
 
-            <h2>📡 TV ao vivo</h2>
+    <section
+        class="categoria-secao"
+        id="series">
 
-            <div class="cards">
+        <h2>
+            📺 Séries
+        </h2>
 
-                <div class="card tv">
-                    <div class="imagem-card">📺</div>
-                    <h3>CineFamily News</h3>
+        <div class="cards">
+
+            <div class="card">
+
+                <div class="imagem-card">
+                    📺
                 </div>
 
-                <div class="card tv">
-                    <div class="imagem-card">⚽</div>
-                    <h3>CineFamily Esportes</h3>
-                </div>
+                <h3>
+                    Séries em breve
+                </h3>
 
-                <div class="card tv">
-                    <div class="imagem-card">🎵</div>
-                    <h3>CineFamily Music</h3>
-                </div>
-
-                <div class="card tv">
-                    <div class="imagem-card">👧</div>
-                    <h3>CineFamily Kids</h3>
-                </div>
+                <p>
+                    Catálogo CineFamily
+                </p>
 
             </div>
 
-        </section>
+        </div>
+
+    </section>
 
 
-        <!-- KIDS -->
 
-        <section class="categoria-secao">
+    <!-- =========================
+         DORAMAS
+    ========================= -->
 
-            <h2>👧 Kids</h2>
+    <section
+        class="categoria-secao"
+        id="doramas">
 
-            <div class="cards">
+        <h2>
+            🇰🇷 Doramas
+        </h2>
 
-                <div class="card">
-                    <div class="imagem-card">🦁</div>
-                    <h3>Aventuras na Floresta</h3>
+        <div class="cards">
+
+            <div class="card">
+
+                <div class="imagem-card">
+                    🇰🇷
                 </div>
 
-                <div class="card">
-                    <div class="imagem-card">🚂</div>
-                    <h3>O Trem Mágico</h3>
-                </div>
+                <h3>
+                    Doramas
+                </h3>
 
-                <div class="card">
-                    <div class="imagem-card">🐉</div>
-                    <h3>O Pequeno Dragão</h3>
-                </div>
-
-                <div class="card">
-                    <div class="imagem-card">🚀</div>
-                    <h3>Viagem Espacial</h3>
-                </div>
+                <p>
+                    Em breve
+                </p>
 
             </div>
 
-        </section>
+        </div>
 
-    </main>
+    </section>
 
 
-    <!-- JAVASCRIPT -->
 
-    <script src="script.js"></script>
+    <!-- =========================
+         GL
+    ========================= -->
+
+    <section
+        class="categoria-secao"
+        id="gl">
+
+        <h2>
+            🌈 GL
+        </h2>
+
+        <div class="cards">
+
+            <div class="card">
+
+                <div class="imagem-card">
+                    🌈
+                </div>
+
+                <h3>
+                    GL
+                </h3>
+
+                <p>
+                    Em breve
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =========================
+         TV AO VIVO
+    ========================= -->
+
+    <section
+        class="categoria-secao"
+        id="tv">
+
+        <h2>
+            📡 TV ao vivo
+        </h2>
+
+        <div class="cards">
+
+            <div class="card tv">
+
+                <div class="imagem-card">
+                    📺
+                </div>
+
+                <h3>
+                    CineFamily News
+                </h3>
+
+                <p>
+                    Em breve
+                </p>
+
+            </div>
+
+
+            <div class="card tv">
+
+                <div class="imagem-card">
+                    ⚽
+                </div>
+
+                <h3>
+                    CineFamily Esportes
+                </h3>
+
+                <p>
+                    Em breve
+                </p>
+
+            </div>
+
+
+            <div class="card tv">
+
+                <div class="imagem-card">
+                    🎵
+                </div>
+
+                <h3>
+                    CineFamily Music
+                </h3>
+
+                <p>
+                    Em breve
+                </p>
+
+            </div>
+
+
+            <div class="card tv">
+
+                <div class="imagem-card">
+                    👧
+                </div>
+
+                <h3>
+                    CineFamily Kids
+                </h3>
+
+                <p>
+                    Em breve
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =========================
+         KIDS
+    ========================= -->
+
+    <section
+        class="categoria-secao"
+        id="kids">
+
+        <h2>
+            👧 Kids
+        </h2>
+
+        <div class="cards">
+
+            <div class="card">
+
+                <div class="imagem-card">
+                    🦁
+                </div>
+
+                <h3>
+                    Aventuras na Floresta
+                </h3>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="imagem-card">
+                    🚂
+                </div>
+
+                <h3>
+                    O Trem Mágico
+                </h3>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="imagem-card">
+                    🐉
+                </div>
+
+                <h3>
+                    O Pequeno Dragão
+                </h3>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="imagem-card">
+                    🚀
+                </div>
+
+                <h3>
+                    Viagem Espacial
+                </h3>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =========================
+         EXPLORAR
+    ========================= -->
+
+    <section
+        class="categoria-secao"
+        id="explorar">
+
+        <h2>
+            🔎 Explorar
+        </h2>
+
+        <p style="color:#aaa;">
+            Encontre filmes, séries e conteúdos
+            para assistir no CineFamily.
+        </p>
+
+    </section>
+
+
+</main>
+
+
+
+<!-- =========================
+     JAVASCRIPT
+========================= -->
+
+<script src="script.js"></script>
+```
 
 </body>
 
