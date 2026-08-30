@@ -1,4 +1,3 @@
-```css
 * {
     box-sizing: border-box;
     margin: 0;
@@ -6,8 +5,8 @@
 }
 
 body {
-    background: #0b0b0f;
-    color: white;
+    background: #08080c;
+    color: #ffffff;
     font-family: Arial, sans-serif;
 }
 
@@ -17,43 +16,28 @@ body {
 
 header {
     width: 100%;
-    min-height: 75px;
-    padding: 18px 5%;
+    height: 75px;
+    padding: 0 5%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 25px;
-
-    background: rgba(8, 8, 11, 0.96);
+    background: rgba(8, 8, 12, 0.96);
     border-bottom: 1px solid #202027;
-
     position: sticky;
     top: 0;
-    z-index: 100;
-
-    backdrop-filter: blur(10px);
+    z-index: 1000;
 }
 
 .logo {
     font-size: 29px;
-    font-weight: 800;
+    font-weight: bold;
     letter-spacing: 1px;
-
-    background: linear-gradient(
-        90deg,
-        #ffffff,
-        #d4af37
-    );
-
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-
-    white-space: nowrap;
+    color: #ffffff;
 }
 
-/* =========================
-   MENU
-========================= */
+.logo::first-letter {
+    color: #d4af37;
+}
 
 nav {
     display: flex;
@@ -62,47 +46,37 @@ nav {
 }
 
 nav a {
-    color: #aaa;
+    color: #ffffff;
     text-decoration: none;
     font-size: 15px;
-    font-weight: 600;
-
-    transition:
-        color 0.25s ease,
-        transform 0.25s ease;
+    opacity: 0.7;
+    transition: all 0.25s ease;
 }
 
 nav a:hover {
+    opacity: 1;
     color: #d4af37;
-    transform: translateY(-2px);
 }
-
-/* =========================
-   AÇÕES
-========================= */
 
 .acoes {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 18px;
     font-size: 20px;
 }
 
-.acoes span,
-.acoes a {
-    color: #ddd;
+.acoes a,
+.acoes span {
+    color: #ffffff;
     text-decoration: none;
     cursor: pointer;
-
-    transition:
-        color 0.25s ease,
-        transform 0.25s ease;
+    transition: 0.25s ease;
 }
 
-.acoes span:hover,
-.acoes a:hover {
+.acoes a:hover,
+.acoes span:hover {
     color: #d4af37;
-    transform: scale(1.15);
+    transform: scale(1.1);
 }
 
 /* =========================
@@ -111,37 +85,28 @@ nav a:hover {
 
 .carrossel {
     position: relative;
-    min-height: 520px;
+    min-height: 540px;
     overflow: hidden;
-
-    background:
-        radial-gradient(
-            circle at 75% 40%,
-            rgba(40, 65, 120, 0.25),
-            transparent 40%
-        ),
-        linear-gradient(
-            90deg,
-            #101015,
-            #171720,
-            #101015
-        );
+    background: #111116;
 }
 
 .slide {
     display: none;
-
-    min-height: 520px;
+    min-height: 540px;
     padding: 100px 8%;
-
     align-items: center;
-
+    position: relative;
     background:
+        radial-gradient(
+            circle at 75% 40%,
+            rgba(212, 175, 55, 0.12),
+            transparent 35%
+        ),
         linear-gradient(
             90deg,
-            rgba(10, 10, 15, 0.98),
-            rgba(15, 15, 22, 0.75),
-            rgba(10, 10, 15, 0.25)
+            #111116 0%,
+            #17171f 55%,
+            #0b0b0f 100%
         );
 }
 
@@ -150,32 +115,29 @@ nav a:hover {
 }
 
 .conteudo-slide {
-    max-width: 600px;
+    max-width: 650px;
 }
 
 .categoria {
     display: inline-block;
-
+    margin-bottom: 15px;
     color: #d4af37;
-
     font-size: 14px;
     font-weight: bold;
-
     letter-spacing: 1px;
-
-    margin-bottom: 15px;
 }
 
 .conteudo-slide h1 {
-    font-size: 52px;
+    font-size: 54px;
     line-height: 1.1;
     margin-bottom: 20px;
 }
 
 .conteudo-slide p {
+    max-width: 580px;
     font-size: 18px;
     line-height: 1.6;
-    color: #ccc;
+    color: #d0d0d5;
     margin-bottom: 28px;
 }
 
@@ -186,70 +148,53 @@ nav a:hover {
 button {
     border: none;
     cursor: pointer;
-    font-family: Arial, sans-serif;
+    font-family: inherit;
 }
 
-/* Botão assistir */
-
-.conteudo-slide button,
-.assistir {
+.assistir,
+.conteudo-slide button {
     padding: 14px 24px;
-
     border-radius: 8px;
-
     background: #ffffff;
-    color: #111;
-
+    color: #08080c;
     font-weight: bold;
     font-size: 15px;
-
-    transition:
-        transform 0.25s ease,
-        background 0.25s ease,
-        box-shadow 0.25s ease;
+    transition: all 0.25s ease;
 }
 
-.conteudo-slide button:hover,
-.assistir:hover {
+.assistir:hover,
+.conteudo-slide button:hover {
     background: #d4af37;
-    color: #050505;
-
+    color: #08080c;
     transform: translateY(-2px);
-
-    box-shadow:
-        0 8px 25px rgba(212, 175, 55, 0.25);
+    box-shadow: 0 8px 25px rgba(212, 175, 55, 0.2);
 }
 
 /* =========================
-   SETAS DO CARROSSEL
+   SETAS
 ========================= */
 
 .anterior,
 .proximo {
     position: absolute;
     top: 50%;
-
     transform: translateY(-50%);
-
-    background: rgba(0, 0, 0, 0.55);
-
-    border: 1px solid rgba(255, 255, 255, 0.15);
-
-    color: white;
-
     width: 48px;
     height: 48px;
-
     border-radius: 50%;
-
-    font-size: 22px;
-
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-size: 21px;
     z-index: 5;
+    transition: all 0.25s ease;
+}
 
-    transition:
-        background 0.25s ease,
-        transform 0.25s ease,
-        border-color 0.25s ease;
+.anterior:hover,
+.proximo:hover {
+    background: #d4af37;
+    color: #08080c;
+    transform: translateY(-50%) scale(1.08);
 }
 
 .anterior {
@@ -260,30 +205,15 @@ button {
     right: 20px;
 }
 
-.anterior:hover,
-.proximo:hover {
-    background: #d4af37;
-    color: #080808;
-
-    border-color: #d4af37;
-
-    transform:
-        translateY(-50%)
-        scale(1.08);
-}
-
 /* =========================
    INDICADORES
 ========================= */
 
 .indicadores {
     position: absolute;
-
     bottom: 25px;
     left: 50%;
-
     transform: translateX(-50%);
-
     display: flex;
     gap: 9px;
 }
@@ -291,16 +221,10 @@ button {
 .indicador {
     width: 9px;
     height: 9px;
-
     border-radius: 50%;
-
-    background: #555;
-
+    background: #55555e;
     cursor: pointer;
-
-    transition:
-        width 0.25s ease,
-        background 0.25s ease;
+    transition: 0.25s ease;
 }
 
 .indicador.ativo {
@@ -310,7 +234,7 @@ button {
 }
 
 /* =========================
-   CATEGORIAS
+   SEÇÕES
 ========================= */
 
 .categoria-secao {
@@ -324,11 +248,8 @@ button {
 
 .categoria-secao h2 {
     margin-bottom: 22px;
-
-    font-size: 25px;
-    font-weight: 700;
-
-    color: #f5f5f5;
+    font-size: 26px;
+    letter-spacing: 0.2px;
 }
 
 /* =========================
@@ -338,14 +259,13 @@ button {
 .cards {
     display: flex;
     gap: 18px;
-
     overflow-x: auto;
-
     padding: 5px 3px 18px;
+    scroll-behavior: smooth;
 }
 
 .cards::-webkit-scrollbar {
-    height: 7px;
+    height: 6px;
 }
 
 .cards::-webkit-scrollbar-track {
@@ -354,86 +274,55 @@ button {
 }
 
 .cards::-webkit-scrollbar-thumb {
-    background: #3b3b45;
+    background: #3c3c45;
     border-radius: 10px;
-}
-
-.cards::-webkit-scrollbar-thumb:hover {
-    background: #d4af37;
 }
 
 .card {
     min-width: 180px;
     width: 180px;
-
     cursor: pointer;
-
-    transition:
-        transform 0.25s ease,
-        filter 0.25s ease;
+    transition: transform 0.25s ease;
 }
 
 .card:hover {
-    transform: translateY(-6px) scale(1.03);
-    filter: brightness(1.08);
+    transform: scale(1.05);
 }
-
-/* =========================
-   IMAGEM DOS CARDS
-========================= */
 
 .imagem-card {
     width: 100%;
     height: 270px;
-
     border-radius: 10px;
-
     overflow: hidden;
-
-    background: #1b1b22;
-
+    background: #17171e;
     display: flex;
     align-items: center;
     justify-content: center;
-
     font-size: 45px;
-
     border: 1px solid #24242c;
-
-    box-shadow:
-        0 8px 20px rgba(0, 0, 0, 0.25);
 }
 
 .imagem-card img {
     width: 100%;
     height: 100%;
-
     object-fit: cover;
-
     display: block;
-
-    transition:
-        transform 0.35s ease;
+    transition: transform 0.35s ease;
 }
 
 .card:hover .imagem-card img {
-    transform: scale(1.05);
+    transform: scale(1.04);
 }
 
 .card h3 {
     margin-top: 11px;
-
-    font-size: 16px;
+    font-size: 15px;
     line-height: 1.3;
-
-    color: #f2f2f2;
 }
 
 .card p {
     margin-top: 6px;
-
-    color: #bbb;
-
+    color: #c6c6cc;
     font-size: 14px;
 }
 
@@ -443,35 +332,20 @@ button {
 
 #limpar-historico {
     margin-top: 5px;
-
     padding: 11px 18px;
-
     border-radius: 8px;
-
-    background: #18181e;
-
-    border: 1px solid #34343e;
-
-    color: #ccc;
-
-    font-weight: 600;
+    background: #202027;
+    border: 1px solid #33333d;
+    color: #dddddf;
+    font-weight: bold;
     font-size: 14px;
-
-    transition:
-        background 0.25s ease,
-        color 0.25s ease,
-        border-color 0.25s ease,
-        transform 0.25s ease;
+    transition: all 0.25s ease;
 }
 
 #limpar-historico:hover {
-    background: #30252a;
-
+    background: #33262a;
     border-color: #71363d;
-
     color: #ff8585;
-
-    transform: translateY(-2px);
 }
 
 /* =========================
@@ -480,47 +354,23 @@ button {
 
 .remover-favorito {
     margin-top: 12px;
-
     width: 100%;
-
     padding: 10px 14px;
-
     border-radius: 8px;
-
-    background: #15151b;
-
-    border: 1px solid #303039;
-
-    color: #999;
-
+    background: #18181e;
+    border: 1px solid #30303a;
+    color: #aaaab2;
     font-size: 13px;
     font-weight: 600;
-
     cursor: pointer;
-
-    transition:
-        background 0.25s ease,
-        color 0.25s ease,
-        border-color 0.25s ease,
-        transform 0.2s ease,
-        box-shadow 0.25s ease;
+    transition: all 0.25s ease;
 }
 
 .remover-favorito:hover {
-    background: rgba(150, 35, 45, 0.18);
-
-    border-color: #8b3d45;
-
-    color: #ff8585;
-
+    background: #321d21;
+    border-color: #71363d;
+    color: #ff7b7b;
     transform: translateY(-2px);
-
-    box-shadow:
-        0 5px 15px rgba(150, 35, 45, 0.15);
-}
-
-.remover-favorito:active {
-    transform: translateY(0) scale(0.98);
 }
 
 /* =========================
@@ -529,96 +379,51 @@ button {
 
 #cinefamily-modal {
     position: fixed;
-
     inset: 0;
-
     background: rgba(0, 0, 0, 0.88);
-
+    backdrop-filter: blur(5px);
     z-index: 9999;
-
     display: flex;
-
     align-items: center;
     justify-content: center;
-
     padding: 30px;
-
-    backdrop-filter: blur(5px);
 }
 
 .detalhes-filme {
     position: relative;
-
     width: 90%;
     max-width: 950px;
-
     max-height: 90vh;
-
     overflow-y: auto;
-
-    background:
-        linear-gradient(
-            145deg,
-            #1b1b22,
-            #121217
-        );
-
+    background: #15151c;
     border: 1px solid #292932;
-
     border-radius: 16px;
-
     padding: 35px;
-
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.6);
 }
-
-/* =========================
-   FECHAR DETALHES
-========================= */
 
 .fechar-detalhes {
     position: absolute;
-
-    right: 20px;
-    top: 15px;
-
+    right: 18px;
+    top: 18px;
     width: 40px;
     height: 40px;
-
     border-radius: 50%;
-
-    background: #25252d;
-
-    border: 1px solid #383842;
-
-    color: white;
-
+    background: #292930;
+    color: #ffffff;
     font-size: 20px;
-
-    transition:
-        background 0.25s ease,
-        color 0.25s ease,
-        transform 0.25s ease;
+    transition: 0.25s ease;
 }
 
 .fechar-detalhes:hover {
     background: #d4af37;
-
-    color: #080808;
-
+    color: #08080c;
     transform: rotate(90deg);
 }
 
-/* =========================
-   CONTEÚDO DETALHES
-========================= */
-
 .detalhes-conteudo {
     display: flex;
-
     gap: 35px;
-
     align-items: flex-start;
 }
 
@@ -629,13 +434,7 @@ button {
 
 .detalhes-poster img {
     width: 100%;
-
     border-radius: 10px;
-
-    display: block;
-
-    box-shadow:
-        0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 .detalhes-info {
@@ -644,70 +443,42 @@ button {
 
 .detalhes-info h1 {
     font-size: 38px;
-
-    line-height: 1.15;
-
     margin: 12px 0;
 }
 
 .nota,
 .data {
     margin: 10px 0;
-
-    color: #ddd;
+    color: #dddddf;
 }
 
 .sinopse {
     margin-top: 25px;
-
-    color: #ccc;
-
+    color: #c6c6cc;
     line-height: 1.7;
-
     font-size: 16px;
 }
 
-/* =========================
-   BOTÕES DOS DETALHES
-========================= */
-
 .botoes-detalhes {
     display: flex;
-
     gap: 15px;
-
     margin-top: 30px;
-
-    flex-wrap: wrap;
 }
 
 .favorito {
     padding: 14px 22px;
-
     border-radius: 8px;
-
     background: #202027;
-
-    border: 1px solid #34343e;
-
-    color: white;
-
+    border: 1px solid #383842;
+    color: #ffffff;
     font-weight: bold;
-
-    transition:
-        background 0.25s ease,
-        border-color 0.25s ease,
-        color 0.25s ease,
-        transform 0.25s ease;
+    transition: all 0.25s ease;
 }
 
 .favorito:hover {
     background: #d4af37;
-
     border-color: #d4af37;
-
-    color: #080808;
-
+    color: #08080c;
     transform: translateY(-2px);
 }
 
@@ -717,10 +488,8 @@ button {
 
 #nenhum-historico,
 #nenhum-favorito {
-    color: #888;
-
+    color: #9999a2;
     margin-top: 20px;
-
     font-size: 16px;
 }
 
@@ -731,37 +500,23 @@ button {
 @media (max-width: 800px) {
 
     header {
+        height: auto;
+        min-height: 75px;
         flex-wrap: wrap;
-
         gap: 15px;
-
-        padding: 16px 5%;
-    }
-
-    .logo {
-        font-size: 25px;
+        padding-top: 15px;
+        padding-bottom: 15px;
     }
 
     nav {
         order: 3;
-
         width: 100%;
-
         overflow-x: auto;
-
-        padding-bottom: 6px;
-
-        gap: 20px;
-
-        scrollbar-width: none;
+        padding-bottom: 5px;
     }
 
-    nav::-webkit-scrollbar {
-        display: none;
-    }
-
-    .acoes {
-        gap: 13px;
+    nav a {
+        white-space: nowrap;
     }
 
     .carrossel,
@@ -770,7 +525,7 @@ button {
     }
 
     .slide {
-        padding: 80px 8%;
+        padding: 70px 8%;
     }
 
     .conteudo-slide h1 {
@@ -779,30 +534,6 @@ button {
 
     .conteudo-slide p {
         font-size: 16px;
-    }
-
-    .anterior,
-    .proximo {
-        width: 40px;
-        height: 40px;
-
-        font-size: 18px;
-    }
-
-    .anterior {
-        left: 10px;
-    }
-
-    .proximo {
-        right: 10px;
-    }
-
-    .categoria-secao {
-        padding: 30px 5%;
-    }
-
-    .categoria-secao h2 {
-        font-size: 22px;
     }
 
     .detalhes-conteudo {
@@ -830,9 +561,30 @@ button {
     .botoes-detalhes {
         flex-direction: column;
     }
+}
 
-    .botoes-detalhes button {
-        width: 100%;
+@media (max-width: 500px) {
+
+    .logo {
+        font-size: 24px;
+    }
+
+    .acoes {
+        gap: 12px;
+        font-size: 18px;
+    }
+
+    .conteudo-slide h1 {
+        font-size: 30px;
+    }
+
+    .anterior,
+    .proximo {
+        width: 40px;
+        height: 40px;
+    }
+
+    .categoria-secao {
+        padding: 28px 5%;
     }
 }
-```
