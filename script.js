@@ -42,53 +42,83 @@ function irParaSlide(numero) {
 }
 
 async function buscarTMDB(endpoint) {
-    const resposta = await fetch(TMDB_WORKER + endpoint);
 
-    console.log("📡 Worker:", endpoint, resposta.status);
+    const resposta =
+        await fetch(TMDB_WORKER + endpoint);
+
+    console.log(
+        "📡 Worker:",
+        endpoint,
+        resposta.status
+    );
 
     if (!resposta.ok) {
-        throw new Error("Erro HTTP " + resposta.status);
+        throw new Error(
+            "Erro HTTP " + resposta.status
+        );
     }
 
     return await resposta.json();
 }
 
 function criarCard(filme) {
-    const card = document.createElement("div");
+
+    const card =
+        document.createElement("div");
+
     card.className = "card";
 
     const imagem = filme.poster_path
         ? IMG + filme.poster_path
         : "";
 
-    const titulo = filme.title || filme.name || "Sem título";
+    const titulo =
+        filme.title ||
+        filme.name ||
+        "Sem título";
 
-    const nota = filme.vote_average
-        ? Number(filme.vote_average).toFixed(1)
-        : "N/A";
+    const nota =
+        filme.vote_average
+            ? Number(filme.vote_average).toFixed(1)
+            : "N/A";
 
     card.innerHTML =
         '<div class="imagem-card">' +
             (
                 imagem
-                    ? '<img src="' + imagem + '" alt="' + titulo + '" loading="lazy">'
+                    ? '<img src="' +
+                        imagem +
+                        '" alt="' +
+                        titulo +
+                        '" loading="lazy">'
                     : "🎬"
             ) +
         '</div>' +
-        '<h3>' + titulo + '</h3>' +
-        '<p>⭐ ' + nota + '</p>';
 
-    card.addEventListener("click", function() {
-        abrirDetalhes(filme);
-    });
+        '<h3>' +
+            titulo +
+        '</h3>' +
+
+        '<p>⭐ ' +
+            nota +
+        '</p>';
+
+    card.addEventListener(
+        "click",
+        function() {
+            abrirDetalhes(filme);
+        }
+    );
 
     return card;
 }
 
 function mostrarNaSecao(secao, filmes) {
+
     if (!secao) return;
 
-    const cards = secao.querySelector(".cards");
+    const cards =
+        secao.querySelector(".cards");
 
     if (!cards) return;
 
@@ -100,19 +130,31 @@ function mostrarNaSecao(secao, filmes) {
         })
         .slice(0, 10)
         .forEach(function(filme) {
-            cards.appendChild(criarCard(filme));
+
+            cards.appendChild(
+                criarCard(filme)
+            );
+
         });
 }
 
 async function carregarFilmes() {
-    const secoes = document.querySelectorAll(".categoria-secao");
+
+    const secoes =
+        document.querySelectorAll(
+            ".categoria-secao"
+        );
 
     if (!secoes.length) return;
 
-    console.log("🎬 Carregando catálogo CineFamily...");
+    console.log(
+        "🎬 Carregando catálogo CineFamily..."
+    );
 
     try {
-        const destaque = await buscarTMDB("/filmes");
+
+        const destaque =
+            await buscarTMDB("/filmes");
 
         mostrarNaSecao(
             secoes[0],
@@ -122,9 +164,11 @@ async function carregarFilmes() {
         );
 
         if (secoes[1]) {
-            const avaliados = await buscarTMDB(
-                "/filmes?sort_by=vote_average.desc"
-            );
+
+            const avaliados =
+                await buscarTMDB(
+                    "/filmes?sort_by=vote_average.desc"
+                );
 
             mostrarNaSecao(
                 secoes[1],
@@ -135,9 +179,11 @@ async function carregarFilmes() {
         }
 
         if (secoes[2]) {
-            const lancamentos = await buscarTMDB(
-                "/filmes?sort_by=primary_release_date.desc"
-            );
+
+            const lancamentos =
+                await buscarTMDB(
+                    "/filmes?sort_by=primary_release_date.desc"
+                );
 
             mostrarNaSecao(
                 secoes[2],
@@ -147,57 +193,199 @@ async function carregarFilmes() {
             );
         }
 
-        console.log("✅ Filmes carregados!");
+        console.log(
+            "✅ Filmes carregados!"
+        );
+
     } catch (erro) {
-        console.error("❌ Erro ao carregar filmes:", erro);
+
+        console.error(
+            "❌ Erro ao carregar filmes:",
+            erro
+        );
     }
 }
 
-async function realizarBusca() {
-    const campo = document.getElementById("campo-busca");
-    const resultados = document.getElementById("resultados-busca");
-    const buscaCards = resultados
-        ? resultados.querySelector(".cards")
-        : null;
 
-    if (!campo || !resultados || !buscaCards) return;
+/* =========================
+   SÉRIES
+========================= */
 
-    const texto = campo.value.trim();
+async function carregarSeries() {
 
-    if (!texto) {
-        resultados.style.display = "none";
-        return;
-    }
+    const secao =
+        document.getElementById("series");
 
-    console.log("🔎 Buscando:", texto);
+    if (!secao) return;
 
-    resultados.style.display = "block";
-    buscaCards.innerHTML = "<p>🔎 Buscando...</p>";
+    const cards =
+        secao.querySelector(".cards");
+
+    if (!cards) return;
+
+    console.log(
+        "📺 Carregando séries..."
+    );
+
+    cards.innerHTML =
+        "<p>📺 Carregando séries...</p>";
 
     try {
-        const dados = await buscarTMDB(
-            "/buscar?query=" + encodeURIComponent(texto)
-        );
 
-        const filmes = Array.isArray(dados.results)
-            ? dados.results
-            : [];
+        const dados =
+            await buscarTMDB("/series");
 
-        buscaCards.innerHTML = "";
+        const series =
+            Array.isArray(dados.results)
+                ? dados.results
+                : [];
 
-        const filmesComCapa = filmes.filter(function(filme) {
-            return filme.poster_path;
-        });
+        cards.innerHTML = "";
 
-        if (!filmesComCapa.length) {
-            buscaCards.innerHTML =
-                '<p id="busca-vazia">Nenhum filme encontrado.</p>';
+        const seriesComCapa =
+            series.filter(function(serie) {
+                return serie.poster_path;
+            });
+
+        if (!seriesComCapa.length) {
+
+            cards.innerHTML =
+                "<p>Nenhuma série encontrada.</p>";
+
             return;
         }
 
-        filmesComCapa.slice(0, 20).forEach(function(filme) {
-            buscaCards.appendChild(criarCard(filme));
-        });
+        seriesComCapa
+            .slice(0, 10)
+            .forEach(function(serie) {
+
+                cards.appendChild(
+                    criarCard(serie)
+                );
+
+            });
+
+        console.log(
+            "✅ Séries carregadas:",
+            seriesComCapa.length
+        );
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao carregar séries:",
+            erro
+        );
+
+        cards.innerHTML =
+            "<p>❌ Não foi possível carregar as séries.</p>";
+    }
+}
+
+
+/* =========================
+   BUSCA
+========================= */
+
+async function realizarBusca() {
+
+    const campo =
+        document.getElementById(
+            "campo-busca"
+        );
+
+    const resultados =
+        document.getElementById(
+            "resultados-busca"
+        );
+
+    const buscaCards =
+        resultados
+            ? resultados.querySelector(
+                ".cards"
+            )
+            : null;
+
+    if (
+        !campo ||
+        !resultados ||
+        !buscaCards
+    ) {
+        return;
+    }
+
+    const texto =
+        campo.value.trim();
+
+    if (!texto) {
+
+        resultados.style.display =
+            "none";
+
+        return;
+    }
+
+    console.log(
+        "🔎 Buscando:",
+        texto
+    );
+
+    resultados.style.display =
+        "block";
+
+    buscaCards.innerHTML =
+        "<p>🔎 Buscando...</p>";
+
+    try {
+
+        const dados =
+            await buscarTMDB(
+                "/buscar?query=" +
+                encodeURIComponent(texto)
+            );
+
+        const resultadosTMDB =
+            Array.isArray(dados.results)
+                ? dados.results
+                : [];
+
+        buscaCards.innerHTML = "";
+
+        const encontrados =
+            resultadosTMDB.filter(
+                function(item) {
+
+                    return (
+                        item.poster_path &&
+                        (
+                            item.media_type === "movie" ||
+                            item.media_type === "tv" ||
+                            item.title ||
+                            item.name
+                        )
+                    );
+                }
+            );
+
+        if (!encontrados.length) {
+
+            buscaCards.innerHTML =
+                '<p id="busca-vazia">' +
+                'Nenhum filme ou série encontrado.' +
+                '</p>';
+
+            return;
+        }
+
+        encontrados
+            .slice(0, 20)
+            .forEach(function(item) {
+
+                buscaCards.appendChild(
+                    criarCard(item)
+                );
+
+            });
 
         resultados.scrollIntoView({
             behavior: "smooth",
@@ -205,98 +393,196 @@ async function realizarBusca() {
         });
 
     } catch (erro) {
-        console.error("❌ Erro na busca:", erro);
+
+        console.error(
+            "❌ Erro na busca:",
+            erro
+        );
 
         buscaCards.innerHTML =
-            '<p id="busca-vazia">Não foi possível realizar a busca.</p>';
+            '<p id="busca-vazia">' +
+            'Não foi possível realizar a busca.' +
+            '</p>';
     }
 }
 
 function configurarBusca() {
-    const botaoBusca = document.getElementById("botao-busca");
-    const areaBusca = document.getElementById("area-busca");
-    const campoBusca = document.getElementById("campo-busca");
-    const fecharBusca = document.getElementById("fechar-busca");
 
-    if (!botaoBusca || !areaBusca || !campoBusca) {
+    const botaoBusca =
+        document.getElementById(
+            "botao-busca"
+        );
+
+    const areaBusca =
+        document.getElementById(
+            "area-busca"
+        );
+
+    const campoBusca =
+        document.getElementById(
+            "campo-busca"
+        );
+
+    const fecharBusca =
+        document.getElementById(
+            "fechar-busca"
+        );
+
+    if (
+        !botaoBusca ||
+        !areaBusca ||
+        !campoBusca
+    ) {
         return;
     }
 
-    botaoBusca.addEventListener("click", function() {
-        areaBusca.style.display = "block";
-        campoBusca.focus();
-    });
+    botaoBusca.addEventListener(
+        "click",
+        function() {
+
+            areaBusca.style.display =
+                "block";
+
+            campoBusca.focus();
+        }
+    );
 
     if (fecharBusca) {
-        fecharBusca.addEventListener("click", function() {
-            areaBusca.style.display = "none";
-            campoBusca.value = "";
 
-            const resultados =
-                document.getElementById("resultados-busca");
+        fecharBusca.addEventListener(
+            "click",
+            function() {
 
-            if (resultados) {
-                resultados.style.display = "none";
+                areaBusca.style.display =
+                    "none";
+
+                campoBusca.value = "";
+
+                const resultados =
+                    document.getElementById(
+                        "resultados-busca"
+                    );
+
+                if (resultados) {
+
+                    resultados.style.display =
+                        "none";
+                }
             }
-        });
+        );
     }
 
-    campoBusca.addEventListener("keydown", function(event) {
-        if (event.key === "Enter") {
-            realizarBusca();
+    campoBusca.addEventListener(
+        "keydown",
+        function(event) {
+
+            if (event.key === "Enter") {
+                realizarBusca();
+            }
         }
-    });
+    );
 }
 
+
+/* =========================
+   DETALHES
+========================= */
+
 function abrirDetalhes(filme) {
+
     registrarHistorico(filme);
+
     fecharDetalhes();
 
-    const imagem = filme.poster_path
-        ? IMG + filme.poster_path
-        : "";
+    const imagem =
+        filme.poster_path
+            ? IMG + filme.poster_path
+            : "";
 
-    const titulo = filme.title || filme.name || "Sem título";
+    const titulo =
+        filme.title ||
+        filme.name ||
+        "Sem título";
 
-    const nota = filme.vote_average
-        ? Number(filme.vote_average).toFixed(1)
-        : "N/A";
+    const nota =
+        filme.vote_average
+            ? Number(
+                filme.vote_average
+              ).toFixed(1)
+            : "N/A";
 
-    const data = filme.release_date
-        ? filme.release_date.split("-").reverse().join("/")
-        : "Não informada";
+    const data =
+        filme.release_date ||
+        filme.first_air_date
+            ? (
+                filme.release_date ||
+                filme.first_air_date
+              )
+                .split("-")
+                .reverse()
+                .join("/")
+            : "Não informada";
 
-    const modal = document.createElement("div");
+    const tipo =
+        filme.name
+            ? "📺 SÉRIE"
+            : "🎬 FILME";
 
-    modal.id = "cinefamily-modal";
+    const modal =
+        document.createElement("div");
+
+    modal.id =
+        "cinefamily-modal";
 
     modal.innerHTML =
+
         '<div class="detalhes-filme">' +
 
-            '<button class="fechar-detalhes" type="button">✕</button>' +
+            '<button class="fechar-detalhes" type="button">' +
+                '✕' +
+            '</button>' +
 
             '<div class="detalhes-conteudo">' +
 
                 '<div class="detalhes-poster">' +
+
                     (
                         imagem
-                            ? '<img src="' + imagem + '" alt="' + titulo + '">'
+                            ? '<img src="' +
+                                imagem +
+                                '" alt="' +
+                                titulo +
+                                '">'
                             : "🎬"
                     ) +
+
                 '</div>' +
 
                 '<div class="detalhes-info">' +
 
-                    '<span class="categoria">🎬 FILME</span>' +
+                    '<span class="categoria">' +
+                        tipo +
+                    '</span>' +
 
-                    '<h1>' + titulo + '</h1>' +
+                    '<h1>' +
+                        titulo +
+                    '</h1>' +
 
-                    '<p class="nota">⭐ ' + nota + '</p>' +
+                    '<p class="nota">' +
+                        '⭐ ' +
+                        nota +
+                    '</p>' +
 
-                    '<p class="data">📅 ' + data + '</p>' +
+                    '<p class="data">' +
+                        '📅 ' +
+                        data +
+                    '</p>' +
 
                     '<p class="sinopse">' +
-                        (filme.overview || "Sinopse não disponível.") +
+                        (
+                            filme.overview ||
+                            "Sinopse não disponível."
+                        ) +
                     '</p>' +
 
                     '<div class="botoes-detalhes">' +
@@ -320,7 +606,9 @@ function abrirDetalhes(filme) {
     document.body.appendChild(modal);
 
     const botaoFechar =
-        modal.querySelector(".fechar-detalhes");
+        modal.querySelector(
+            ".fechar-detalhes"
+        );
 
     botaoFechar.addEventListener(
         "click",
@@ -328,72 +616,132 @@ function abrirDetalhes(filme) {
     );
 
     const botaoFavorito =
-        modal.querySelector(".favorito");
+        modal.querySelector(
+            ".favorito"
+        );
 
-    const favoritos = obterFavoritos();
+    const favoritos =
+        obterFavoritos();
 
-    const jaFavoritado = favoritos.some(function(item) {
-        return Number(item.id) === Number(filme.id);
-    });
+    const jaFavoritado =
+        favoritos.some(
+            function(item) {
+
+                return Number(item.id) ===
+                    Number(filme.id);
+            }
+        );
 
     if (jaFavoritado) {
-        botaoFavorito.textContent = "⭐ Favoritado";
+
+        botaoFavorito.textContent =
+            "⭐ Favoritado";
     }
 
-    botaoFavorito.addEventListener("click", function() {
-        adicionarFavorito(filme);
-        botaoFavorito.textContent = "⭐ Favoritado";
-    });
+    botaoFavorito.addEventListener(
+        "click",
+        function() {
+
+            adicionarFavorito(filme);
+
+            botaoFavorito.textContent =
+                "⭐ Favoritado";
+        }
+    );
 
     const botaoAssistir =
-        modal.querySelector(".assistir");
-
-    botaoAssistir.addEventListener("click", function() {
-        registrarHistorico(filme);
-
-        alert(
-            "🎬 O vídeo deste conteúdo ainda não está disponível."
+        modal.querySelector(
+            ".assistir"
         );
-    });
+
+    botaoAssistir.addEventListener(
+        "click",
+        function() {
+
+            registrarHistorico(filme);
+
+            alert(
+                "🎬 O vídeo deste conteúdo ainda não está disponível."
+            );
+        }
+    );
 }
 
+
+/* =========================
+   HISTÓRICO
+========================= */
+
 function obterHistorico() {
+
     try {
+
         const dados =
-            localStorage.getItem("cinefamilyHistorico");
+            localStorage.getItem(
+                "cinefamilyHistorico"
+            );
 
         if (!dados) return [];
 
-        const historico = JSON.parse(dados);
+        const historico =
+            JSON.parse(dados);
 
         return Array.isArray(historico)
             ? historico
             : [];
 
     } catch (erro) {
-        console.error("❌ Erro no histórico:", erro);
+
+        console.error(
+            "❌ Erro no histórico:",
+            erro
+        );
+
         return [];
     }
 }
 
 function registrarHistorico(filme) {
-    let historico = obterHistorico();
 
-    historico = historico.filter(function(item) {
-        return Number(item.id) !== Number(filme.id);
-    });
+    let historico =
+        obterHistorico();
+
+    historico =
+        historico.filter(
+            function(item) {
+
+                return Number(item.id) !==
+                    Number(filme.id);
+            }
+        );
 
     historico.unshift({
+
         id: filme.id,
-        title: filme.title || filme.name,
-        poster_path: filme.poster_path,
-        vote_average: filme.vote_average,
-        release_date: filme.release_date,
-        overview: filme.overview,
-        dataVisualizacao: new Date().toISOString()
+
+        title:
+            filme.title ||
+            filme.name,
+
+        poster_path:
+            filme.poster_path,
+
+        vote_average:
+            filme.vote_average,
+
+        release_date:
+            filme.release_date ||
+            filme.first_air_date,
+
+        overview:
+            filme.overview,
+
+        dataVisualizacao:
+            new Date().toISOString()
     });
 
-    historico = historico.slice(0, 20);
+    historico =
+        historico.slice(0, 20);
 
     localStorage.setItem(
         "cinefamilyHistorico",
@@ -401,43 +749,78 @@ function registrarHistorico(filme) {
     );
 }
 
+
+/* =========================
+   FAVORITOS
+========================= */
+
 function obterFavoritos() {
+
     try {
+
         const dados =
-            localStorage.getItem("cinefamilyFavoritos");
+            localStorage.getItem(
+                "cinefamilyFavoritos"
+            );
 
         if (!dados) return [];
 
-        const favoritos = JSON.parse(dados);
+        const favoritos =
+            JSON.parse(dados);
 
         return Array.isArray(favoritos)
             ? favoritos
             : [];
 
     } catch (erro) {
-        console.error("❌ Erro nos favoritos:", erro);
+
+        console.error(
+            "❌ Erro nos favoritos:",
+            erro
+        );
+
         return [];
     }
 }
 
 function adicionarFavorito(filme) {
-    let favoritos = obterFavoritos();
 
-    const jaExiste = favoritos.some(function(item) {
-        return Number(item.id) === Number(filme.id);
-    });
+    let favoritos =
+        obterFavoritos();
+
+    const jaExiste =
+        favoritos.some(
+            function(item) {
+
+                return Number(item.id) ===
+                    Number(filme.id);
+            }
+        );
 
     if (jaExiste) {
         return;
     }
 
     favoritos.push({
+
         id: filme.id,
-        title: filme.title || filme.name,
-        poster_path: filme.poster_path,
-        vote_average: filme.vote_average,
-        release_date: filme.release_date,
-        overview: filme.overview
+
+        title:
+            filme.title ||
+            filme.name,
+
+        poster_path:
+            filme.poster_path,
+
+        vote_average:
+            filme.vote_average,
+
+        release_date:
+            filme.release_date ||
+            filme.first_air_date,
+
+        overview:
+            filme.overview
     });
 
     localStorage.setItem(
@@ -445,31 +828,65 @@ function adicionarFavorito(filme) {
         JSON.stringify(favoritos)
     );
 
-    alert("⭐ Filme adicionado aos favoritos!");
+    alert(
+        "⭐ Conteúdo adicionado aos favoritos!"
+    );
 }
 
+
+/* =========================
+   FECHAR DETALHES
+========================= */
+
 function fecharDetalhes() {
+
     const modal =
-        document.getElementById("cinefamily-modal");
+        document.getElementById(
+            "cinefamily-modal"
+        );
 
     if (modal) {
         modal.remove();
     }
 }
 
-document.addEventListener("click", function(event) {
-    const modal =
-        document.getElementById("cinefamily-modal");
+document.addEventListener(
+    "click",
+    function(event) {
 
-    if (modal && event.target === modal) {
-        fecharDetalhes();
+        const modal =
+            document.getElementById(
+                "cinefamily-modal"
+            );
+
+        if (
+            modal &&
+            event.target === modal
+        ) {
+            fecharDetalhes();
+        }
     }
-});
+);
 
-document.addEventListener("DOMContentLoaded", function() {
-    console.log("🚀 CineFamily iniciado.");
 
-    mostrarSlide(0);
-    configurarBusca();
-    carregarFilmes();
-});
+/* =========================
+   INICIAR CINEFAMILY
+========================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        console.log(
+            "🚀 CineFamily iniciado."
+        );
+
+        mostrarSlide(0);
+
+        configurarBusca();
+
+        carregarFilmes();
+
+        carregarSeries();
+    }
+);
