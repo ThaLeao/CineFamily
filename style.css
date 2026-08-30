@@ -10,10 +10,6 @@ body {
     font-family: Arial, sans-serif;
 }
 
-/* =========================
-   TOPO
-========================= */
-
 header {
     width: 100%;
     padding: 20px 5%;
@@ -60,10 +56,6 @@ nav a:hover {
     color: white;
     text-decoration: none;
 }
-
-/* =========================
-   CARROSSEL
-========================= */
 
 .carrossel {
     position: relative;
@@ -163,10 +155,6 @@ button {
     background: white;
 }
 
-/* =========================
-   CATEGORIAS
-========================= */
-
 .categoria-secao {
     padding: 35px 5%;
 }
@@ -200,10 +188,6 @@ button {
     background: #444;
     border-radius: 10px;
 }
-
-/* =========================
-   CARDS
-========================= */
 
 .card {
     min-width: 180px;
@@ -256,10 +240,6 @@ button {
     font-size: 14px;
 }
 
-/* =========================
-   BOTÃO LIMPAR HISTÓRICO
-========================= */
-
 #limpar-historico {
     margin-top: 5px;
     padding: 11px 18px;
@@ -276,10 +256,6 @@ button {
     background: #2b2b35;
     color: white;
 }
-
-/* =========================
-   BOTÃO REMOVER FAVORITO
-========================= */
 
 .remover-favorito {
     width: 100%;
@@ -305,10 +281,6 @@ button {
 .remover-favorito:active {
     transform: scale(0.97);
 }
-
-/* =========================
-   TELA DE DETALHES
-========================= */
 
 #cinefamily-modal {
     position: fixed;
@@ -401,20 +373,12 @@ button {
     background: #3a3a44;
 }
 
-/* =========================
-   MENSAGENS
-========================= */
-
 #nenhum-historico,
 #nenhum-favorito {
     color: #aaa;
     margin-top: 20px;
     font-size: 16px;
 }
-
-/* =========================
-   RESPONSIVO
-========================= */
 
 @media (max-width: 800px) {
 
