@@ -24,35 +24,54 @@ if (numero < 0) {
 }
 
 slides.forEach((slide, indice) => {
+
     slide.classList.toggle(
         "ativo",
         indice === slideAtual
     );
+
 });
 
 indicadores.forEach((indicador, indice) => {
+
     indicador.classList.toggle(
         "ativo",
         indice === slideAtual
     );
+
 });
 ```
 
 }
 
 function proximoSlide() {
+
+```
 slideAtual++;
+
 mostrarSlide(slideAtual);
+```
+
 }
 
 function slideAnterior() {
+
+```
 slideAtual--;
+
 mostrarSlide(slideAtual);
+```
+
 }
 
 function irParaSlide(numero) {
+
+```
 slideAtual = numero;
+
 mostrarSlide(slideAtual);
+```
+
 }
 
 /* =========================================================
@@ -72,9 +91,11 @@ console.log(
 );
 
 if (!resposta.ok) {
+
     throw new Error(
         `Erro HTTP ${resposta.status}`
     );
+
 }
 
 return await resposta.json();
@@ -89,17 +110,22 @@ CRIAR CARD
 function criarCard(filme) {
 
 ```
-const card = document.createElement("div");
+const card =
+    document.createElement("div");
 
 card.className = "card";
 
-const imagem = filme.poster_path
-    ? `${IMG}${filme.poster_path}`
-    : "";
+const imagem =
+    filme.poster_path
+        ? `${IMG}${filme.poster_path}`
+        : "";
 
-const nota = filme.vote_average
-    ? Number(filme.vote_average).toFixed(1)
-    : "N/A";
+const nota =
+    filme.vote_average
+        ? Number(
+            filme.vote_average
+        ).toFixed(1)
+        : "N/A";
 
 card.innerHTML = `
 
@@ -148,7 +174,8 @@ function mostrarNaSecao(secao, filmes) {
 ```
 if (!secao) return;
 
-const cards = secao.querySelector(".cards");
+const cards =
+    secao.querySelector(".cards");
 
 if (!cards) return;
 
@@ -169,90 +196,57 @@ filmes
 }
 
 /* =========================================================
-CARREGAR FILMES
+CARREGAR CATÁLOGO
 ========================================================= */
 
 async function carregarFilmes() {
 
 ```
-const secoes =
-    document.querySelectorAll(
-        ".categoria-secao"
-    );
+const filmesSecao =
+    document.getElementById("filmes");
 
-if (!secoes.length) return;
+const avaliadosSecao =
+    document.getElementById("avaliados");
 
-console.log(
-    "🎬 CineFamily: carregando catálogo..."
-);
+const lancamentosSecao =
+    document.getElementById("lancamentos");
 
 try {
 
-    /*
-    PRIMEIRA SEÇÃO:
-    FILMES EM DESTAQUE
-    */
+    console.log(
+        "🎬 CineFamily: carregando catálogo..."
+    );
+
 
     const destaque =
         await buscarTMDB("/filmes");
 
-    const filmesDestaque =
-        Array.isArray(destaque.results)
-            ? destaque.results
-            : [];
-
     mostrarNaSecao(
-        secoes[0],
-        filmesDestaque
+        filmesSecao,
+        destaque.results || []
     );
 
 
-    /*
-    SEGUNDA SEÇÃO:
-    MAIS BEM AVALIADOS
-    */
-
-    if (secoes[1]) {
-
-        const avaliados =
-            await buscarTMDB(
-                "/filmes?sort_by=vote_average.desc"
-            );
-
-        const filmesAvaliados =
-            Array.isArray(avaliados.results)
-                ? avaliados.results
-                : [];
-
-        mostrarNaSecao(
-            secoes[1],
-            filmesAvaliados
+    const avaliados =
+        await buscarTMDB(
+            "/filmes?sort_by=vote_average.desc"
         );
-    }
+
+    mostrarNaSecao(
+        avaliadosSecao,
+        avaliados.results || []
+    );
 
 
-    /*
-    TERCEIRA SEÇÃO:
-    LANÇAMENTOS
-    */
-
-    if (secoes[2]) {
-
-        const lancamentos =
-            await buscarTMDB(
-                "/filmes?sort_by=primary_release_date.desc"
-            );
-
-        const filmesLancamentos =
-            Array.isArray(lancamentos.results)
-                ? lancamentos.results
-                : [];
-
-        mostrarNaSecao(
-            secoes[2],
-            filmesLancamentos
+    const lancamentos =
+        await buscarTMDB(
+            "/filmes?sort_by=primary_release_date.desc"
         );
-    }
+
+    mostrarNaSecao(
+        lancamentosSecao,
+        lancamentos.results || []
+    );
 
 
     console.log(
@@ -272,6 +266,117 @@ try {
 }
 
 /* =========================================================
+BUSCA DE FILMES
+========================================================= */
+
+async function pesquisarFilmes() {
+
+```
+const campo =
+    document.getElementById(
+        "campo-busca"
+    );
+
+const resultados =
+    document.getElementById(
+        "resultados-busca"
+    );
+
+const cards =
+    resultados.querySelector(
+        ".cards"
+    );
+
+const mensagem =
+    document.getElementById(
+        "busca-vazia"
+    );
+
+const termo =
+    campo.value.trim();
+
+if (!termo) {
+
+    resultados.style.display =
+        "none";
+
+    return;
+
+}
+
+resultados.style.display =
+    "block";
+
+cards.innerHTML = "";
+
+mensagem.style.display =
+    "none";
+
+try {
+
+    console.log(
+        "🔎 Buscando:",
+        termo
+    );
+
+    const dados =
+        await buscarTMDB(
+            `/buscar?query=${encodeURIComponent(termo)}`
+        );
+
+    const filmes =
+        Array.isArray(dados.results)
+            ? dados.results
+            : [];
+
+    const filmesComPoster =
+        filmes.filter(
+            filme =>
+                filme.poster_path
+        );
+
+    if (!filmesComPoster.length) {
+
+        mensagem.style.display =
+            "block";
+
+        return;
+
+    }
+
+    filmesComPoster
+        .slice(0, 20)
+        .forEach(filme => {
+
+            cards.appendChild(
+                criarCard(filme)
+            );
+
+        });
+
+    resultados.scrollIntoView({
+        behavior: "smooth"
+    });
+
+} catch (erro) {
+
+    console.error(
+        "❌ Erro na busca:",
+        erro
+    );
+
+    mensagem.textContent =
+        "Não foi possível realizar a busca.";
+
+    mensagem.style.display =
+        "block";
+
+}
+```
+
+}
+
+/* =========================================================
 DETALHES
 ========================================================= */
 
@@ -282,20 +387,25 @@ registrarHistorico(filme);
 
 fecharDetalhes();
 
-const imagem = filme.poster_path
-    ? `${IMG}${filme.poster_path}`
-    : "";
+const imagem =
+    filme.poster_path
+        ? `${IMG}${filme.poster_path}`
+        : "";
 
-const nota = filme.vote_average
-    ? Number(filme.vote_average).toFixed(1)
-    : "N/A";
+const nota =
+    filme.vote_average
+        ? Number(
+            filme.vote_average
+        ).toFixed(1)
+        : "N/A";
 
-const data = filme.release_date
-    ? filme.release_date
-        .split("-")
-        .reverse()
-        .join("/")
-    : "Não informada";
+const data =
+    filme.release_date
+        ? filme.release_date
+            .split("-")
+            .reverse()
+            .join("/")
+        : "Não informada";
 
 const modal =
     document.createElement("div");
@@ -394,8 +504,6 @@ modal.innerHTML = `
 document.body.appendChild(modal);
 
 
-/* FECHAR */
-
 modal
     .querySelector(".fechar-detalhes")
     .addEventListener(
@@ -404,10 +512,10 @@ modal
     );
 
 
-/* FAVORITO */
-
 const botaoFavorito =
-    modal.querySelector(".favorito");
+    modal.querySelector(
+        ".favorito"
+    );
 
 const favoritos =
     obterFavoritos();
@@ -426,6 +534,7 @@ if (jaFavoritado) {
 
 }
 
+
 botaoFavorito.addEventListener(
     "click",
     () => {
@@ -438,8 +547,6 @@ botaoFavorito.addEventListener(
     }
 );
 
-
-/* ASSISTIR */
 
 modal
     .querySelector(".assistir")
@@ -654,7 +761,9 @@ const modal =
     );
 
 if (modal) {
+
     modal.remove();
+
 }
 ```
 
@@ -689,6 +798,43 @@ event => {
 );
 
 /* =========================================================
+BUSCA — ABRIR E FECHAR
+========================================================= */
+
+function abrirBusca() {
+
+```
+const area =
+    document.getElementById(
+        "area-busca"
+    );
+
+const campo =
+    document.getElementById(
+        "campo-busca"
+    );
+
+area.classList.add("ativa");
+
+campo.focus();
+```
+
+}
+
+function fecharBusca() {
+
+```
+const area =
+    document.getElementById(
+        "area-busca"
+    );
+
+area.classList.remove("ativa");
+```
+
+}
+
+/* =========================================================
 INICIAR
 ========================================================= */
 
@@ -704,6 +850,72 @@ document.addEventListener(
     mostrarSlide(0);
 
     carregarFilmes();
+
+
+    const botaoBusca =
+        document.getElementById(
+            "botao-busca"
+        );
+
+    const fechar =
+        document.getElementById(
+            "fechar-busca"
+        );
+
+    const campo =
+        document.getElementById(
+            "campo-busca"
+        );
+
+
+    if (botaoBusca) {
+
+        botaoBusca.addEventListener(
+            "click",
+            abrirBusca
+        );
+
+    }
+
+
+    if (fechar) {
+
+        fechar.addEventListener(
+            "click",
+            fecharBusca
+        );
+
+    }
+
+
+    if (campo) {
+
+        campo.addEventListener(
+            "keydown",
+            event => {
+
+                if (
+                    event.key ===
+                    "Enter"
+                ) {
+
+                    pesquisarFilmes();
+
+                }
+
+                if (
+                    event.key ===
+                    "Escape"
+                ) {
+
+                    fecharBusca();
+
+                }
+
+            }
+        );
+
+    }
 
 }
 ```
