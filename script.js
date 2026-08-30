@@ -9,12 +9,11 @@ let slideAtual = 0;
 
 function mostrarSlide(numero) {
 
+```
 const slides = document.querySelectorAll(".slide");
 const indicadores = document.querySelectorAll(".indicador");
 
-if (!slides.length) {
-    return;
-}
+if (!slides.length) return;
 
 if (numero >= slides.length) {
     slideAtual = 0;
@@ -37,154 +36,121 @@ indicadores.forEach((indicador, indice) => {
         indice === slideAtual
     );
 });
+```
 
 }
 
 function proximoSlide() {
-
 slideAtual++;
-
 mostrarSlide(slideAtual);
-
 }
 
 function slideAnterior() {
-
 slideAtual--;
-
 mostrarSlide(slideAtual);
-
 }
 
 function irParaSlide(numero) {
-
 slideAtual = numero;
-
 mostrarSlide(slideAtual);
+}
+
+/* =========================================================
+BUSCAR DADOS DO WORKER
+========================================================= */
+
+async function buscarTMDB(endpoint) {
+
+```
+const resposta = await fetch(
+    `${TMDB_WORKER}${endpoint}`
+);
+
+console.log(
+    `📡 Worker ${endpoint}:`,
+    resposta.status
+);
+
+if (!resposta.ok) {
+    throw new Error(
+        `Erro HTTP ${resposta.status}`
+    );
+}
+
+return await resposta.json();
+```
 
 }
 
 /* =========================================================
-CARREGAR FILMES DO TMDB
+CRIAR CARD
 ========================================================= */
 
-async function carregarFilmes() {
+function criarCard(filme) {
 
-const secoes =
-    document.querySelectorAll(".categoria-secao");
+```
+const card = document.createElement("div");
 
-if (!secoes.length) {
-    console.warn(
-        "CineFamily: nenhuma seção de filmes encontrada."
-    );
-    return;
-}
+card.className = "card";
 
-const secaoFilmes = secoes[0];
+const imagem = filme.poster_path
+    ? `${IMG}${filme.poster_path}`
+    : "";
 
-const cards =
-    secaoFilmes.querySelector(".cards");
+const nota = filme.vote_average
+    ? Number(filme.vote_average).toFixed(1)
+    : "N/A";
 
-if (!cards) {
-    console.warn(
-        "CineFamily: área de cards não encontrada."
-    );
-    return;
-}
+card.innerHTML = `
 
-try {
+    <div class="imagem-card">
 
-    console.log(
-        "🎬 CineFamily: conectando ao TMDB..."
-    );
+        ${
+            imagem
+                ? `
+                    <img
+                        src="${imagem}"
+                        alt="${filme.title || "Filme"}"
+                        loading="lazy"
+                    >
+                  `
+                : "🎬"
+        }
 
-    const resposta =
-        await fetch(
-            `${TMDB_WORKER}/filmes`
-        );
+    </div>
 
-    console.log(
-        "📡 Resposta do Worker:",
-        resposta.status
-    );
+    <h3>
+        ${filme.title || "Sem título"}
+    </h3>
 
-    if (!resposta.ok) {
+    <p>
+        ⭐ ${nota}
+    </p>
 
-        throw new Error(
-            `Worker respondeu HTTP ${resposta.status}`
-        );
+`;
 
-    }
+card.addEventListener(
+    "click",
+    () => abrirDetalhes(filme)
+);
 
-    const dados =
-        await resposta.json();
-
-    console.log(
-        "📦 Dados recebidos do TMDB:",
-        dados
-    );
-
-    const filmes =
-        Array.isArray(dados.results)
-            ? dados.results
-            : [];
-
-    console.log(
-        `🎬 ${filmes.length} filmes recebidos.`
-    );
-
-    if (!filmes.length) {
-
-        console.warn(
-            "O TMDB não retornou filmes."
-        );
-
-        return;
-    }
-
-    mostrarFilmes(filmes);
-
-} catch (erro) {
-
-    console.error(
-        "❌ ERRO AO CARREGAR FILMES:",
-        erro
-    );
-
-    /*
-       IMPORTANTE:
-       Não apagamos os filmes originais
-       da página caso o Worker esteja
-       indisponível.
-    */
-
-}
+return card;
+```
 
 }
 
 /* =========================================================
-MOSTRAR FILMES
+MOSTRAR FILMES EM UMA SEÇÃO
 ========================================================= */
 
-function mostrarFilmes(filmes) {
+function mostrarNaSecao(secao, filmes) {
 
-const secoes =
-    document.querySelectorAll(
-        ".categoria-secao"
-    );
+```
+if (!secao) return;
 
-if (!secoes.length) {
-    return;
-}
+const cards = secao.querySelector(".cards");
 
-const secaoFilmes = secoes[0];
-
-const cards =
-    secaoFilmes.querySelector(".cards");
-
-if (!cards) {
-    return;
-}
+if (!cards) return;
 
 cards.innerHTML = "";
 
@@ -193,87 +159,143 @@ filmes
     .slice(0, 10)
     .forEach(filme => {
 
-        const card =
-            document.createElement("div");
-
-        card.className = "card";
-
-        const imagem =
-            `${IMG}${filme.poster_path}`;
-
-        const nota =
-            filme.vote_average
-                ? Number(
-                    filme.vote_average
-                ).toFixed(1)
-                : "N/A";
-
-        card.innerHTML = `
-
-            <div class="imagem-card">
-
-                <img
-                    src="${imagem}"
-                    alt="${filme.title || "Filme"}"
-                    loading="lazy"
-                >
-
-            </div>
-
-            <h3>
-                ${filme.title || "Sem título"}
-            </h3>
-
-            <p>
-                ⭐ ${nota}
-            </p>
-
-        `;
-
-        card.addEventListener(
-            "click",
-            () => {
-
-                abrirDetalhes(filme);
-
-            }
+        cards.appendChild(
+            criarCard(filme)
         );
 
-        cards.appendChild(card);
-
     });
+```
 
 }
 
 /* =========================================================
-DETALHES DO FILME
+CARREGAR FILMES
+========================================================= */
+
+async function carregarFilmes() {
+
+```
+const secoes =
+    document.querySelectorAll(
+        ".categoria-secao"
+    );
+
+if (!secoes.length) return;
+
+console.log(
+    "🎬 CineFamily: carregando catálogo..."
+);
+
+try {
+
+    /*
+    PRIMEIRA SEÇÃO:
+    FILMES EM DESTAQUE
+    */
+
+    const destaque =
+        await buscarTMDB("/filmes");
+
+    const filmesDestaque =
+        Array.isArray(destaque.results)
+            ? destaque.results
+            : [];
+
+    mostrarNaSecao(
+        secoes[0],
+        filmesDestaque
+    );
+
+
+    /*
+    SEGUNDA SEÇÃO:
+    MAIS BEM AVALIADOS
+    */
+
+    if (secoes[1]) {
+
+        const avaliados =
+            await buscarTMDB(
+                "/filmes?sort_by=vote_average.desc"
+            );
+
+        const filmesAvaliados =
+            Array.isArray(avaliados.results)
+                ? avaliados.results
+                : [];
+
+        mostrarNaSecao(
+            secoes[1],
+            filmesAvaliados
+        );
+    }
+
+
+    /*
+    TERCEIRA SEÇÃO:
+    LANÇAMENTOS
+    */
+
+    if (secoes[2]) {
+
+        const lancamentos =
+            await buscarTMDB(
+                "/filmes?sort_by=primary_release_date.desc"
+            );
+
+        const filmesLancamentos =
+            Array.isArray(lancamentos.results)
+                ? lancamentos.results
+                : [];
+
+        mostrarNaSecao(
+            secoes[2],
+            filmesLancamentos
+        );
+    }
+
+
+    console.log(
+        "✅ Catálogo carregado!"
+    );
+
+} catch (erro) {
+
+    console.error(
+        "❌ Erro ao carregar catálogo:",
+        erro
+    );
+
+}
+```
+
+}
+
+/* =========================================================
+DETALHES
 ========================================================= */
 
 function abrirDetalhes(filme) {
 
+```
 registrarHistorico(filme);
 
 fecharDetalhes();
 
-const imagem =
-    filme.poster_path
-        ? `${IMG}${filme.poster_path}`
-        : "";
+const imagem = filme.poster_path
+    ? `${IMG}${filme.poster_path}`
+    : "";
 
-const nota =
-    filme.vote_average
-        ? Number(
-            filme.vote_average
-        ).toFixed(1)
-        : "N/A";
+const nota = filme.vote_average
+    ? Number(filme.vote_average).toFixed(1)
+    : "N/A";
 
-const data =
-    filme.release_date
-        ? filme.release_date
-            .split("-")
-            .reverse()
-            .join("/")
-        : "Não informada";
+const data = filme.release_date
+    ? filme.release_date
+        .split("-")
+        .reverse()
+        .join("/")
+    : "Não informada";
 
 const modal =
     document.createElement("div");
@@ -293,6 +315,7 @@ modal.innerHTML = `
 
         </button>
 
+
         <div class="detalhes-conteudo">
 
             <div class="detalhes-poster">
@@ -309,6 +332,7 @@ modal.innerHTML = `
                 }
 
             </div>
+
 
             <div class="detalhes-info">
 
@@ -337,6 +361,7 @@ modal.innerHTML = `
 
                 </p>
 
+
                 <div class="botoes-detalhes">
 
                     <button
@@ -346,6 +371,7 @@ modal.innerHTML = `
                         ▶ Assistir agora
 
                     </button>
+
 
                     <button
                         class="favorito"
@@ -370,23 +396,18 @@ document.body.appendChild(modal);
 
 /* FECHAR */
 
-const botaoFechar =
-    modal.querySelector(
-        ".fechar-detalhes"
+modal
+    .querySelector(".fechar-detalhes")
+    .addEventListener(
+        "click",
+        fecharDetalhes
     );
-
-botaoFechar.addEventListener(
-    "click",
-    fecharDetalhes
-);
 
 
 /* FAVORITO */
 
 const botaoFavorito =
-    modal.querySelector(
-        ".favorito"
-    );
+    modal.querySelector(".favorito");
 
 const favoritos =
     obterFavoritos();
@@ -405,7 +426,6 @@ if (jaFavoritado) {
 
 }
 
-
 botaoFavorito.addEventListener(
     "click",
     () => {
@@ -421,23 +441,21 @@ botaoFavorito.addEventListener(
 
 /* ASSISTIR */
 
-const botaoAssistir =
-    modal.querySelector(
-        ".assistir"
+modal
+    .querySelector(".assistir")
+    .addEventListener(
+        "click",
+        () => {
+
+            registrarHistorico(filme);
+
+            alert(
+                "🎬 O vídeo deste conteúdo ainda não está disponível."
+            );
+
+        }
     );
-
-botaoAssistir.addEventListener(
-    "click",
-    () => {
-
-        registrarHistorico(filme);
-
-        alert(
-            "🎬 O CineFamily ainda não possui o vídeo deste filme. O catálogo está sendo preparado."
-        );
-
-    }
-);
+```
 
 }
 
@@ -447,6 +465,7 @@ HISTÓRICO
 
 function obterHistorico() {
 
+```
 try {
 
     const dados =
@@ -454,9 +473,7 @@ try {
             "cinefamilyHistorico"
         );
 
-    if (!dados) {
-        return [];
-    }
+    if (!dados) return [];
 
     const historico =
         JSON.parse(dados);
@@ -475,11 +492,13 @@ try {
     return [];
 
 }
+```
 
 }
 
 function registrarHistorico(filme) {
 
+```
 let historico =
     obterHistorico();
 
@@ -522,14 +541,10 @@ localStorage.setItem(
 );
 
 console.log(
-    "🕘 Filme salvo no histórico:",
-    filme.title
-);
-
-console.log(
-    "📚 Histórico atual:",
+    "🕘 Histórico atualizado:",
     historico
 );
+```
 
 }
 
@@ -539,6 +554,7 @@ FAVORITOS
 
 function obterFavoritos() {
 
+```
 try {
 
     const dados =
@@ -546,9 +562,7 @@ try {
             "cinefamilyFavoritos"
         );
 
-    if (!dados) {
-        return [];
-    }
+    if (!dados) return [];
 
     const favoritos =
         JSON.parse(dados);
@@ -567,11 +581,13 @@ try {
     return [];
 
 }
+```
 
 }
 
 function adicionarFavorito(filme) {
 
+```
 let favoritos =
     obterFavoritos();
 
@@ -583,10 +599,6 @@ const jaExiste =
     );
 
 if (jaExiste) {
-
-    console.log(
-        "⭐ Filme já está nos favoritos."
-    );
 
     return;
 
@@ -625,25 +637,26 @@ console.log(
 alert(
     "⭐ Filme adicionado aos favoritos!"
 );
+```
 
 }
 
 /* =========================================================
-FECHAR DETALHES
+FECHAR MODAL
 ========================================================= */
 
 function fecharDetalhes() {
 
+```
 const modal =
     document.getElementById(
         "cinefamily-modal"
     );
 
 if (modal) {
-
     modal.remove();
-
 }
+```
 
 }
 
@@ -655,6 +668,7 @@ document.addEventListener(
 "click",
 event => {
 
+```
     const modal =
         document.getElementById(
             "cinefamily-modal"
@@ -670,17 +684,19 @@ event => {
     }
 
 }
+```
 
 );
 
 /* =========================================================
-INICIAR CINEFAMILY
+INICIAR
 ========================================================= */
 
 document.addEventListener(
 "DOMContentLoaded",
 () => {
 
+```
     console.log(
         "🚀 CineFamily iniciado."
     );
@@ -690,5 +706,6 @@ document.addEventListener(
     carregarFilmes();
 
 }
+```
 
 );
