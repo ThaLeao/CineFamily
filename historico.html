@@ -1,131 +1,63 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Histórico - CineFamily</title>
-    <link rel="stylesheet" href="style.css">
+<head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Histórico - CineFamily</title>
+
+<link rel="stylesheet" href="style.css">
+
 </head>
 
 <body>
 
 <header>
 
-    <div class="logo">
-        CineFamily
-    </div>
+<div class="logo">
+    CineFamily
+</div>
 
-    <nav>
-        <a href="index.html">Início</a>
-        <a href="index.html">Filmes</a>
-        <a href="favoritos.html">⭐ Favoritos</a>
-        <a href="historico.html">🕘 Histórico</a>
-    </nav>
+<nav>
+    <a href="index.html">Início</a>
+    <a href="index.html">Filmes</a>
+    <a href="favoritos.html">⭐ Favoritos</a>
+    <a href="historico.html">🕘 Histórico</a>
+</nav>
 
 </header>
 
 <main>
 
-    <section class="categoria-secao">
+<section class="categoria-secao">
 
-        <h1>🕘 Histórico</h1>
+    <h1>🕘 Histórico</h1>
 
-        <button id="limpar-historico">
-            🗑️ Limpar histórico
-        </button>
+    <button
+        id="limpar-historico"
+        type="button">
+        🗑️ Limpar histórico
+    </button>
 
-        <br><br>
+    <br><br>
 
-        <div id="lista-historico" class="cards"></div>
+    <div
+        id="lista-historico"
+        class="cards">
+    </div>
 
-        <p id="nenhum-historico">
-            Você ainda não assistiu a nenhum filme.
-        </p>
+    <p
+        id="nenhum-historico"
+        style="display: none;">
+        Você ainda não assistiu a nenhum filme.
+    </p>
 
-    </section>
+</section>
 
 </main>
 
-<script>
-
-const IMG = "https://image.tmdb.org/t/p/w500";
-
-function carregarHistorico() {
-
-    const lista = document.getElementById("lista-historico");
-    const mensagem = document.getElementById("nenhum-historico");
-
-    const historico = JSON.parse(
-        localStorage.getItem("cinefamilyHistorico")
-    ) || [];
-
-    console.log("HISTÓRICO:", historico);
-
-    if (historico.length === 0) {
-        mensagem.style.display = "block";
-        return;
-    }
-
-    mensagem.style.display = "none";
-
-    historico.forEach(function(filme) {
-
-        const card = document.createElement("div");
-
-        card.className = "card";
-
-        const imagem = filme.poster_path
-            ? IMG + filme.poster_path
-            : "";
-
-        card.innerHTML = `
-
-            <div class="imagem-card">
-
-                ${
-                    imagem
-                    ? `<img src="${imagem}" alt="${filme.title}">`
-                    : "🎬"
-                }
-
-            </div>
-
-            <h3>${filme.title}</h3>
-
-            <p>
-                ⭐ ${Number(filme.vote_average).toFixed(1)}
-            </p>
-
-        `;
-
-        lista.appendChild(card);
-
-    });
-
-}
-
-function limparHistorico() {
-
-    localStorage.removeItem("cinefamilyHistorico");
-
-    carregarHistorico();
-
-}
-
-document.addEventListener(
-    "DOMContentLoaded",
-    carregarHistorico
-);
-
-document.getElementById(
-    "limpar-historico"
-).addEventListener(
-    "click",
-    limparHistorico
-);
-
-</script>
+<script> const IMG = "https://image.tmdb.org/t/p/w500"; // ===================================== // CARREGAR HISTÓRICO // ===================================== function carregarHistorico() { const lista = document.getElementById("lista-historico"); const mensagem = document.getElementById("nenhum-historico"); // Limpa a tela antes de carregar lista.innerHTML = ""; let historico = []; try { const salvo = localStorage.getItem("cinefamilyHistorico"); if (salvo) { historico = JSON.parse(salvo); } if (!Array.isArray(historico)) { historico = []; } } catch (erro) { console.error( "Erro ao carregar histórico:", erro ); historico = []; } console.log( "📚 Histórico encontrado:", historico ); // ===================================== // NENHUM FILME // ===================================== if (historico.length === 0) { mensagem.style.display = "block"; return; } mensagem.style.display = "none"; // ===================================== // CRIAR CARDS // ===================================== historico.forEach(function(filme) { const card = document.createElement("div"); card.className = "card"; const imagem = filme.poster_path ? IMG + filme.poster_path : ""; card.innerHTML = ` <div class="imagem-card"> ${ imagem ? ` <img src="${imagem}" alt="${filme.title || "Filme"}" > ` : "🎬" } </div> <h3> ${filme.title || "Sem título"} </h3> <p> ⭐ ${ filme.vote_average ? Number( filme.vote_average ).toFixed(1) : "N/A" } </p> `; lista.appendChild(card); }); } // ===================================== // LIMPAR HISTÓRICO // ===================================== function limparHistorico() { const confirmar = confirm( "Tem certeza que deseja apagar todo o histórico?" ); if (!confirmar) { return; } localStorage.removeItem( "cinefamilyHistorico" ); carregarHistorico(); } // ===================================== // INICIAR // ===================================== document.addEventListener( "DOMContentLoaded", function() { carregarHistorico(); const botao = document.getElementById( "limpar-historico" ); if (botao) { botao.addEventListener( "click", limparHistorico ); } } ); </script>
 
 </body>
+
 </html>
