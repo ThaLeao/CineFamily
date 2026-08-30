@@ -2,14 +2,7 @@
 
 <html lang="pt-BR">
 
-<head>
-
-<meta charset="UTF-8">
-
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
+<head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Favoritos - CineFamily</title>
 
@@ -25,77 +18,37 @@
     CineFamily
 </div>
 
-
 <nav>
-
-    <a href="index.html">
-        Início
-    </a>
-
-    <a href="index.html">
-        Filmes
-    </a>
-
-    <a href="favoritos.html">
-        ⭐ Favoritos
-    </a>
-
-    <a href="historico.html">
-        🕘 Histórico
-    </a>
-
+    <a href="index.html">Início</a>
+    <a href="index.html">Filmes</a>
+    <a href="favoritos.html">⭐ Favoritos</a>
+    <a href="historico.html">🕘 Histórico</a>
 </nav>
 
-
 <div class="acoes">
-
     <span>🔎</span>
-
     <span>⭐</span>
-
     <span>👤</span>
-
 </div>
 
 </header>
-
-
-
 
 <main>
 
 <section class="categoria-secao">
 
+    <h1>⭐ Meus Favoritos</h1>
 
-    <h1>
-        ⭐ Meus Favoritos
-    </h1>
+    <div id="lista-favoritos" class="cards"></div>
 
-
-    <div
-        id="lista-favoritos"
-        class="cards">
-    </div>
-
-
-    <p
-        id="nenhum-favorito"
-        style="display: none;">
-
+    <p id="nenhum-favorito" style="display: none;">
         Você ainda não adicionou nenhum filme aos favoritos.
-
     </p>
-
 
 </section>
 
 </main>
 
+<script> const IMG = "https://image.tmdb.org/t/p/w500"; function carregarFavoritos() { const lista = document.getElementById("lista-favoritos"); const mensagem = document.getElementById("nenhum-favorito"); if (!lista || !mensagem) { console.error("Elementos da página de favoritos não encontrados."); return; } const favoritos = JSON.parse( localStorage.getItem("cinefamilyFavoritos") ) || []; console.log("FAVORITOS:", favoritos); lista.innerHTML = ""; if (favoritos.length === 0) { mensagem.style.display = "block"; return; } mensagem.style.display = "none"; favoritos.forEach(function(filme) { const card = document.createElement("div"); card.className = "card"; const imagem = filme.poster_path ? IMG + filme.poster_path : ""; card.innerHTML = ` <div class="imagem-card"> ${ imagem ? `<img src="${imagem}" alt="${filme.title || "Filme"}">` : "🎬" } </div> <h3> ${filme.title || "Sem título"} </h3> <p> ⭐ ${ filme.vote_average ? Number(filme.vote_average).toFixed(1) : "N/A" } </p> <button class="remover-favorito" type="button"> Remover dos favoritos </button> `; const remover = card.querySelector(".remover-favorito"); remover.addEventListener("click", function(event) { event.stopPropagation(); removerFavorito(filme.id); }); lista.appendChild(card); }); } function removerFavorito(id) { let favoritos = JSON.parse( localStorage.getItem("cinefamilyFavoritos") ) || []; favoritos = favoritos.filter(function(filme) { return filme.id !== id; }); localStorage.setItem( "cinefamilyFavoritos", JSON.stringify(favoritos) ); carregarFavoritos(); } document.addEventListener( "DOMContentLoaded", carregarFavoritos ); </script>
 
-
-
-<script> const IMG = "https://image.tmdb.org/t/p/w500"; // ===================================== // CARREGAR FAVORITOS // ===================================== function carregarFavoritos() { const lista = document.getElementById( "lista-favoritos" ); const mensagem = document.getElementById( "nenhum-favorito" ); // Limpa a tela lista.innerHTML = ""; let favoritos = []; // ===================================== // LER LOCALSTORAGE // ===================================== try { const salvo = localStorage.getItem( "cinefamilyFavoritos" ); if (salvo) { favoritos = JSON.parse(salvo); } if (!Array.isArray(favoritos)) { favoritos = []; } } catch (erro) { console.error( "Erro ao carregar favoritos:", erro ); favoritos = []; } console.log( "⭐ Favoritos encontrados:", favoritos ); // ===================================== // NENHUM FAVORITO // ===================================== if (favoritos.length === 0) { mensagem.style.display = "block"; return; } mensagem.style.display = "none"; // ===================================== // CRIAR CARDS // ===================================== favoritos.forEach(function(filme) { const card = document.createElement("div"); card.className = "card"; const imagem = filme.poster_path ? IMG + filme.poster_path : ""; card.innerHTML = ` <div class="imagem-card"> ${ imagem ? ` <img src="${imagem}" alt="${filme.title || "Filme"}" > ` : "🎬" } </div> <h3> ${filme.title || "Sem título"} </h3> <p> ⭐ ${ filme.vote_average ? Number( filme.vote_average ).toFixed(1) : "N/A" } </p> <button class="remover-favorito" type="button"> ❌ Remover </button> `; // ===================================== // BOTÃO REMOVER // ===================================== const botaoRemover = card.querySelector( ".remover-favorito" ); botaoRemover.addEventListener( "click", function(event) { event.stopPropagation(); removerFavorito( filme.id ); carregarFavoritos(); } ); lista.appendChild(card); }); } // ===================================== // REMOVER FAVORITO // ===================================== function removerFavorito(id) { let favoritos = []; try { const salvo = localStorage.getItem( "cinefamilyFavoritos" ); if (salvo) { favoritos = JSON.parse(salvo); } if (!Array.isArray(favoritos)) { favoritos = []; } } catch (erro) { console.error( "Erro ao remover favorito:", erro ); favoritos = []; } favoritos = favoritos.filter( function(filme) { return Number(filme.id) !== Number(id); } ); localStorage.setItem( "cinefamilyFavoritos", JSON.stringify(favoritos) ); console.log( "❌ Favorito removido:", id ); } // ===================================== // INICIAR // ===================================== document.addEventListener( "DOMContentLoaded", function() { carregarFavoritos(); } ); </script>
-
-</body>
-
-</html>
+</body> </html>
