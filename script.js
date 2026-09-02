@@ -7,9 +7,7 @@ function mostrarSlide(numero) {
     const slides = document.querySelectorAll(".slide");
     const indicadores = document.querySelectorAll(".indicador");
 
-    if (!slides.length) {
-        return;
-    }
+    if (!slides.length) return;
 
     if (numero >= slides.length) {
         slideAtual = 0;
@@ -19,11 +17,11 @@ function mostrarSlide(numero) {
         slideAtual = slides.length - 1;
     }
 
-    slides.forEach(function(slide, indice) {
+    slides.forEach((slide, indice) => {
         slide.classList.toggle("ativo", indice === slideAtual);
     });
 
-    indicadores.forEach(function(indicador, indice) {
+    indicadores.forEach((indicador, indice) => {
         indicador.classList.toggle("ativo", indice === slideAtual);
     });
 }
@@ -44,19 +42,25 @@ function irParaSlide(numero) {
 }
 
 async function buscarTMDB(endpoint) {
-    const resposta = await fetch(TMDB_WORKER + endpoint);
+    try {
+        const resposta = await fetch(TMDB_WORKER + endpoint);
 
-    console.log("📡 Worker:", endpoint, resposta.status);
+        console.log("📡 Worker:", endpoint, resposta.status);
 
-    if (!resposta.ok) {
-        throw new Error("Erro HTTP " + resposta.status);
+        if (!resposta.ok) {
+            throw new Error("Erro HTTP " + resposta.status);
+        }
+
+        return await resposta.json();
+
+    } catch (erro) {
+        console.error("❌ Erro ao acessar o Worker:", erro);
+        throw erro;
     }
-
-    return await resposta.json();
 }
 
 function escaparHTML(texto) {
-    if (!texto) {
+    if (texto === null || texto === undefined) {
         return "";
     }
 
@@ -69,11 +73,23 @@ function escaparHTML(texto) {
 }
 
 function obterTitulo(conteudo) {
-    return conteudo.title || conteudo.name || "Sem título";
+    if (!conteudo) {
+        return "Sem título";
+    }
+
+    return conteudo.title ||
+        conteudo.name ||
+        "Sem título";
 }
 
 function obterData(conteudo) {
-    const data = conteudo.release_date || conteudo.first_air_date;
+    if (!conteudo) {
+        return "Não informada";
+    }
+
+    const data =
+        conteudo.release_date ||
+        conteudo.first_air_date;
 
     if (!data) {
         return "Não informada";
@@ -89,6 +105,10 @@ function obterData(conteudo) {
 }
 
 function descobrirTipo(conteudo) {
+    if (!conteudo) {
+        return "filme";
+    }
+
     if (conteudo.media_type === "tv") {
         return "serie";
     }
@@ -97,14 +117,33 @@ function descobrirTipo(conteudo) {
         return "filme";
     }
 
-    if (conteudo.first_air_date || conteudo.name) {
+    if (
+        conteudo.first_air_date ||
+        conteudo.name
+    ) {
         return "serie";
     }
 
     return "filme";
 }
 
+function conteudoPermitido(conteudo) {
+    if (!conteudo) {
+        return false;
+    }
+
+    if (conteudo.adult === true) {
+        return false;
+    }
+
+    return true;
+}
+
 function criarCard(conteudo) {
+    if (!conteudoPermitido(conteudo)) {
+        return null;
+    }
+
     const card = document.createElement("div");
 
     card.className = "card";
@@ -123,6 +162,7 @@ function criarCard(conteudo) {
 
     card.innerHTML =
         '<div class="imagem-card">' +
+
             (
                 imagem
                     ? '<img src="' +
@@ -130,12 +170,15 @@ function criarCard(conteudo) {
                         '" alt="' +
                         escaparHTML(titulo) +
                         '" loading="lazy">'
-                    : "🎬"
+                    : '<div class="sem-poster">🎬</div>'
             ) +
+
         '</div>' +
+
         '<h3>' +
             escaparHTML(titulo) +
         '</h3>' +
+
         '<p>⭐ ' +
             nota +
         '</p>';
@@ -147,7 +190,11 @@ function criarCard(conteudo) {
     return card;
 }
 
-function mostrarNaSecao(secao, conteudos) {
+function mostrarNaSecao(
+    secao,
+    conteudos,
+    limite = 10
+) {
     if (!secao) {
         return;
     }
@@ -160,18 +207,32 @@ function mostrarNaSecao(secao, conteudos) {
 
     cards.innerHTML = "";
 
-    conteudos
-        .filter(function(conteudo) {
-            return conteudo.poster_path;
-        })
-        .slice(0, 10)
-        .forEach(function(conteudo) {
-            cards.appendChild(criarCard(conteudo));
-        });
+    const lista = Array.isArray(conteudos)
+        ? conteudos
+            .filter(conteudoPermitido)
+            .filter(conteudo => conteudo.poster_path)
+            .slice(0, limite)
+        : [];
+
+    if (!lista.length) {
+        cards.innerHTML =
+            "<p>Nenhum conteúdo encontrado.</p>";
+
+        return;
+    }
+
+    lista.forEach(conteudo => {
+        const card = criarCard(conteudo);
+
+        if (card) {
+            cards.appendChild(card);
+        }
+    });
 }
 
 async function carregarFilmes() {
-    const secaoFilmes = document.querySelector("#filmes");
+    const secaoFilmes =
+        document.querySelector("#filmes");
 
     if (!secaoFilmes) {
         return;
@@ -180,7 +241,8 @@ async function carregarFilmes() {
     console.log("🎬 Carregando filmes...");
 
     try {
-        const destaque = await buscarTMDB("/filmes");
+        const destaque =
+            await buscarTMDB("/filmes");
 
         mostrarNaSecao(
             secaoFilmes,
@@ -189,32 +251,36 @@ async function carregarFilmes() {
                 : []
         );
 
-        const avaliados = document.querySelector("#avaliados");
+        const avaliados =
+            document.querySelector("#avaliados");
 
         if (avaliados) {
-            const dadosAvaliados = await buscarTMDB(
-                "/filmes?sort_by=vote_average.desc"
-            );
+            const dados =
+                await buscarTMDB(
+                    "/filmes?sort_by=vote_average.desc"
+                );
 
             mostrarNaSecao(
                 avaliados,
-                Array.isArray(dadosAvaliados.results)
-                    ? dadosAvaliados.results
+                Array.isArray(dados.results)
+                    ? dados.results
                     : []
             );
         }
 
-        const lancamentos = document.querySelector("#lancamentos");
+        const lancamentos =
+            document.querySelector("#lancamentos");
 
         if (lancamentos) {
-            const dadosLancamentos = await buscarTMDB(
-                "/filmes?sort_by=primary_release_date.desc"
-            );
+            const dados =
+                await buscarTMDB(
+                    "/filmes?sort_by=primary_release_date.desc"
+                );
 
             mostrarNaSecao(
                 lancamentos,
-                Array.isArray(dadosLancamentos.results)
-                    ? dadosLancamentos.results
+                Array.isArray(dados.results)
+                    ? dados.results
                     : []
             );
         }
@@ -222,561 +288,674 @@ async function carregarFilmes() {
         console.log("✅ Filmes carregados!");
 
     } catch (erro) {
-        console.error("❌ Erro ao carregar filmes:", erro);
+        console.error(
+            "❌ Erro ao carregar filmes:",
+            erro
+        );
     }
 }
+async function carregarSeries() {
+    const secaoSeries =
+        document.querySelector("#series");
 
-async function realizarBusca() {
-    const campo = document.getElementById("campo-busca");
-    const resultados = document.getElementById("resultados-busca");
-
-    if (!campo || !resultados) {
+    if (!secaoSeries) {
         return;
     }
 
-    const buscaCards = resultados.querySelector(".cards");
-
-    if (!buscaCards) {
-        return;
-    }
-
-    const texto = campo.value.trim();
-
-    if (!texto) {
-        resultados.style.display = "none";
-        return;
-    }
-
-    console.log("🔎 Buscando:", texto);
-
-    resultados.style.display = "block";
-
-    buscaCards.innerHTML =
-        "<p>🔎 Buscando...</p>";
+    console.log("📺 Carregando séries...");
 
     try {
-        const dados = await buscarTMDB(
-            "/buscar?query=" +
-            encodeURIComponent(texto)
-        );
+        const dados =
+            await buscarTMDB("/series");
 
-        const resultadosTMDB =
+        const resultados =
             Array.isArray(dados.results)
                 ? dados.results
                 : [];
 
-        buscaCards.innerHTML = "";
+        mostrarNaSecao(
+            secaoSeries,
+            resultados
+        );
 
-        const conteudos = resultadosTMDB.filter(
-            function(conteudo) {
+        const secaoDoramas =
+            document.querySelector("#doramas");
+
+        if (secaoDoramas) {
+            const doramas = resultados.filter(item => {
+                const texto =
+                    (
+                        obterTitulo(item) +
+                        " " +
+                        (item.overview || "")
+                    ).toLowerCase();
+
                 return (
-                    conteudo.media_type === "movie" ||
-                    conteudo.media_type === "tv" ||
-                    conteudo.title ||
-                    conteudo.name
-                );
-            }
-        );
-
-        const comCapa = conteudos.filter(
-            function(conteudo) {
-                return conteudo.poster_path;
-            }
-        );
-
-        if (!comCapa.length) {
-            buscaCards.innerHTML =
-                "<p>Nenhum filme ou série encontrado.</p>";
-
-            return;
-        }
-
-        comCapa
-            .slice(0, 20)
-            .forEach(function(conteudo) {
-                buscaCards.appendChild(
-                    criarCard(conteudo)
+                    texto.includes("korea") ||
+                    texto.includes("coreia") ||
+                    texto.includes("korean") ||
+                    texto.includes("doraman")
                 );
             });
 
-        resultados.scrollIntoView({
-            behavior: "smooth",
-            block: "start"
-        });
+            mostrarNaSecao(
+                secaoDoramas,
+                doramas
+            );
+        }
+
+        const secaoGL =
+            document.querySelector("#gl");
+
+        if (secaoGL) {
+            const gl = resultados.filter(item => {
+                const texto =
+                    (
+                        obterTitulo(item) +
+                        " " +
+                        (item.overview || "")
+                    ).toLowerCase();
+
+                return (
+                    texto.includes("girls love") ||
+                    texto.includes("girls' love") ||
+                    texto.includes("girl love") ||
+                    texto.includes("yuri")
+                );
+            });
+
+            mostrarNaSecao(
+                secaoGL,
+                gl
+            );
+        }
+
+        const secaoKids =
+            document.querySelector("#kids");
+
+        if (secaoKids) {
+            const kids = resultados.filter(item => {
+                const texto =
+                    (
+                        obterTitulo(item) +
+                        " " +
+                        (item.overview || "")
+                    ).toLowerCase();
+
+                return (
+                    texto.includes("infantil") ||
+                    texto.includes("children") ||
+                    texto.includes("kids") ||
+                    texto.includes("family")
+                );
+            });
+
+            mostrarNaSecao(
+                secaoKids,
+                kids
+            );
+        }
+
+        console.log("✅ Séries carregadas!");
 
     } catch (erro) {
-        console.error("❌ Erro na busca:", erro);
-
-        buscaCards.innerHTML =
-            "<p>❌ Não foi possível realizar a busca.</p>";
+        console.error(
+            "❌ Erro ao carregar séries:",
+            erro
+        );
     }
 }
 
-function configurarBusca() {
-    const botaoBusca =
-        document.getElementById("botao-busca");
 
-    const areaBusca =
-        document.getElementById("area-busca");
+/* =========================
+   BUSCA
+========================= */
 
-    const campoBusca =
-        document.getElementById("campo-busca");
+let ultimaBusca = "";
 
-    const fecharBusca =
-        document.getElementById("fechar-busca");
+async function realizarBusca(termo) {
+    termo = String(termo || "").trim();
 
-    if (
-        !botaoBusca ||
-        !areaBusca ||
-        !campoBusca
-    ) {
+    if (!termo) {
         return;
     }
 
-    botaoBusca.addEventListener(
-        "click",
-        function() {
-            areaBusca.style.display = "block";
-            campoBusca.focus();
-        }
+    ultimaBusca = termo;
+
+    console.log(
+        "🔎 Buscando:",
+        termo
     );
 
-    if (fecharBusca) {
-        fecharBusca.addEventListener(
-            "click",
-            function() {
-                areaBusca.style.display = "none";
-                campoBusca.value = "";
+    try {
+        const dados =
+            await buscarTMDB(
+                "/buscar?query=" +
+                encodeURIComponent(termo)
+            );
 
-                const resultados =
-                    document.getElementById(
-                        "resultados-busca"
+        const resultados =
+            Array.isArray(dados.results)
+                ? dados.results
+                : [];
+
+        mostrarResultadosBusca(
+            resultados
+        );
+
+    } catch (erro) {
+        console.error(
+            "❌ Erro na busca:",
+            erro
+        );
+
+        mostrarMensagemBusca(
+            "Não foi possível realizar a busca."
+        );
+    }
+}
+
+
+function mostrarResultadosBusca(resultados) {
+    let container =
+        document.querySelector("#resultados-busca");
+
+    if (!container) {
+        container =
+            document.querySelector("#resultados");
+
+    }
+
+    if (!container) {
+        console.warn(
+            "⚠️ Container de resultados não encontrado."
+        );
+
+        return;
+    }
+
+    container.innerHTML = "";
+
+    const lista =
+        Array.isArray(resultados)
+            ? resultados
+                .filter(conteudoPermitido)
+                .filter(item => item.poster_path)
+            : [];
+
+    if (!lista.length) {
+        container.innerHTML =
+            "<p>Nenhum resultado encontrado.</p>";
+
+        return;
+    }
+
+    lista.forEach(conteudo => {
+        const card =
+            criarCard(conteudo);
+
+        if (card) {
+            container.appendChild(card);
+        }
+    });
+}
+
+
+function mostrarMensagemBusca(mensagem) {
+    const container =
+        document.querySelector(
+            "#resultados-busca"
+        ) ||
+        document.querySelector(
+            "#resultados"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML =
+        "<p>" +
+        escaparHTML(mensagem) +
+        "</p>";
+}
+
+
+function configurarBusca() {
+    const campos =
+        document.querySelectorAll(
+            'input[type="search"], #campo-busca, #searchInput'
+        );
+
+    campos.forEach(campo => {
+        campo.addEventListener(
+            "keydown",
+            function(evento) {
+                if (
+                    evento.key === "Enter"
+                ) {
+                    evento.preventDefault();
+
+                    realizarBusca(
+                        campo.value
                     );
-
-                if (resultados) {
-                    resultados.style.display = "none";
                 }
             }
         );
-    }
+    });
 
-    campoBusca.addEventListener(
-        "keydown",
-        function(event) {
-            if (event.key === "Enter") {
-                realizarBusca();
+    const botoes =
+        document.querySelectorAll(
+            "#botao-buscar, #btnBuscar, .botao-busca, .search-button"
+        );
+
+    botoes.forEach(botao => {
+        botao.addEventListener(
+            "click",
+            function() {
+                const campo =
+                    document.querySelector(
+                        'input[type="search"], #campo-busca, #searchInput'
+                    );
+
+                if (campo) {
+                    realizarBusca(
+                        campo.value
+                    );
+                }
             }
-        }
-    );
+        );
+    });
 }
 
-async function abrirDetalhes(conteudo, tipo) {
-    fecharDetalhes();
 
-    registrarHistorico(conteudo);
+/* =========================
+   MODAL DE DETALHES
+========================= */
 
-    const modal = document.createElement("div");
+let conteudoAtual = null;
+let tipoConteudoAtual = null;
 
-    modal.id = "cinefamily-modal";
 
-    modal.innerHTML =
-        '<div class="detalhes-filme">' +
-
-            '<button class="fechar-detalhes" type="button">' +
-                "✕" +
-            "</button>" +
-
-            '<div class="detalhes-conteudo">' +
-
-                '<div class="detalhes-poster">' +
-                    '<div style="padding:40px;text-align:center;">' +
-                        "⏳" +
-                    "</div>" +
-                "</div>" +
-
-                '<div class="detalhes-info">' +
-                    "<p>Carregando detalhes...</p>" +
-                "</div>" +
-
-            "</div>" +
-
-        "</div>";
-
-    document.body.appendChild(modal);
-
-    const botaoFechar =
-        modal.querySelector(".fechar-detalhes");
-
-    if (botaoFechar) {
-        botaoFechar.addEventListener(
-            "click",
-            fecharDetalhes
-        );
+async function abrirDetalhes(
+    conteudo,
+    tipo
+) {
+    if (!conteudo || !conteudo.id) {
+        return;
     }
 
+    conteudoAtual = conteudo;
+    tipoConteudoAtual = tipo;
+
+    console.log(
+        "📖 Abrindo detalhes:",
+        conteudo.id,
+        tipo
+    );
+
     try {
-        let detalhes;
+        const endpoint =
+            tipo === "serie"
+                ? "/serie?id=" + conteudo.id
+                : "/filme?id=" + conteudo.id;
 
-        if (tipo === "serie") {
-            detalhes = await buscarTMDB(
-                "/serie?id=" +
-                encodeURIComponent(conteudo.id)
-            );
-        } else {
-            detalhes = await buscarTMDB(
-                "/filme?id=" +
-                encodeURIComponent(conteudo.id)
-            );
-        }
+        const detalhes =
+            await buscarTMDB(endpoint);
 
-        preencherDetalhes(
-            modal,
+        mostrarModalDetalhes(
             detalhes,
             tipo
         );
 
     } catch (erro) {
         console.error(
-            "❌ Erro nos detalhes:",
+            "❌ Erro ao carregar detalhes:",
             erro
         );
 
-        const info =
-            modal.querySelector(
-                ".detalhes-info"
-            );
-
-        if (info) {
-            info.innerHTML =
-                "<p>❌ Não foi possível carregar os detalhes.</p>";
-        }
+        mostrarModalDetalhes(
+            conteudo,
+            tipo
+        );
     }
 }
 
-function preencherDetalhes(modal, detalhes, tipo) {
-    const poster =
-        modal.querySelector(".detalhes-poster");
 
-    const info =
-        modal.querySelector(".detalhes-info");
+function encontrarModal() {
+    return (
+        document.querySelector(
+            "#modal-detalhes"
+        ) ||
+        document.querySelector(
+            "#modalDetalhes"
+        ) ||
+        document.querySelector(
+            ".modal-detalhes"
+        )
+    );
+}
 
-    if (!info) {
-        return;
+
+function mostrarModalDetalhes(
+    dados,
+    tipo
+) {
+    let modal =
+        encontrarModal();
+
+    if (!modal) {
+        modal =
+            document.createElement("div");
+
+        modal.id =
+            "modal-detalhes";
+
+        modal.className =
+            "modal-detalhes";
+
+        document.body.appendChild(
+            modal
+        );
     }
 
     const titulo =
-        obterTitulo(detalhes);
+        obterTitulo(dados);
+
+    const descricao =
+        dados.overview ||
+        "Sinopse não disponível.";
 
     const imagem =
-        detalhes.poster_path
-            ? IMG + detalhes.poster_path
-            : "";
+        dados.backdrop_path
+            ? "https://image.tmdb.org/t/p/original" +
+              dados.backdrop_path
+            : (
+                dados.poster_path
+                    ? "https://image.tmdb.org/t/p/w780" +
+                      dados.poster_path
+                    : ""
+            );
 
     const nota =
-        detalhes.vote_average
-            ? Number(detalhes.vote_average).toFixed(1)
+        dados.vote_average
+            ? Number(
+                dados.vote_average
+            ).toFixed(1)
             : "N/A";
 
     const data =
-        obterData(detalhes);
-
-    const sinopse =
-        detalhes.overview ||
-        "Sinopse não disponível.";
-
-    const categoria =
-        tipo === "serie"
-            ? "📺 SÉRIE"
-            : "🎬 FILME";
-
-    if (poster) {
-        poster.innerHTML =
-            imagem
-                ? '<img src="' +
-                    imagem +
-                    '" alt="' +
-                    escaparHTML(titulo) +
-                    '">'
-                : "🎬";
-    }
-
-    let html =
-        '<span class="categoria">' +
-            categoria +
-        "</span>" +
-
-        "<h1>" +
-            escaparHTML(titulo) +
-        "</h1>" +
-
-        '<p class="nota">' +
-            "⭐ " +
-            nota +
-        "</p>" +
-
-        '<p class="data">' +
-            "📅 " +
-            data +
-        "</p>" +
-
-        '<p class="sinopse">' +
-            escaparHTML(sinopse) +
-        "</p>";
-
-    if (tipo === "serie") {
-        const temporadas =
-            detalhes.number_of_seasons || 0;
-
-        const episodios =
-            detalhes.number_of_episodes || 0;
-
-        html +=
-            '<div class="informacoes-serie">' +
-
-                "<p>📺 <strong>" +
-                    temporadas +
-                "</strong> temporada(s)</p>" +
-
-                "<p>🎞️ <strong>" +
-                    episodios +
-                "</strong> episódio(s)</p>" +
-
-            "</div>";
-    }
-
-    html +=
-        '<div class="botoes-detalhes">' +
-
-            '<button class="assistir" type="button">' +
-                "▶ Assistir agora" +
-            "</button>" +
-
-            '<button class="favorito" type="button">' +
-                "⭐ Favoritar" +
-            "</button>" +
-
-        "</div>";
-
-    if (tipo === "serie") {
-        html +=
-            '<div class="area-temporadas">' +
-
-                "<h2>🎞️ Temporadas</h2>" +
-
-                '<div class="lista-temporadas"></div>' +
-
-                '<div class="episodios"></div>' +
-
-            "</div>";
-    }
-
-    html +=
-        '<div class="area-elenco">' +
-
-            "<h2>🎭 Elenco</h2>" +
-
-            '<div class="lista-elenco"></div>' +
-
-        "</div>";
-
-    info.innerHTML = html;
-
-    configurarFavorito(
-        modal,
-        detalhes
-    );
-
-    const botaoAssistir =
-        modal.querySelector(".assistir");
-
-    if (botaoAssistir) {
-        botaoAssistir.addEventListener(
-            "click",
-            function() {
-                registrarHistorico(detalhes);
-
-                alert(
-                    "🎬 O vídeo deste conteúdo ainda não está disponível."
-                );
-            }
-        );
-    }
-
-    carregarElenco(
-        modal,
-        detalhes,
-        tipo
-    );
-
-    if (tipo === "serie") {
-        carregarTemporadas(
-            modal,
-            detalhes
-        );
-    }
-}
-
-function configurarFavorito(modal, conteudo) {
-    const botao =
-        modal.querySelector(".favorito");
-
-    if (!botao) {
-        return;
-    }
+        obterData(dados);
 
     const favoritos =
         obterFavoritos();
 
-    const existe =
+    const favoritado =
         favoritos.some(
-            function(item) {
-                return Number(item.id) ===
-                    Number(conteudo.id);
-            }
+            item =>
+                String(item.id) ===
+                String(dados.id)
         );
 
-    if (existe) {
-        botao.textContent =
-            "⭐ Favoritado";
+    modal.innerHTML =
+        '<div class="modal-conteudo">' +
+
+            '<button class="fechar-modal" ' +
+            'onclick="fecharModalDetalhes()">' +
+                '✕' +
+            '</button>' +
+
+            (
+                imagem
+                    ? '<div class="modal-capa">' +
+                        '<img src="' +
+                        imagem +
+                        '" alt="' +
+                        escaparHTML(titulo) +
+                        '">' +
+                      '</div>'
+                    : ""
+            ) +
+
+            '<div class="modal-info">' +
+
+                '<h2>' +
+                    escaparHTML(titulo) +
+                '</h2>' +
+
+                '<p class="modal-meta">' +
+                    '⭐ ' +
+                    nota +
+                    ' &nbsp; • &nbsp; ' +
+                    escaparHTML(data) +
+                '</p>' +
+
+                '<p class="modal-sinopse">' +
+                    escaparHTML(descricao) +
+                '</p>' +
+
+                '<div class="modal-botoes">' +
+
+                    (
+                        tipo === "serie"
+                            ? '<button ' +
+                                'class="botao-assistir" ' +
+                                'onclick="mostrarTemporadas(' +
+                                    dados.id +
+                                ')">' +
+                                '▶ Temporadas' +
+                              '</button>'
+                            : '<button ' +
+                                'class="botao-assistir" ' +
+                                'onclick="tentarAssistir()">' +
+                                '▶ Assistir agora' +
+                              '</button>'
+                    ) +
+
+                    '<button ' +
+                        'class="botao-favorito" ' +
+                        'onclick="alternarFavoritoDoDetalhe(' +
+                            dados.id +
+                        ')">' +
+                        (
+                            favoritado
+                                ? "⭐ Remover dos favoritos"
+                                : "☆ Adicionar aos favoritos"
+                        ) +
+                    '</button>' +
+
+                '</div>' +
+
+                '<div id="detalhes-elenco">' +
+                    '<h3>Elenco</h3>' +
+                    '<p>Carregando...</p>' +
+                '</div>' +
+
+                (
+                    tipo === "serie"
+                        ? '<div id="lista-temporadas"></div>'
+                        : ""
+                ) +
+
+            '</div>' +
+
+        '</div>';
+
+    modal.classList.add("ativo");
+
+    document.body.classList.add(
+        "modal-aberto"
+    );
+
+    adicionarAoHistorico(
+        dados
+    );
+
+    carregarElenco(
+        dados,
+        tipo
+    );
+
+    if (tipo === "serie") {
+        carregarListaTemporadas(
+            dados
+        );
+    }
+}
+
+
+function fecharModalDetalhes() {
+    const modal =
+        encontrarModal();
+
+    if (!modal) {
+        return;
     }
 
-    botao.addEventListener(
-        "click",
-        function() {
-            adicionarFavorito(conteudo);
+    modal.classList.remove(
+        "ativo"
+    );
 
-            botao.textContent =
-                "⭐ Favoritado";
-        }
+    document.body.classList.remove(
+        "modal-aberto"
     );
 }
 
-async function carregarElenco(modal, detalhes, tipo) {
-    const area =
-        modal.querySelector(".lista-elenco");
 
-    if (!area) {
+function tentarAssistir() {
+    alert(
+        "🎬 A reprodução do vídeo será adicionada ao CineFamily quando a fonte de vídeo estiver disponível."
+    );
+}
+/* =========================
+   ELENCO
+========================= */
+
+async function carregarElenco(dados, tipo) {
+    const container =
+        document.querySelector("#detalhes-elenco");
+
+    if (!container || !dados || !dados.id) {
         return;
     }
 
-    let elenco = [];
+    try {
+        let elenco = [];
 
-    if (tipo === "serie") {
         if (
-            detalhes.aggregate_credits &&
-            Array.isArray(
-                detalhes.aggregate_credits.cast
-            )
+            dados.credits &&
+            Array.isArray(dados.credits.cast)
         ) {
-            elenco =
-                detalhes.aggregate_credits.cast;
+            elenco = dados.credits.cast;
         }
 
         if (
-            !elenco.length &&
-            detalhes.credits &&
+            dados.aggregate_credits &&
             Array.isArray(
-                detalhes.credits.cast
+                dados.aggregate_credits.cast
             )
         ) {
             elenco =
-                detalhes.credits.cast;
+                dados.aggregate_credits.cast;
         }
-    } else {
-        if (
-            detalhes.credits &&
-            Array.isArray(
-                detalhes.credits.cast
-            )
-        ) {
-            elenco =
-                detalhes.credits.cast;
+
+        if (!elenco.length) {
+            container.innerHTML =
+                "<h3>Elenco</h3>" +
+                "<p>Elenco não disponível.</p>";
+
+            return;
         }
-    }
 
-    elenco = elenco
-        .filter(function(pessoa) {
-            return pessoa.profile_path;
-        })
-        .slice(0, 12);
+        elenco = elenco
+            .filter(pessoa => pessoa && pessoa.name)
+            .slice(0, 12);
 
-    if (!elenco.length) {
-        area.innerHTML =
-            "<p>Elenco não disponível.</p>";
+        let html =
+            "<h3>Elenco</h3>" +
+            '<div class="elenco-lista">';
 
-        return;
-    }
-
-    area.innerHTML = "";
-
-    elenco.forEach(
-        function(pessoa) {
+        elenco.forEach(pessoa => {
             const nome =
-                pessoa.name ||
-                "Ator";
+                pessoa.name || "Desconhecido";
 
-            let personagem = "";
-
-            if (pessoa.character) {
-                personagem =
-                    pessoa.character;
-            } else if (
-                Array.isArray(pessoa.roles) &&
-                pessoa.roles.length
-            ) {
-                personagem =
-                    pessoa.roles[0].character || "";
-            }
-
-            const card =
-                document.createElement("div");
-
-            card.className =
-                "card elenco-card";
-
-            card.innerHTML =
-                '<div class="imagem-card">' +
-
-                    '<img src="' +
-                        IMG +
-                        pessoa.profile_path +
-                        '" alt="' +
-                        escaparHTML(nome) +
-                    '">' +
-
-                "</div>" +
-
-                "<h3>" +
-                    escaparHTML(nome) +
-                "</h3>" +
-
+            const personagem =
+                pessoa.character ||
                 (
-                    personagem
-                        ? "<p>" +
-                            escaparHTML(
-                                personagem
-                            ) +
-                          "</p>"
+                    Array.isArray(
+                        pessoa.roles
+                    ) &&
+                    pessoa.roles.length
+                        ? pessoa.roles[0].character
                         : ""
                 );
 
-            area.appendChild(card);
-        }
-    );
+            const foto =
+                pessoa.profile_path
+                    ? "https://image.tmdb.org/t/p/w185" +
+                      pessoa.profile_path
+                    : "";
+
+            html +=
+                '<div class="ator">' +
+
+                    (
+                        foto
+                            ? '<img src="' +
+                                foto +
+                                '" alt="' +
+                                escaparHTML(nome) +
+                                '" loading="lazy">'
+                            : '<div class="sem-foto">👤</div>'
+                    ) +
+
+                    '<strong>' +
+                        escaparHTML(nome) +
+                    '</strong>' +
+
+                    (
+                        personagem
+                            ? '<span>' +
+                                escaparHTML(
+                                    personagem
+                                ) +
+                              '</span>'
+                            : ""
+                    ) +
+
+                '</div>';
+        });
+
+        html += "</div>";
+
+        container.innerHTML = html;
+
+    } catch (erro) {
+        console.error(
+            "❌ Erro ao carregar elenco:",
+            erro
+        );
+
+        container.innerHTML =
+            "<h3>Elenco</h3>" +
+            "<p>Não foi possível carregar o elenco.</p>";
+    }
 }
 
-async function carregarTemporadas(modal, serie) {
-    const lista =
-        modal.querySelector(
-            ".lista-temporadas"
+
+/* =========================
+   TEMPORADAS
+========================= */
+
+async function carregarListaTemporadas(
+    serie
+) {
+    const container =
+        document.querySelector(
+            "#lista-temporadas"
         );
 
-    const episodios =
-        modal.querySelector(
-            ".episodios"
-        );
-
-    if (!lista || !episodios) {
+    if (!container || !serie) {
         return;
     }
 
@@ -786,79 +965,121 @@ async function carregarTemporadas(modal, serie) {
             : [];
 
     if (!temporadas.length) {
-        lista.innerHTML =
+        container.innerHTML =
+            "<h3>Temporadas</h3>" +
             "<p>Temporadas não disponíveis.</p>";
 
         return;
     }
 
-    lista.innerHTML = "";
+    const temporadasValidas =
+        temporadas.filter(
+            temporada =>
+                temporada &&
+                temporada.season_number >= 0
+        );
 
-    temporadas.forEach(
-        function(temporada) {
+    let html =
+        "<h3>Temporadas</h3>" +
+        '<div class="temporadas-lista">';
+
+    temporadasValidas.forEach(
+        temporada => {
             const numero =
                 temporada.season_number;
 
-            const botao =
-                document.createElement(
-                    "button"
+            const nome =
+                temporada.name ||
+                (
+                    numero === 0
+                        ? "Especiais"
+                        : "Temporada " +
+                          numero
                 );
 
-            botao.type = "button";
+            const episodios =
+                temporada.episode_count ||
+                0;
 
-            botao.className =
-                "botao-temporada";
+            html +=
+                '<button ' +
+                    'class="botao-temporada" ' +
+                    'onclick="carregarEpisodios(' +
+                        serie.id +
+                        ',' +
+                        numero +
+                    ')">' +
 
-            botao.textContent =
-                "Temporada " +
-                numero;
+                    escaparHTML(nome) +
 
-            botao.addEventListener(
-                "click",
-                function() {
-                    carregarEpisodios(
-                        serie.id,
-                        numero,
-                        episodios
-                    );
-                }
-            );
+                    ' <span>(' +
+                        episodios +
+                        ' episódios)</span>' +
 
-            lista.appendChild(botao);
+                '</button>';
         }
     );
 
-    const temporadaValida =
-        temporadas.find(
-            function(temporada) {
-                return temporada.season_number > 0;
-            }
+    html += "</div>";
+
+    html +=
+        '<div id="lista-episodios"></div>';
+
+    container.innerHTML = html;
+}
+
+
+async function mostrarTemporadas(
+    serieId
+) {
+    if (!serieId) {
+        return;
+    }
+
+    try {
+        const dados =
+            await buscarTMDB(
+                "/serie?id=" +
+                serieId
+            );
+
+        mostrarModalDetalhes(
+            dados,
+            "serie"
         );
 
-    if (temporadaValida) {
-        carregarEpisodios(
-            serie.id,
-            temporadaValida.season_number,
-            episodios
+    } catch (erro) {
+        console.error(
+            "❌ Erro ao abrir temporadas:",
+            erro
         );
     }
 }
 
+
 async function carregarEpisodios(
     serieId,
-    numeroTemporada,
-    area
+    temporadaNumero
 ) {
-    area.innerHTML =
+    const container =
+        document.querySelector(
+            "#lista-episodios"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML =
         "<p>⏳ Carregando episódios...</p>";
 
     try {
         const dados =
             await buscarTMDB(
                 "/temporada?id=" +
-                encodeURIComponent(serieId) +
+                serieId +
                 "&temporada=" +
-                encodeURIComponent(numeroTemporada)
+                temporadaNumero
             );
 
         const episodios =
@@ -867,162 +1088,133 @@ async function carregarEpisodios(
                 : [];
 
         if (!episodios.length) {
-            area.innerHTML =
+            container.innerHTML =
                 "<p>Nenhum episódio encontrado.</p>";
 
             return;
         }
 
-        area.innerHTML =
-            "<h3>📋 Episódios</h3>";
+        let html =
+            '<div class="episodios-lista">' +
+            "<h3>" +
+                (
+                    temporadaNumero === 0
+                        ? "Especiais"
+                        : "Temporada " +
+                          temporadaNumero
+                ) +
+            "</h3>";
 
         episodios.forEach(
-            function(episodio) {
+            episodio => {
                 const numero =
-                    episodio.episode_number;
+                    episodio.episode_number ||
+                    0;
 
                 const titulo =
                     episodio.name ||
-                    "Episódio";
+                    "Episódio " +
+                    numero;
 
-                const sinopse =
+                const descricao =
                     episodio.overview ||
                     "Sinopse não disponível.";
 
-                const data =
-                    episodio.air_date
-                        ? episodio.air_date
-                            .split("-")
-                            .reverse()
-                            .join("/")
-                        : "Data não informada";
+                const imagem =
+                    episodio.still_path
+                        ? "https://image.tmdb.org/t/p/w500" +
+                          episodio.still_path
+                        : "";
 
-                const item =
-                    document.createElement(
-                        "div"
-                    );
+                html +=
+                    '<div class="episodio">' +
 
-                item.className =
-                    "episodio";
+                        (
+                            imagem
+                                ? '<img src="' +
+                                    imagem +
+                                    '" alt="' +
+                                    escaparHTML(
+                                        titulo
+                                    ) +
+                                    '" loading="lazy">'
+                                : '<div class="episodio-sem-imagem">🎬</div>'
+                        ) +
 
-                item.innerHTML =
-                    "<h4>" +
-                        "Episódio " +
-                        numero +
-                        " — " +
-                        escaparHTML(titulo) +
-                    "</h4>" +
+                        '<div class="episodio-info">' +
 
-                    "<p>" +
-                        "📅 " +
-                        data +
-                    "</p>" +
+                            '<h4>' +
+                                numero +
+                                ". " +
+                                escaparHTML(
+                                    titulo
+                                ) +
+                            '</h4>' +
 
-                    "<p>" +
-                        escaparHTML(sinopse) +
-                    "</p>";
+                            '<p>' +
+                                escaparHTML(
+                                    descricao
+                                ) +
+                            '</p>' +
 
-                area.appendChild(item);
+                            '<button ' +
+                                'class="botao-episodio" ' +
+                                'onclick="assistirEpisodio(' +
+                                    serieId +
+                                    ',' +
+                                    temporadaNumero +
+                                    ',' +
+                                    numero +
+                                ')">' +
+                                '▶ Assistir episódio' +
+                            '</button>' +
+
+                        '</div>' +
+
+                    '</div>';
             }
         );
 
-    } catch (erro) {
-        console.error(
-            "❌ Erro nos episódios:",
-            erro
-        );
+        html += "</div>";
 
-        area.innerHTML =
-            "<p>❌ Não foi possível carregar os episódios.</p>";
-    }
-}
-
-function obterHistorico() {
-    try {
-        const dados =
-            localStorage.getItem(
-                "cinefamilyHistorico"
-            );
-
-        if (!dados) {
-            return [];
-        }
-
-        const historico =
-            JSON.parse(dados);
-
-        return Array.isArray(historico)
-            ? historico
-            : [];
+        container.innerHTML = html;
 
     } catch (erro) {
         console.error(
-            "❌ Erro no histórico:",
+            "❌ Erro ao carregar episódios:",
             erro
         );
 
-        return [];
+        container.innerHTML =
+            "<p>Não foi possível carregar os episódios.</p>";
     }
 }
 
-function registrarHistorico(conteudo) {
-    let historico =
-        obterHistorico();
 
-    historico =
-        historico.filter(
-            function(item) {
-                return Number(item.id) !==
-                    Number(conteudo.id);
-            }
-        );
-
-    historico.unshift({
-        id: conteudo.id,
-
-        title:
-            conteudo.title ||
-            conteudo.name,
-
-        name:
-            conteudo.name,
-
-        poster_path:
-            conteudo.poster_path,
-
-        vote_average:
-            conteudo.vote_average,
-
-        release_date:
-            conteudo.release_date,
-
-        first_air_date:
-            conteudo.first_air_date,
-
-        overview:
-            conteudo.overview,
-
-        media_type:
-            conteudo.media_type,
-
-        dataVisualizacao:
-            new Date().toISOString()
-    });
-
-    historico =
-        historico.slice(0, 20);
-
-    localStorage.setItem(
-        "cinefamilyHistorico",
-        JSON.stringify(historico)
+function assistirEpisodio(
+    serieId,
+    temporada,
+    episodio
+) {
+    alert(
+        "▶ Episódio " +
+        episodio +
+        " da temporada " +
+        temporada +
+        ".\n\nA reprodução será conectada quando a fonte de vídeo estiver disponível."
     );
 }
+
+
+/* =========================
+   FAVORITOS
+========================= */
 
 function obterFavoritos() {
     try {
         const dados =
             localStorage.getItem(
-                "cinefamilyFavoritos"
+                "cinefamily_favoritos"
             );
 
         if (!dados) {
@@ -1038,7 +1230,7 @@ function obterFavoritos() {
 
     } catch (erro) {
         console.error(
-            "❌ Erro nos favoritos:",
+            "❌ Erro ao ler favoritos:",
             erro
         );
 
@@ -1046,108 +1238,575 @@ function obterFavoritos() {
     }
 }
 
-function adicionarFavorito(conteudo) {
-    let favoritos =
-        obterFavoritos();
 
-    const jaExiste =
-        favoritos.some(
-            function(item) {
-                return Number(item.id) ===
-                    Number(conteudo.id);
-            }
+function salvarFavoritos(favoritos) {
+    try {
+        localStorage.setItem(
+            "cinefamily_favoritos",
+            JSON.stringify(favoritos)
         );
 
-    if (jaExiste) {
+    } catch (erro) {
+        console.error(
+            "❌ Erro ao salvar favoritos:",
+            erro
+        );
+    }
+}
+
+
+function alternarFavorito(
+    conteudo
+) {
+    if (!conteudo || !conteudo.id) {
         return;
     }
 
-    favoritos.push({
-        id: conteudo.id,
+    let favoritos =
+        obterFavoritos();
 
-        title:
-            conteudo.title,
-
-        name:
-            conteudo.name,
-
-        poster_path:
-            conteudo.poster_path,
-
-        vote_average:
-            conteudo.vote_average,
-
-        release_date:
-            conteudo.release_date,
-
-        first_air_date:
-            conteudo.first_air_date,
-
-        overview:
-            conteudo.overview,
-
-        media_type:
-            conteudo.media_type
-    });
-
-    localStorage.setItem(
-        "cinefamilyFavoritos",
-        JSON.stringify(favoritos)
-    );
-
-    alert(
-        "⭐ Conteúdo adicionado aos favoritos!"
-    );
-}
-
-function fecharDetalhes() {
-    const modal =
-        document.getElementById(
-            "cinefamily-modal"
+    const indice =
+        favoritos.findIndex(
+            item =>
+                String(item.id) ===
+                String(conteudo.id)
         );
 
-    if (modal) {
-        modal.remove();
+    if (indice >= 0) {
+        favoritos.splice(
+            indice,
+            1
+        );
+
+        console.log(
+            "⭐ Removido dos favoritos:",
+            obterTitulo(conteudo)
+        );
+
+    } else {
+        favoritos.push({
+            ...conteudo,
+            adicionado_em:
+                new Date().toISOString()
+        });
+
+        console.log(
+            "⭐ Adicionado aos favoritos:",
+            obterTitulo(conteudo)
+        );
+    }
+
+    salvarFavoritos(
+        favoritos
+    );
+}
+
+
+function alternarFavoritoDoDetalhe(
+    id
+) {
+    if (!id) {
+        return;
+    }
+
+    let favoritos =
+        obterFavoritos();
+
+    const indice =
+        favoritos.findIndex(
+            item =>
+                String(item.id) ===
+                String(id)
+        );
+
+    if (indice >= 0) {
+        favoritos.splice(
+            indice,
+            1
+        );
+    } else {
+        if (
+            conteudoAtual &&
+            String(conteudoAtual.id) ===
+            String(id)
+        ) {
+            favoritos.push({
+                ...conteudoAtual,
+                adicionado_em:
+                    new Date().toISOString()
+            });
+        }
+    }
+
+    salvarFavoritos(
+        favoritos
+    );
+
+    if (
+        conteudoAtual &&
+        String(conteudoAtual.id) ===
+        String(id)
+    ) {
+        mostrarModalDetalhes(
+            conteudoAtual,
+            tipoConteudoAtual
+        );
+    }
+
+    atualizarTelaFavoritos();
+}
+
+
+function atualizarTelaFavoritos() {
+    const container =
+        document.querySelector(
+            "#lista-favoritos"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    const favoritos =
+        obterFavoritos();
+
+    container.innerHTML = "";
+
+    if (!favoritos.length) {
+        container.innerHTML =
+            "<p>Você ainda não adicionou favoritos.</p>";
+
+        return;
+    }
+
+    favoritos.forEach(
+        conteudo => {
+            const card =
+                criarCard(conteudo);
+
+            if (card) {
+                container.appendChild(
+                    card
+                );
+            }
+        }
+    );
+}
+
+
+/* =========================
+   HISTÓRICO
+========================= */
+
+function obterHistorico() {
+    try {
+        const dados =
+            localStorage.getItem(
+                "cinefamily_historico"
+            );
+
+        if (!dados) {
+            return [];
+        }
+
+        const historico =
+            JSON.parse(dados);
+
+        return Array.isArray(historico)
+            ? historico
+            : [];
+
+    } catch (erro) {
+        console.error(
+            "❌ Erro ao ler histórico:",
+            erro
+        );
+
+        return [];
     }
 }
 
-document.addEventListener(
-    "click",
-    function(event) {
-        const modal =
-            document.getElementById(
-                "cinefamily-modal"
-            );
 
-        if (
-            modal &&
-            event.target === modal
-        ) {
-            fecharDetalhes();
-        }
+function salvarHistorico(
+    historico
+) {
+    try {
+        localStorage.setItem(
+            "cinefamily_historico",
+            JSON.stringify(historico)
+        );
+
+    } catch (erro) {
+        console.error(
+            "❌ Erro ao salvar histórico:",
+            erro
+        );
     }
-);
+}
+
+
+function adicionarAoHistorico(
+    conteudo
+) {
+    if (!conteudo || !conteudo.id) {
+        return;
+    }
+
+    let historico =
+        obterHistorico();
+
+    historico =
+        historico.filter(
+            item =>
+                String(item.id) !==
+                String(conteudo.id)
+        );
+
+    historico.unshift({
+        ...conteudo,
+        visto_em:
+            new Date().toISOString()
+    });
+
+    historico =
+        historico.slice(0, 50);
+
+    salvarHistorico(
+        historico
+    );
+
+    atualizarTelaHistorico();
+}
+
+
+function limparHistorico() {
+    const confirmar =
+        confirm(
+            "Tem certeza que deseja limpar todo o histórico?"
+        );
+
+    if (!confirmar) {
+        return;
+    }
+
+    localStorage.removeItem(
+        "cinefamily_historico"
+    );
+
+    atualizarTelaHistorico();
+}
+
+
+function atualizarTelaHistorico() {
+    const container =
+        document.querySelector(
+            "#lista-historico"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    const historico =
+        obterHistorico();
+
+    container.innerHTML = "";
+
+    if (!historico.length) {
+        container.innerHTML =
+            "<p>Seu histórico está vazio.</p>";
+
+        return;
+    }
+
+    historico.forEach(
+        conteudo => {
+            const card =
+                criarCard(conteudo);
+
+            if (card) {
+                container.appendChild(
+                    card
+                );
+            }
+        }
+    );
+}
+/* =========================
+   BOTÕES E NAVEGAÇÃO
+========================= */
+
+function configurarBotoes() {
+    const botoesFavoritos =
+        document.querySelectorAll(
+            "[data-favorito]"
+        );
+
+    botoesFavoritos.forEach(
+        botao => {
+            botao.addEventListener(
+                "click",
+                function(evento) {
+                    evento.preventDefault();
+
+                    const id =
+                        botao.getAttribute(
+                            "data-favorito"
+                        );
+
+                    if (
+                        conteudoAtual &&
+                        String(
+                            conteudoAtual.id
+                        ) === String(id)
+                    ) {
+                        alternarFavoritoDoDetalhe(
+                            id
+                        );
+                    }
+                }
+            );
+        }
+    );
+
+
+    const botoesFechar =
+        document.querySelectorAll(
+            ".fechar-modal, [data-fechar-modal]"
+        );
+
+    botoesFechar.forEach(
+        botao => {
+            botao.addEventListener(
+                "click",
+                fecharModalDetalhes
+            );
+        }
+    );
+
+
+    const modal =
+        encontrarModal();
+
+    if (modal) {
+        modal.addEventListener(
+            "click",
+            function(evento) {
+                if (
+                    evento.target === modal
+                ) {
+                    fecharModalDetalhes();
+                }
+            }
+        );
+    }
+}
+
+
+function configurarMenu() {
+    const links =
+        document.querySelectorAll(
+            "a[href]"
+        );
+
+    links.forEach(
+        link => {
+            link.addEventListener(
+                "click",
+                function() {
+                    const href =
+                        link.getAttribute(
+                            "href"
+                        );
+
+                    if (
+                        !href ||
+                        href === "#" ||
+                        href.startsWith(
+                            "javascript:"
+                        )
+                    ) {
+                        return;
+                    }
+
+                    console.log(
+                        "🔗 Navegando para:",
+                        href
+                    );
+                }
+            );
+        }
+    );
+}
+
+
+/* =========================
+   PÁGINA DE FAVORITOS
+========================= */
+
+function carregarPaginaFavoritos() {
+    const container =
+        document.querySelector(
+            "#lista-favoritos"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    atualizarTelaFavoritos();
+}
+
+
+/* =========================
+   PÁGINA DE HISTÓRICO
+========================= */
+
+function carregarPaginaHistorico() {
+    const container =
+        document.querySelector(
+            "#lista-historico"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    atualizarTelaHistorico();
+
+    const botaoLimpar =
+        document.querySelector(
+            "#limpar-historico"
+        );
+
+    if (botaoLimpar) {
+        botaoLimpar.addEventListener(
+            "click",
+            limparHistorico
+        );
+    }
+}
+
+
+/* =========================
+   CARREGAMENTO INICIAL
+========================= */
+
+async function iniciarCineFamily() {
+    console.log(
+        "🎬 CineFamily iniciando..."
+    );
+
+    try {
+        await carregarFilmes();
+    } catch (erro) {
+        console.error(
+            "❌ Falha ao iniciar filmes:",
+            erro
+        );
+    }
+
+    try {
+        await carregarSeries();
+    } catch (erro) {
+        console.error(
+            "❌ Falha ao iniciar séries:",
+            erro
+        );
+    }
+
+    configurarBusca();
+    configurarBotoes();
+    configurarMenu();
+
+    carregarPaginaFavoritos();
+    carregarPaginaHistorico();
+
+    mostrarSlide(0);
+
+    console.log(
+        "✅ CineFamily carregado com sucesso!"
+    );
+}
+
+
+/* =========================
+   TECLADO
+========================= */
 
 document.addEventListener(
     "keydown",
-    function(event) {
-        if (event.key === "Escape") {
-            fecharDetalhes();
+    function(evento) {
+        const modal =
+            encontrarModal();
+
+        if (
+            evento.key === "Escape" &&
+            modal &&
+            modal.classList.contains(
+                "ativo"
+            )
+        ) {
+            fecharModalDetalhes();
+        }
+
+        if (
+            evento.key === "ArrowRight"
+        ) {
+            const slides =
+                document.querySelectorAll(
+                    ".slide"
+                );
+
+            if (
+                slides.length &&
+                !(
+                    modal &&
+                    modal.classList.contains(
+                        "ativo"
+                    )
+                )
+            ) {
+                proximoSlide();
+            }
+        }
+
+        if (
+            evento.key === "ArrowLeft"
+        ) {
+            const slides =
+                document.querySelectorAll(
+                    ".slide"
+                );
+
+            if (
+                slides.length &&
+                !(
+                    modal &&
+                    modal.classList.contains(
+                        "ativo"
+                    )
+                )
+            ) {
+                slideAnterior();
+            }
         }
     }
 );
 
-document.addEventListener(
-    "DOMContentLoaded",
-    function() {
-        console.log(
-            "🚀 CineFamily iniciado."
-        );
 
-        mostrarSlide(0);
+/* =========================
+   INICIAR
+========================= */
 
-        configurarBusca();
-
-        carregarFilmes();
-    }
-);
+if (
+    document.readyState ===
+    "loading"
+) {
+    document.addEventListener(
+        "DOMContentLoaded",
+        iniciarCineFamily
+    );
+} else {
+    iniciarCineFamily();
+}
