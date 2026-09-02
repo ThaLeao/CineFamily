@@ -1,54 +1,893 @@
 <!DOCTYPE html>
-
 <html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
 
-<head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<title>Favoritos - CineFamily</title>
+    <meta
+        name="theme-color"
+        content="#050505"
+    >
 
-<link rel="stylesheet" href="style.css">
+    <meta
+        name="description"
+        content="CineFamily - Seus filmes e séries favoritos"
+    >
 
+    <title>CineFamily - Favoritos</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
 </head>
 
-<body>
+<body class="internal-page">
 
-<header>
+    <!-- =====================================================
+         CABEÇALHO
+         ===================================================== -->
 
-<div class="logo">
-    CineFamily
-</div>
+    <header class="site-header">
 
-<nav>
-    <a href="index.html">Início</a>
-    <a href="index.html">Filmes</a>
-    <a href="favoritos.html">⭐ Favoritos</a>
-    <a href="historico.html">🕘 Histórico</a>
-</nav>
+        <div class="site-header-inner">
 
-<div class="acoes">
-    <span>🔎</span>
-    <span>⭐</span>
-    <span>👤</span>
-</div>
+            <a
+                class="site-logo"
+                href="index.html"
+                aria-label="CineFamily - Início"
+            >
+                <span class="logo-cine">Cine</span><span class="logo-family">Family</span>
+            </a>
 
-</header>
+            <nav
+                class="main-nav"
+                aria-label="Navegação principal"
+            >
 
-<main>
+                <a href="index.html">
+                    TV
+                </a>
 
-<section class="categoria-secao">
+                <a href="index.html#destaques">
+                    Destaques
+                </a>
 
-    <h1>⭐ Meus Favoritos</h1>
+                <a href="index.html#filmes">
+                    Filmes
+                </a>
 
-    <div id="lista-favoritos" class="cards"></div>
+                <a href="index.html#series">
+                    Séries
+                </a>
 
-    <p id="nenhum-favorito" style="display: none;">
-        Você ainda não adicionou nenhum filme aos favoritos.
-    </p>
+                <a href="index.html#doramas">
+                    Doramas
+                </a>
 
-</section>
+                <a href="index.html#gl">
+                    GL
+                </a>
 
-</main>
+                <a href="index.html#kids">
+                    Kids
+                </a>
 
-<script> const IMG = "https://image.tmdb.org/t/p/w500"; function carregarFavoritos() { const lista = document.getElementById("lista-favoritos"); const mensagem = document.getElementById("nenhum-favorito"); if (!lista || !mensagem) { console.error("Elementos da página de favoritos não encontrados."); return; } const favoritos = JSON.parse( localStorage.getItem("cinefamilyFavoritos") ) || []; console.log("FAVORITOS:", favoritos); lista.innerHTML = ""; if (favoritos.length === 0) { mensagem.style.display = "block"; return; } mensagem.style.display = "none"; favoritos.forEach(function(filme) { const card = document.createElement("div"); card.className = "card"; const imagem = filme.poster_path ? IMG + filme.poster_path : ""; card.innerHTML = ` <div class="imagem-card"> ${ imagem ? `<img src="${imagem}" alt="${filme.title || "Filme"}">` : "🎬" } </div> <h3> ${filme.title || "Sem título"} </h3> <p> ⭐ ${ filme.vote_average ? Number(filme.vote_average).toFixed(1) : "N/A" } </p> <button class="remover-favorito" type="button"> Remover dos favoritos </button> `; const remover = card.querySelector(".remover-favorito"); remover.addEventListener("click", function(event) { event.stopPropagation(); removerFavorito(filme.id); }); lista.appendChild(card); }); } function removerFavorito(id) { let favoritos = JSON.parse( localStorage.getItem("cinefamilyFavoritos") ) || []; favoritos = favoritos.filter(function(filme) { return filme.id !== id; }); localStorage.setItem( "cinefamilyFavoritos", JSON.stringify(favoritos) ); carregarFavoritos(); } document.addEventListener( "DOMContentLoaded", carregarFavoritos ); </script>
+                <a href="index.html#explorar">
+                    Explorar
+                </a>
 
-</body> </html>
+            </nav>
+
+            <div class="header-actions">
+
+                <a
+                    class="header-action-button"
+                    href="favoritos.html"
+                    aria-label="Favoritos"
+                    title="Favoritos"
+                >
+                    ⭐
+                </a>
+
+                <a
+                    class="header-action-button"
+                    href="historico.html"
+                    aria-label="Histórico"
+                    title="Histórico"
+                >
+                    🕘
+                </a>
+
+                <button
+                    type="button"
+                    class="header-action-button"
+                    id="header-user-button"
+                    aria-label="Perfil"
+                    title="Perfil"
+                >
+                    👤
+                </button>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         CONTEÚDO PRINCIPAL
+         ===================================================== -->
+
+    <main class="page-main">
+
+        <div class="content-container">
+
+            <div class="internal-page-header">
+
+                <div>
+
+                    <h1 class="page-title">
+                        ⭐ Meus Favoritos
+                    </h1>
+
+                    <p class="page-subtitle">
+                        Filmes e séries que você adicionou aos favoritos.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 ESTADO VAZIO
+                 ================================================= -->
+
+            <section
+                id="favorites-empty"
+                class="empty-state"
+                hidden
+            >
+
+                <div class="empty-state-icon">
+                    ⭐
+                </div>
+
+                <h2>
+                    Você ainda não tem favoritos
+                </h2>
+
+                <p>
+                    Adicione filmes e séries aos seus favoritos
+                    para encontrá-los facilmente aqui.
+                </p>
+
+                <a
+                    href="index.html"
+                    class="primary-button"
+                >
+                    Explorar conteúdo
+                </a>
+
+            </section>
+
+
+            <!-- =================================================
+                 CARREGAMENTO
+                 ================================================= -->
+
+            <section
+                id="favorites-loading"
+                class="loading-state"
+            >
+
+                <div class="loading-spinner"></div>
+
+                <p>
+                    Carregando seus favoritos...
+                </p>
+
+            </section>
+
+
+            <!-- =================================================
+                 LISTA DE FAVORITOS
+                 ================================================= -->
+
+            <section
+                id="favorites-section"
+                class="content-section"
+                hidden
+            >
+
+                <div class="section-heading">
+
+                    <h2 class="section-title">
+                        Seus favoritos
+                    </h2>
+
+                    <button
+                        type="button"
+                        id="favorites-clear-button"
+                        class="danger-button"
+                    >
+                        Limpar favoritos
+                    </button>
+
+                </div>
+
+                <div
+                    id="favorites-grid"
+                    class="content-grid favorites-grid"
+                >
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 ERRO
+                 ================================================= -->
+
+            <section
+                id="favorites-error"
+                class="error-state"
+                hidden
+            >
+
+                <div class="error-state-icon">
+                    ⚠️
+                </div>
+
+                <h2>
+                    Não foi possível carregar os favoritos
+                </h2>
+
+                <p>
+                    Tente atualizar a página.
+                </p>
+
+                <button
+                    type="button"
+                    id="favorites-retry-button"
+                    class="primary-button"
+                >
+                    Tentar novamente
+                </button>
+
+            </section>
+
+        </div>
+
+    </main>
+
+
+    <!-- =====================================================
+         MENU DO USUÁRIO
+         ===================================================== -->
+
+    <div
+        id="user-menu"
+        class="user-menu"
+        hidden
+    >
+
+        <div class="user-menu-header">
+
+            <div
+                id="user-menu-avatar"
+                class="user-menu-avatar"
+            >
+                👤
+            </div>
+
+            <div class="user-menu-user-info">
+
+                <strong id="user-menu-name">
+                    Usuário
+                </strong>
+
+                <span>
+                    Perfil CineFamily
+                </span>
+
+            </div>
+
+        </div>
+
+        <div class="user-menu-divider"></div>
+
+        <button
+            type="button"
+            id="user-profile-edit"
+            class="user-menu-item"
+        >
+            👤 Editar perfil
+        </button>
+
+        <button
+            type="button"
+            id="user-favorites-button"
+            class="user-menu-item"
+        >
+            ⭐ Favoritos
+        </button>
+
+        <button
+            type="button"
+            id="user-history-button"
+            class="user-menu-item"
+        >
+            🕘 Histórico
+        </button>
+
+    </div>
+
+
+    <!-- =====================================================
+         MODAL DE PERFIL
+         ===================================================== -->
+
+    <div
+        id="profile-modal"
+        class="modal"
+        hidden
+    >
+
+        <div class="modal-content profile-modal-content">
+
+            <button
+                type="button"
+                id="profile-close"
+                class="modal-close"
+                aria-label="Fechar"
+            >
+                ✕
+            </button>
+
+            <div class="profile-header">
+
+                <div
+                    id="profile-avatar-large"
+                    class="profile-avatar-large"
+                >
+                    👤
+                </div>
+
+                <h2 class="profile-title">
+                    Meu perfil
+                </h2>
+
+                <p>
+                    Personalize seu perfil do CineFamily.
+                </p>
+
+            </div>
+
+            <form id="profile-form">
+
+                <div class="form-group">
+
+                    <label for="profile-name">
+                        Nome
+                    </label>
+
+                    <input
+                        type="text"
+                        id="profile-name"
+                        class="form-control"
+                        maxlength="30"
+                        placeholder="Digite seu nome"
+                        autocomplete="name"
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label>
+                        Escolha seu avatar
+                    </label>
+
+                    <div
+                        id="avatar-options"
+                        class="avatar-options"
+                    >
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="👤"
+                            aria-label="Avatar 1"
+                        >
+                            👤
+                        </button>
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="😀"
+                            aria-label="Avatar 2"
+                        >
+                            😀
+                        </button>
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="😎"
+                            aria-label="Avatar 3"
+                        >
+                            😎
+                        </button>
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="🦊"
+                            aria-label="Avatar 4"
+                        >
+                            🦊
+                        </button>
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="🐼"
+                            aria-label="Avatar 5"
+                        >
+                            🐼
+                        </button>
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="🐱"
+                            aria-label="Avatar 6"
+                        >
+                            🐱
+                        </button>
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="🐶"
+                            aria-label="Avatar 7"
+                        >
+                            🐶
+                        </button>
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="🦁"
+                            aria-label="Avatar 8"
+                        >
+                            🦁
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div class="profile-actions">
+
+                    <button
+                        type="button"
+                        id="profile-cancel"
+                        class="secondary-button"
+                    >
+                        Cancelar
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="primary-button"
+                    >
+                        Salvar perfil
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+    <!-- =====================================================
+         TOASTS
+         ===================================================== -->
+
+    <div
+        id="toast-container"
+        aria-live="polite"
+        aria-atomic="true"
+    ></div>
+
+
+    <!-- =====================================================
+         RODAPÉ
+         ===================================================== -->
+
+    <footer class="site-footer">
+
+        <div class="site-footer-inner">
+
+            <strong>
+                CineFamily
+            </strong>
+
+            <span>
+                Seu entretenimento em família.
+            </span>
+
+        </div>
+
+    </footer>
+
+
+    <!-- =====================================================
+         JAVASCRIPT
+         ===================================================== -->
+
+    <script src="script.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const loading = document.getElementById("favorites-loading");
+            const empty = document.getElementById("favorites-empty");
+            const section = document.getElementById("favorites-section");
+            const grid = document.getElementById("favorites-grid");
+            const error = document.getElementById("favorites-error");
+            const clearButton = document.getElementById("favorites-clear-button");
+            const retryButton = document.getElementById("favorites-retry-button");
+
+            function getFavorites() {
+
+                try {
+
+                    const saved = localStorage.getItem(
+                        "cinefamily_favoritos"
+                    );
+
+                    if (!saved) {
+                        return [];
+                    }
+
+                    const parsed = JSON.parse(saved);
+
+                    return Array.isArray(parsed)
+                        ? parsed
+                        : [];
+
+                } catch (error) {
+
+                    console.error(
+                        "Erro ao ler favoritos:",
+                        error
+                    );
+
+                    return [];
+
+                }
+
+            }
+
+            function showState(state) {
+
+                if (loading) {
+                    loading.hidden = state !== "loading";
+                }
+
+                if (empty) {
+                    empty.hidden = state !== "empty";
+                }
+
+                if (section) {
+                    section.hidden = state !== "content";
+                }
+
+                if (error) {
+                    error.hidden = state !== "error";
+                }
+
+            }
+
+            function createFavoriteCard(item) {
+
+                const card = document.createElement("article");
+
+                card.className = "content-card";
+
+                card.tabIndex = 0;
+
+                const poster =
+                    item.poster ||
+                    item.poster_path ||
+                    item.image ||
+                    item.posterUrl ||
+                    "";
+
+                const title =
+                    item.title ||
+                    item.name ||
+                    "Sem título";
+
+                const type =
+                    item.type ||
+                    (
+                        item.media_type === "tv"
+                            ? "tv"
+                            : "movie"
+                    );
+
+                const year =
+                    item.year ||
+                    (
+                        item.release_date ||
+                        item.first_air_date ||
+                        ""
+                    ).slice(0, 4);
+
+                const rating =
+                    item.vote_average
+                        ? Number(item.vote_average).toFixed(1)
+                        : "";
+
+                const image = document.createElement("img");
+
+                image.className = "content-card-image";
+
+                image.alt = title;
+
+                image.loading = "lazy";
+
+                if (poster) {
+
+                    image.src = poster;
+
+                } else {
+
+                    image.classList.add("no-image");
+
+                }
+
+                const info = document.createElement("div");
+
+                info.className = "content-card-info";
+
+                const titleElement = document.createElement("h3");
+
+                titleElement.className = "content-card-title";
+
+                titleElement.textContent = title;
+
+                const meta = document.createElement("div");
+
+                meta.className = "content-card-meta";
+
+                if (year) {
+
+                    const yearElement =
+                        document.createElement("span");
+
+                    yearElement.textContent = year;
+
+                    meta.appendChild(yearElement);
+
+                }
+
+                if (rating) {
+
+                    const ratingElement =
+                        document.createElement("span");
+
+                    ratingElement.textContent =
+                        "⭐ " + rating;
+
+                    meta.appendChild(ratingElement);
+
+                }
+
+                const badge =
+                    document.createElement("span");
+
+                badge.className = "content-card-badge";
+
+                badge.textContent =
+                    type === "tv"
+                        ? "SÉRIE"
+                        : "FILME";
+
+                card.appendChild(image);
+
+                card.appendChild(badge);
+
+                info.appendChild(titleElement);
+
+                info.appendChild(meta);
+
+                card.appendChild(info);
+
+                card.addEventListener(
+                    "click",
+                    function () {
+
+                        if (
+                            window.CineFamily &&
+                            typeof window.CineFamily.openDetails === "function"
+                        ) {
+
+                            window.CineFamily.openDetails(item);
+
+                        }
+
+                    }
+                );
+
+                card.addEventListener(
+                    "keydown",
+                    function (event) {
+
+                        if (
+                            event.key === "Enter" ||
+                            event.key === " "
+                        ) {
+
+                            event.preventDefault();
+
+                            card.click();
+
+                        }
+
+                    }
+                );
+
+                return card;
+
+            }
+
+            function renderFavorites() {
+
+                showState("loading");
+
+                try {
+
+                    const favorites = getFavorites();
+
+                    if (!favorites.length) {
+
+                        showState("empty");
+
+                        return;
+
+                    }
+
+                    if (!grid) {
+
+                        showState("error");
+
+                        return;
+
+                    }
+
+                    grid.innerHTML = "";
+
+                    favorites.forEach(function (item) {
+
+                        if (
+                            item &&
+                            typeof item === "object"
+                        ) {
+
+                            grid.appendChild(
+                                createFavoriteCard(item)
+                            );
+
+                        }
+
+                    });
+
+                    if (!grid.children.length) {
+
+                        showState("empty");
+
+                        return;
+
+                    }
+
+                    showState("content");
+
+                } catch (error) {
+
+                    console.error(
+                        "Erro ao renderizar favoritos:",
+                        error
+                    );
+
+                    showState("error");
+
+                }
+
+            }
+
+            if (clearButton) {
+
+                clearButton.addEventListener(
+                    "click",
+                    function () {
+
+                        const favorites = getFavorites();
+
+                        if (!favorites.length) {
+
+                            renderFavorites();
+
+                            return;
+
+                        }
+
+                        const confirmed =
+                            window.confirm(
+                                "Tem certeza que deseja remover todos os favoritos?"
+                            );
+
+                        if (!confirmed) {
+                            return;
+                        }
+
+                        localStorage.removeItem(
+                            "cinefamily_favoritos"
+                        );
+
+                        renderFavorites();
+
+                    }
+                );
+
+            }
+
+            if (retryButton) {
+
+                retryButton.addEventListener(
+                    "click",
+                    function () {
+
+                        renderFavorites();
+
+                    }
+                );
+
+            }
+
+            window.addEventListener(
+                "storage",
+                function (event) {
+
+                    if (
+                        event.key ===
+                        "cinefamily_favoritos"
+                    ) {
+
+                        renderFavorites();
+
+                    }
+
+                }
+            );
+
+            renderFavorites();
+
+        });
+    </script>
+
+</body>
+</html>
+
+    </div>
+    
