@@ -1,276 +1,1014 @@
 <!DOCTYPE html>
-
 <html lang="pt-BR">
-
 <head>
+    <meta charset="UTF-8">
 
-```
-<meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="theme-color"
+        content="#050505"
+    >
 
-<title>Histórico - CineFamily</title>
+    <meta
+        name="description"
+        content="CineFamily - Seu histórico de filmes e séries"
+    >
 
-<link rel="stylesheet" href="style.css">
-```
+    <title>CineFamily - Histórico</title>
 
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
 </head>
 
-<body>
+<body class="internal-page">
+
+    <!-- =====================================================
+         CABEÇALHO
+         ===================================================== -->
 
-<header>
+    <header class="site-header">
 
-```
-<div class="logo">
-    CineFamily
-</div>
+        <div class="site-header-inner">
 
+            <a
+                class="site-logo"
+                href="index.html"
+                aria-label="CineFamily - Início"
+            >
+                <span class="logo-cine">Cine</span><span class="logo-family">Family</span>
+            </a>
 
-<nav>
+            <nav
+                class="main-nav"
+                aria-label="Navegação principal"
+            >
 
-    <a href="index.html">
-        Início
-    </a>
+                <a href="index.html">
+                    TV
+                </a>
 
-    <a href="index.html">
-        Filmes
-    </a>
+                <a href="index.html#destaques">
+                    Destaques
+                </a>
 
-    <a href="favoritos.html">
-        ⭐ Favoritos
-    </a>
+                <a href="index.html#filmes">
+                    Filmes
+                </a>
 
-    <a href="historico.html">
-        🕘 Histórico
-    </a>
+                <a href="index.html#series">
+                    Séries
+                </a>
 
-</nav>
+                <a href="index.html#doramas">
+                    Doramas
+                </a>
 
+                <a href="index.html#gl">
+                    GL
+                </a>
 
-<div class="acoes">
+                <a href="index.html#kids">
+                    Kids
+                </a>
 
-    <span>🔎</span>
+                <a href="index.html#explorar">
+                    Explorar
+                </a>
 
-    <span>⭐</span>
+            </nav>
 
-    <span>👤</span>
+            <div class="header-actions">
 
-</div>
-```
+                <a
+                    class="header-action-button"
+                    href="favoritos.html"
+                    aria-label="Favoritos"
+                    title="Favoritos"
+                >
+                    ⭐
+                </a>
 
-</header>
+                <a
+                    class="header-action-button"
+                    href="historico.html"
+                    aria-label="Histórico"
+                    title="Histórico"
+                >
+                    🕘
+                </a>
 
-<main>
+                <button
+                    type="button"
+                    class="header-action-button"
+                    id="header-user-button"
+                    aria-label="Perfil"
+                    title="Perfil"
+                >
+                    👤
+                </button>
 
-```
-<section class="categoria-secao">
+            </div>
 
+        </div>
 
-    <h1>
-        🕘 Histórico
-    </h1>
+    </header>
 
 
-    <button id="limpar-historico">
+    <!-- =====================================================
+         CONTEÚDO PRINCIPAL
+         ===================================================== -->
 
-        🗑️ Limpar histórico
+    <main class="page-main">
 
-    </button>
+        <div class="content-container">
 
+            <div class="internal-page-header">
 
-    <br><br>
+                <div>
 
+                    <h1 class="page-title">
+                        🕘 Meu Histórico
+                    </h1>
 
-    <div
-        id="lista-historico"
-        class="cards">
-    </div>
-
-
-    <p
-        id="nenhum-historico"
-        style="display: none;">
-
-        Você ainda não assistiu a nenhum filme.
-
-    </p>
-
-
-</section>
-```
-
-</main>
-
-<script>
-
-
-const IMG =
-    "https://image.tmdb.org/t/p/w500";
-
-
-
-function carregarHistorico() {
-
-
-    const lista =
-        document.getElementById(
-            "lista-historico"
-        );
-
-
-    const mensagem =
-        document.getElementById(
-            "nenhum-historico"
-        );
-
-
-    if (!lista || !mensagem) {
-
-        console.error(
-            "Elementos do histórico não encontrados."
-        );
-
-        return;
-
-    }
-
-
-    const historico =
-        JSON.parse(
-            localStorage.getItem(
-                "cinefamilyHistorico"
-            )
-        ) || [];
-
-
-    console.log(
-        "HISTÓRICO:",
-        historico
-    );
-
-
-    lista.innerHTML = "";
-
-
-    if (historico.length === 0) {
-
-        mensagem.style.display =
-            "block";
-
-        return;
-
-    }
-
-
-    mensagem.style.display =
-        "none";
-
-
-    historico.forEach(
-        function(filme) {
-
-
-            const card =
-                document.createElement(
-                    "div"
-                );
-
-
-            card.className =
-                "card";
-
-
-            const imagem =
-                filme.poster_path
-                    ? IMG + filme.poster_path
-                    : "";
-
-
-            card.innerHTML = `
-
-                <div class="imagem-card">
-
-                    ${
-                        imagem
-                        ? `<img
-                            src="${imagem}"
-                            alt="${filme.title || "Filme"}"
-                          >`
-                        : "🎬"
-                    }
+                    <p class="page-subtitle">
+                        Continue acompanhando os conteúdos que você assistiu.
+                    </p>
 
                 </div>
 
+            </div>
 
-                <h3>
-                    ${filme.title || "Sem título"}
-                </h3>
 
+            <!-- =================================================
+                 ESTADO VAZIO
+                 ================================================= -->
+
+            <section
+                id="history-empty"
+                class="empty-state"
+                hidden
+            >
+
+                <div class="empty-state-icon">
+                    🕘
+                </div>
+
+                <h2>
+                    Seu histórico está vazio
+                </h2>
 
                 <p>
-                    ⭐ ${
-                        filme.vote_average
-                        ? Number(
-                            filme.vote_average
-                          ).toFixed(1)
-                        : "N/A"
-                    }
+                    Quando você assistir a filmes ou séries,
+                    eles aparecerão aqui.
                 </p>
 
-            `;
+                <a
+                    href="index.html"
+                    class="primary-button"
+                >
+                    Explorar conteúdo
+                </a>
+
+            </section>
 
 
-            lista.appendChild(card);
+            <!-- =================================================
+                 CARREGAMENTO
+                 ================================================= -->
+
+            <section
+                id="history-loading"
+                class="loading-state"
+            >
+
+                <div class="loading-spinner"></div>
+
+                <p>
+                    Carregando seu histórico...
+                </p>
+
+            </section>
 
 
-        }
-    );
+            <!-- =================================================
+                 LISTA DO HISTÓRICO
+                 ================================================= -->
+
+            <section
+                id="history-section"
+                class="content-section"
+                hidden
+            >
+
+                <div class="section-heading">
+
+                    <h2 class="section-title">
+                        Conteúdos assistidos
+                    </h2>
+
+                    <button
+                        type="button"
+                        id="history-clear-button"
+                        class="danger-button"
+                    >
+                        Limpar histórico
+                    </button>
+
+                </div>
+
+                <div
+                    id="history-grid"
+                    class="content-grid history-grid"
+                >
+                </div>
+
+            </section>
 
 
-}
+            <!-- =================================================
+                 ERRO
+                 ================================================= -->
+
+            <section
+                id="history-error"
+                class="error-state"
+                hidden
+            >
+
+                <div class="error-state-icon">
+                    ⚠️
+                </div>
+
+                <h2>
+                    Não foi possível carregar o histórico
+                </h2>
+
+                <p>
+                    Tente atualizar a página.
+                </p>
+
+                <button
+                    type="button"
+                    id="history-retry-button"
+                    class="primary-button"
+                >
+                    Tentar novamente
+                </button>
+
+            </section>
+
+        </div>
+
+    </main>
 
 
+    <!-- =====================================================
+         MENU DO USUÁRIO
+         ===================================================== -->
 
-function limparHistorico() {
+    <div
+        id="user-menu"
+        class="user-menu"
+        hidden
+    >
+
+        <div class="user-menu-header">
+
+            <div
+                id="user-menu-avatar"
+                class="user-menu-avatar"
+            >
+                👤
+            </div>
+
+            <div class="user-menu-user-info">
+
+                <strong id="user-menu-name">
+                    Usuário
+                </strong>
+
+                <span>
+                    Perfil CineFamily
+                </span>
+
+            </div>
+
+        </div>
+
+        <div class="user-menu-divider"></div>
+
+        <button
+            type="button"
+            id="user-profile-edit"
+            class="user-menu-item"
+        >
+            👤 Editar perfil
+        </button>
+
+        <button
+            type="button"
+            id="user-favorites-button"
+            class="user-menu-item"
+        >
+            ⭐ Favoritos
+        </button>
+
+        <button
+            type="button"
+            id="user-history-button"
+            class="user-menu-item"
+        >
+            🕘 Histórico
+        </button>
+
+    </div>
 
 
-    localStorage.removeItem(
-        "cinefamilyHistorico"
-    );
+    <!-- =====================================================
+         MODAL DE PERFIL
+         ===================================================== -->
+
+    <div
+        id="profile-modal"
+        class="modal"
+        hidden
+    >
+
+        <div class="modal-content profile-modal-content">
+
+            <button
+                type="button"
+                id="profile-close"
+                class="modal-close"
+                aria-label="Fechar"
+            >
+                ✕
+            </button>
+
+            <div class="profile-header">
+
+                <div
+                    id="profile-avatar-large"
+                    class="profile-avatar-large"
+                >
+                    👤
+                </div>
+
+                <h2 class="profile-title">
+                    Meu perfil
+                </h2>
+
+                <p>
+                    Personalize seu perfil do CineFamily.
+                </p>
+
+            </div>
+
+            <form id="profile-form">
+
+                <div class="form-group">
+
+                    <label for="profile-name">
+                        Nome
+                    </label>
+
+                    <input
+                        type="text"
+                        id="profile-name"
+                        class="form-control"
+                        maxlength="30"
+                        placeholder="Digite seu nome"
+                        autocomplete="name"
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label>
+                        Escolha seu avatar
+                    </label>
+
+                    <div
+                        id="avatar-options"
+                        class="avatar-options"
+                    >
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="👤"
+                            aria-label="Avatar 1"
+                        >
+                            👤
+                        </button>
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="😀"
+                            aria-label="Avatar 2"
+                        >
+                            😀
+                        </button>
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="😎"
+                            aria-label="Avatar 3"
+                        >
+                            😎
+                        </button>
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="🦊"
+                            aria-label="Avatar 4"
+                        >
+                            🦊
+                        </button>
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="🐼"
+                            aria-label="Avatar 5"
+                        >
+                            🐼
+                        </button>
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="🐱"
+                            aria-label="Avatar 6"
+                        >
+                            🐱
+                        </button>
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="🐶"
+                            aria-label="Avatar 7"
+                        >
+                            🐶
+                        </button>
+
+                        <button
+                            type="button"
+                            class="avatar-option"
+                            data-avatar="🦁"
+                            aria-label="Avatar 8"
+                        >
+                            🦁
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div class="profile-actions">
+
+                    <button
+                        type="button"
+                        id="profile-cancel"
+                        class="secondary-button"
+                    >
+                        Cancelar
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="primary-button"
+                    >
+                        Salvar perfil
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+    <!-- =====================================================
+         TOASTS
+         ===================================================== -->
+
+    <div
+        id="toast-container"
+        aria-live="polite"
+        aria-atomic="true"
+    ></div>
 
 
-    carregarHistorico();
+    <!-- =====================================================
+         RODAPÉ
+         ===================================================== -->
+
+    <footer class="site-footer">
+
+        <div class="site-footer-inner">
+
+            <strong>
+                CineFamily
+            </strong>
+
+            <span>
+                Seu entretenimento em família.
+            </span>
+
+        </div>
+
+    </footer>
 
 
-}
+    <!-- =====================================================
+         JAVASCRIPT
+         ===================================================== -->
+
+    <script src="script.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const loading =
+                document.getElementById("history-loading");
+
+            const empty =
+                document.getElementById("history-empty");
+
+            const section =
+                document.getElementById("history-section");
+
+            const grid =
+                document.getElementById("history-grid");
+
+            const error =
+                document.getElementById("history-error");
+
+            const clearButton =
+                document.getElementById("history-clear-button");
+
+            const retryButton =
+                document.getElementById("history-retry-button");
 
 
+            function getHistory() {
 
-document.addEventListener(
-    "DOMContentLoaded",
-    carregarHistorico
-);
+                try {
+
+                    const saved =
+                        localStorage.getItem(
+                            "cinefamily_historico"
+                        );
+
+                    if (!saved) {
+                        return [];
+                    }
+
+                    const parsed =
+                        JSON.parse(saved);
+
+                    return Array.isArray(parsed)
+                        ? parsed
+                        : [];
+
+                } catch (historyError) {
+
+                    console.error(
+                        "Erro ao ler histórico:",
+                        historyError
+                    );
+
+                    return [];
+
+                }
+
+            }
 
 
+            function showState(state) {
 
-const botao =
-    document.getElementById(
-        "limpar-historico"
-    );
+                if (loading) {
+
+                    loading.hidden =
+                        state !== "loading";
+
+                }
+
+                if (empty) {
+
+                    empty.hidden =
+                        state !== "empty";
+
+                }
+
+                if (section) {
+
+                    section.hidden =
+                        state !== "content";
+
+                }
+
+                if (error) {
+
+                    error.hidden =
+                        state !== "error";
+
+                }
+
+            }
 
 
-if (botao) {
+            function createHistoryCard(item) {
 
-    botao.addEventListener(
-        "click",
-        limparHistorico
-    );
+                const card =
+                    document.createElement("article");
 
-}
+                card.className =
+                    "content-card";
+
+                card.tabIndex = 0;
 
 
-</script>
+                const poster =
+                    item.poster ||
+                    item.poster_path ||
+                    item.image ||
+                    item.posterUrl ||
+                    "";
+
+
+                const title =
+                    item.title ||
+                    item.name ||
+                    "Sem título";
+
+
+                const type =
+                    item.type ||
+                    (
+                        item.media_type === "tv"
+                            ? "tv"
+                            : "movie"
+                    );
+
+
+                const year =
+                    item.year ||
+                    (
+                        item.release_date ||
+                        item.first_air_date ||
+                        ""
+                    ).slice(0, 4);
+
+
+                const rating =
+                    item.vote_average
+                        ? Number(
+                            item.vote_average
+                        ).toFixed(1)
+                        : "";
+
+
+                const image =
+                    document.createElement("img");
+
+                image.className =
+                    "content-card-image";
+
+                image.alt =
+                    title;
+
+                image.loading =
+                    "lazy";
+
+
+                if (poster) {
+
+                    image.src =
+                        poster;
+
+                } else {
+
+                    image.classList.add(
+                        "no-image"
+                    );
+
+                }
+
+
+                const info =
+                    document.createElement("div");
+
+                info.className =
+                    "content-card-info";
+
+
+                const titleElement =
+                    document.createElement("h3");
+
+                titleElement.className =
+                    "content-card-title";
+
+                titleElement.textContent =
+                    title;
+
+
+                const meta =
+                    document.createElement("div");
+
+                meta.className =
+                    "content-card-meta";
+
+
+                if (year) {
+
+                    const yearElement =
+                        document.createElement("span");
+
+                    yearElement.textContent =
+                        year;
+
+                    meta.appendChild(
+                        yearElement
+                    );
+
+                }
+
+
+                if (rating) {
+
+                    const ratingElement =
+                        document.createElement("span");
+
+                    ratingElement.textContent =
+                        "⭐ " + rating;
+
+                    meta.appendChild(
+                        ratingElement
+                    );
+
+                }
+
+
+                const badge =
+                    document.createElement("span");
+
+                badge.className =
+                    "content-card-badge";
+
+                badge.textContent =
+                    type === "tv"
+                        ? "SÉRIE"
+                        : "FILME";
+
+
+                card.appendChild(
+                    image
+                );
+
+                card.appendChild(
+                    badge
+                );
+
+                info.appendChild(
+                    titleElement
+                );
+
+                info.appendChild(
+                    meta
+                );
+
+                card.appendChild(
+                    info
+                );
+
+
+                card.addEventListener(
+                    "click",
+                    function () {
+
+                        if (
+                            window.CineFamily &&
+                            typeof window.CineFamily.openDetails ===
+                                "function"
+                        ) {
+
+                            window.CineFamily.openDetails(
+                                item
+                            );
+
+                        }
+
+                    }
+                );
+
+
+                card.addEventListener(
+                    "keydown",
+                    function (event) {
+
+                        if (
+                            event.key === "Enter" ||
+                            event.key === " "
+                        ) {
+
+                            event.preventDefault();
+
+                            card.click();
+
+                        }
+
+                    }
+                );
+
+
+                return card;
+
+            }
+
+
+            function renderHistory() {
+
+                showState(
+                    "loading"
+                );
+
+
+                try {
+
+                    const history =
+                        getHistory();
+
+
+                    if (!history.length) {
+
+                        showState(
+                            "empty"
+                        );
+
+                        return;
+
+                    }
+
+
+                    if (!grid) {
+
+                        showState(
+                            "error"
+                        );
+
+                        return;
+
+                    }
+
+
+                    grid.innerHTML =
+                        "";
+
+
+                    history.forEach(
+                        function (item) {
+
+                            if (
+                                item &&
+                                typeof item ===
+                                    "object"
+                            ) {
+
+                                grid.appendChild(
+                                    createHistoryCard(
+                                        item
+                                    )
+                                );
+
+                            }
+
+                        }
+                    );
+
+
+                    if (!grid.children.length) {
+
+                        showState(
+                            "empty"
+                        );
+
+                        return;
+
+                    }
+
+
+                    showState(
+                        "content"
+                    );
+
+
+                } catch (historyError) {
+
+                    console.error(
+                        "Erro ao renderizar histórico:",
+                        historyError
+                    );
+
+                    showState(
+                        "error"
+                    );
+
+                }
+
+            }
+
+
+            if (clearButton) {
+
+                clearButton.addEventListener(
+                    "click",
+                    function () {
+
+                        const history =
+                            getHistory();
+
+
+                        if (!history.length) {
+
+                            renderHistory();
+
+                            return;
+
+                        }
+
+
+                        const confirmed =
+                            window.confirm(
+                                "Tem certeza que deseja limpar todo o histórico?"
+                            );
+
+
+                        if (!confirmed) {
+                            return;
+                        }
+
+
+                        localStorage.removeItem(
+                            "cinefamily_historico"
+                        );
+
+
+                        renderHistory();
+
+                    }
+                );
+
+            }
+
+
+            if (retryButton) {
+
+                retryButton.addEventListener(
+                    "click",
+                    function () {
+
+                        renderHistory();
+
+                    }
+                );
+
+            }
+
+
+            window.addEventListener(
+                "storage",
+                function (event) {
+
+                    if (
+                        event.key ===
+                        "cinefamily_historico"
+                    ) {
+
+                        renderHistory();
+
+                    }
+
+                }
+            );
+
+
+            renderHistory();
+
+        });
+    </script>
 
 </body>
-
 </html>
+    </div>
+    
