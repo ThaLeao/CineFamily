@@ -4755,3 +4755,124 @@ button {
     }
 
 }
+css
+/* =========================================================
+   CINEFAMILY - CORREÇÃO DEFINITIVA DOS CARDS
+   ========================================================= */
+
+.horizontal-content-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    gap: 16px !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+}
+
+.horizontal-content-row .content-card {
+    display: flex !important;
+    flex: 0 0 190px !important;
+    width: 190px !important;
+    min-width: 190px !important;
+    max-width: 190px !important;
+    flex-direction: column !important;
+}
+
+.horizontal-content-row .content-card-poster {
+    width: 100% !important;
+    height: 285px !important;
+    flex: 0 0 285px !important;
+    position: relative !important;
+}
+
+.horizontal-content-row .content-card-poster img {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+.horizontal-content-row .content-card-info {
+    width: 100% !important;
+    flex: 1 1 auto !important;
+}
+
+/* Computador */
+@media (min-width: 1201px) {
+    .horizontal-content-row .content-card {
+        flex-basis: 190px !important;
+        width: 190px !important;
+        min-width: 190px !important;
+        max-width: 190px !important;
+    }
+
+    .horizontal-content-row .content-card-poster {
+        height: 285px !important;
+        flex-basis: 285px !important;
+    }
+}
+
+/* Tablet */
+@media (max-width: 1200px) {
+    .horizontal-content-row {
+        gap: 13px !important;
+    }
+
+    .horizontal-content-row .content-card {
+        flex-basis: 165px !important;
+        width: 165px !important;
+        min-width: 165px !important;
+        max-width: 165px !important;
+    }
+
+    .horizontal-content-row .content-card-poster {
+        height: 248px !important;
+        flex-basis: 248px !important;
+    }
+}
+
+/* Celular */
+@media (max-width: 600px) {
+    .horizontal-content-row {
+        gap: 10px !important;
+    }
+
+    .horizontal-content-row .content-card {
+        flex-basis: 135px !important;
+        width: 135px !important;
+        min-width: 135px !important;
+        max-width: 135px !important;
+    }
+
+    .horizontal-content-row .content-card-poster {
+        height: 203px !important;
+        flex-basis: 203px !important;
+    }
+}
+
+/* Smart TV */
+@media (min-width: 1600px) {
+    .horizontal-content-row {
+        gap: 20px !important;
+    }
+
+    .horizontal-content-row .content-card {
+        flex-basis: 210px !important;
+        width: 210px !important;
+        min-width: 210px !important;
+        max-width: 210px !important;
+    }
+
+    .horizontal-content-row .content-card-poster {
+        height: 315px !important;
+        flex-basis: 315px !important;
+    }
+}
+
+/* =========================================================
+   FIM DA CORREÇÃO DOS CARDS
+   ========================================================= */
