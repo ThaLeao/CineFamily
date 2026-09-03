@@ -4679,3 +4679,79 @@ button {
 /* =========================================================
    63. FIM DO STYLE.CSS
    ========================================================= */
+/* =========================================================
+   CORREÇÃO FINAL - CARDS DAS CATEGORIAS NA HORIZONTAL
+   ========================================================= */
+
+.content-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    width: 100% !important;
+}
+
+.content-row .content-card {
+    flex: 0 0 185px !important;
+    width: 185px !important;
+    min-width: 185px !important;
+    max-width: 185px !important;
+}
+
+.content-row > * {
+    flex-shrink: 0 !important;
+}
+
+/* Desktop */
+@media (min-width: 1201px) {
+
+    .content-row .content-card {
+        flex-basis: 190px !important;
+        width: 190px !important;
+        min-width: 190px !important;
+        max-width: 190px !important;
+    }
+
+}
+
+/* Tablet */
+@media (max-width: 1200px) {
+
+    .content-row .content-card {
+        flex-basis: 165px !important;
+        width: 165px !important;
+        min-width: 165px !important;
+        max-width: 165px !important;
+    }
+
+}
+
+/* Celular */
+@media (max-width: 600px) {
+
+    .content-row {
+        gap: 10px !important;
+    }
+
+    .content-row .content-card {
+        flex-basis: 135px !important;
+        width: 135px !important;
+        min-width: 135px !important;
+        max-width: 135px !important;
+    }
+
+}
+
+/* Smart TV */
+@media (min-width: 1600px) {
+
+    .content-row .content-card {
+        flex-basis: 210px !important;
+        width: 210px !important;
+        min-width: 210px !important;
+        max-width: 210px !important;
+    }
+
+}
