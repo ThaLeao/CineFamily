@@ -1,4694 +1,4934 @@
 "use strict";
 
 /* =========================================================
-   CINEFAMILY - SCRIPT.JS
+   CINEFAMILY — SCRIPT.JS
    PARTE 1/4
+   Compatível com o index.html e worker.js atuais
    ========================================================= */
 
 const TMDB_WORKER = "https://cinefamily-tmdb.thabsleao.workers.dev";
 
 const STORAGE_KEYS = {
-  favorites: "cinefamily_favoritos",
-  history: "cinefamily_historico",
-  profile: "cinefamily_perfil"
+    FAVORITOS: "cinefamily_favoritos",
+    HISTORICO: "cinefamily_historico",
+    PERFIL: "cinefamily_perfil"
 };
 
-const appState = {
-  initialized: false,
-  currentPage: "home",
-  currentSection: "home",
-  currentDetails: null,
-  currentPlayer: null,
-  currentHero: 0,
-  heroTimer: null,
-  searchTimer: null,
-  heroItems: [],
-  popularMovies: [],
-  popularSeries: [],
-  latestMovies: [],
-  latestSeries: [],
-  doramas: [],
-  gl: [],
-  kids: [],
-  favorites: [],
-  history: [],
-  searchResults: [],
-  catalog: new Map()
+const CONFIG = {
+    HOME_LIMIT: 20,
+    SEARCH_LIMIT: 20,
+    CATEGORY_LIMIT: 20,
+    HISTORY_LIMIT: 30,
+    FAVORITES_LIMIT: 30,
+    HERO_INTERVAL: 7000
 };
+
+const state = {
+    homeLoaded: false,
+    loadingHome: false,
+    searchLoading: false,
+    currentSearch: "",
+    currentDetails: null,
+    currentHero: 0,
+    heroItems: [],
+    heroTimer: null,
+    categoryPage: 1,
+    categoryTotalPages: 1,
+    currentCategory: null,
+    selectedAvatar: "😀"
+};
+
 
 /* =========================================================
    UTILITÁRIOS
    ========================================================= */
 
-function qs(selector, parent = document) {
-  return parent.querySelector(selector);
+function $(selector) {
+    return document.querySelector(selector);
 }
 
-function qsa(selector, parent = document) {
-  return Array.from(parent.querySelectorAll(selector));
+function $all(selector) {
+    return Array.from(document.querySelectorAll(selector));
 }
 
 function escapeHTML(value) {
-  if (value === null || value === undefined) {
-    return "";
-  }
+    if (value === null || value === undefined) {
+        return "";
+    }
 
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
-function normalizeType(type) {
-  return type === "tv" || type === "series" ? "tv" : "movie";
+function escapeAttribute(value) {
+    return escapeHTML(value);
 }
 
-function itemKey(id, type) {
-  return `${normalizeType(type)}-${Number(id)}`;
+function normalizeType(item) {
+    if (!item) {
+        return "movie";
+    }
+
+    if (item.type === "tv") {
+        return "tv";
+    }
+
+    if (item.media_type === "tv") {
+        return "tv";
+    }
+
+    if (item.first_air_date && !item.release_date) {
+        return "tv";
+    }
+
+    return "movie";
 }
 
-function registerItem(item) {
-  if (!item || item.id === undefined || item.id === null) {
-    return;
-  }
+function getItemId(item) {
+    if (!item) {
+        return null;
+    }
 
-  const normalized = {
-    ...item,
-    id: Number(item.id),
-    type: normalizeType(item.type)
-  };
+    const id = Number(item.id);
 
-  appState.catalog.set(
-    itemKey(normalized.id, normalized.type),
-    normalized
-  );
+    if (!Number.isFinite(id) || id <= 0) {
+        return null;
+    }
+
+    return id;
 }
 
-function registerItems(items) {
-  if (!Array.isArray(items)) {
-    return;
-  }
+function getItemTitle(item) {
+    if (!item) {
+        return "Sem título";
+    }
 
-  items.forEach(registerItem);
+    return (
+        item.title ||
+        item.name ||
+        item.original_title ||
+        item.original_name ||
+        "Sem título"
+    );
 }
 
-function getItemFromCatalog(id, type) {
-  return appState.catalog.get(itemKey(id, type)) || null;
-}
+function getItemDate(item) {
+    if (!item) {
+        return "";
+    }
 
-function getTitle(item) {
-  if (!item) {
-    return "Sem título";
-  }
-
-  return (
-    item.title ||
-    item.name ||
-    item.original_title ||
-    item.original_name ||
-    "Sem título"
-  );
+    return (
+        item.release_date ||
+        item.first_air_date ||
+        ""
+    );
 }
 
 function getYear(item) {
-  if (!item) {
-    return "";
-  }
+    const date = getItemDate(item);
 
-  const date =
-    item.release_date ||
-    item.first_air_date ||
-    item.air_date ||
-    "";
+    if (!date || date.length < 4) {
+        return "";
+    }
 
-  if (!date) {
-    return "";
-  }
-
-  return String(date).slice(0, 4);
+    return date.substring(0, 4);
 }
 
 function getPoster(item) {
-  if (!item) {
-    return "";
-  }
+    if (!item) {
+        return "";
+    }
 
-  return (
-    item.poster_url ||
-    item.poster_path ||
-    item.poster ||
-    item.image ||
-    item.thumbnail ||
-    ""
-  );
+    return (
+        item.poster_path ||
+        item.poster ||
+        ""
+    );
 }
 
 function getBackdrop(item) {
-  if (!item) {
-    return "";
-  }
+    if (!item) {
+        return "";
+    }
 
-  return (
-    item.backdrop_url ||
-    item.backdrop_path ||
-    item.backdrop ||
-    item.poster_url ||
-    item.poster_path ||
-    getPoster(item) ||
-    ""
-  );
+    return (
+        item.backdrop_path ||
+        item.backdrop ||
+        getPoster(item) ||
+        ""
+    );
+}
+
+function getRating(item) {
+    if (!item) {
+        return "0.0";
+    }
+
+    const rating = Number(
+        item.vote_average ??
+        item.rating ??
+        0
+    );
+
+    if (!Number.isFinite(rating)) {
+        return "0.0";
+    }
+
+    return rating.toFixed(1);
 }
 
 function isAdult(item) {
-  return item && item.adult === true;
+    return item && item.adult === true;
 }
 
 function isValidItem(item) {
-  return Boolean(
-    item &&
-    item.id !== undefined &&
-    item.id !== null &&
-    !isAdult(item)
-  );
+    return Boolean(
+        item &&
+        getItemId(item) &&
+        !isAdult(item) &&
+        getItemTitle(item)
+    );
 }
 
-function removeDuplicateItems(items) {
-  if (!Array.isArray(items)) {
-    return [];
-  }
-
-  const seen = new Set();
-  const result = [];
-
-  items.forEach(item => {
-    if (!isValidItem(item)) {
-      return;
+function cleanItems(items) {
+    if (!Array.isArray(items)) {
+        return [];
     }
 
-    const key = itemKey(item.id, item.type);
+    const seen = new Set();
+    const result = [];
 
-    if (seen.has(key)) {
-      return;
+    for (const item of items) {
+        if (!isValidItem(item)) {
+            continue;
+        }
+
+        const type = normalizeType(item);
+        const id = getItemId(item);
+        const key = `${type}-${id}`;
+
+        if (seen.has(key)) {
+            continue;
+        }
+
+        seen.add(key);
+
+        result.push({
+            ...item,
+            id,
+            type,
+            title: getItemTitle(item),
+            poster_path: getPoster(item),
+            backdrop_path: getBackdrop(item)
+        });
     }
 
-    seen.add(key);
-    result.push(item);
-  });
-
-  return result;
+    return result;
 }
 
-function formatNumber(value) {
-  const number = Number(value);
+function formatDate(date) {
+    if (!date) {
+        return "";
+    }
 
-  if (!Number.isFinite(number)) {
-    return "0";
-  }
+    const parts = String(date).split("-");
 
-  return new Intl.NumberFormat("pt-BR").format(number);
-}
+    if (parts.length !== 3) {
+        return String(date);
+    }
 
-function formatRating(value) {
-  const number = Number(value);
-
-  if (!Number.isFinite(number) || number <= 0) {
-    return "N/A";
-  }
-
-  return number.toFixed(1);
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
 function formatRuntime(minutes) {
-  const value = Number(minutes);
+    const value = Number(minutes);
 
-  if (!Number.isFinite(value) || value <= 0) {
-    return "";
-  }
+    if (!Number.isFinite(value) || value <= 0) {
+        return "";
+    }
 
-  const hours = Math.floor(value / 60);
-  const remaining = value % 60;
+    const hours = Math.floor(value / 60);
+    const mins = value % 60;
 
-  if (hours > 0 && remaining > 0) {
-    return `${hours}h ${remaining}min`;
-  }
+    if (hours > 0) {
+        return `${hours}h ${mins}min`;
+    }
 
-  if (hours > 0) {
-    return `${hours}h`;
-  }
-
-  return `${remaining}min`;
+    return `${mins}min`;
 }
 
-function getRuntime(data) {
-  if (!data) {
-    return "";
-  }
-
-  if (data.runtime) {
-    return formatRuntime(data.runtime);
-  }
-
-  if (
-    Array.isArray(data.episode_run_time) &&
-    data.episode_run_time.length > 0
-  ) {
-    return formatRuntime(data.episode_run_time[0]);
-  }
-
-  return "";
+function getTypeLabel(type) {
+    return type === "tv" ? "Série" : "Filme";
 }
 
-function getMediaTypeLabel(type) {
-  return normalizeType(type) === "tv" ? "Série" : "Filme";
+function getStorage(key, fallback) {
+    try {
+        const raw = localStorage.getItem(key);
+
+        if (!raw) {
+            return fallback;
+        }
+
+        const parsed = JSON.parse(raw);
+
+        return parsed ?? fallback;
+    } catch (error) {
+        console.warn("Erro ao ler localStorage:", error);
+        return fallback;
+    }
 }
 
-function createFallbackImage(element) {
-  if (!element) {
-    return;
-  }
+function setStorage(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+    } catch (error) {
+        console.warn("Erro ao salvar localStorage:", error);
+        return false;
+    }
+}
 
-  element.onerror = null;
-  element.src =
-    "data:image/svg+xml;charset=UTF-8," +
-    encodeURIComponent(
-      `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
-        <rect width="600" height="900" fill="#111"/>
-        <text x="300" y="430" text-anchor="middle" fill="#d4af37" font-size="34" font-family="Arial">CineFamily</text>
-        <text x="300" y="480" text-anchor="middle" fill="#aaa" font-size="20" font-family="Arial">Imagem indisponível</text>
-      </svg>`
+function getFavorites() {
+    const favorites = getStorage(
+        STORAGE_KEYS.FAVORITOS,
+        []
+    );
+
+    return Array.isArray(favorites)
+        ? cleanItems(favorites)
+        : [];
+}
+
+function saveFavorites(items) {
+    setStorage(
+        STORAGE_KEYS.FAVORITOS,
+        cleanItems(items)
     );
 }
 
-function safeImageUrl(url) {
-  if (!url) {
-    return "";
-  }
+function getHistory() {
+    const history = getStorage(
+        STORAGE_KEYS.HISTORICO,
+        []
+    );
 
-  return String(url).trim();
+    return Array.isArray(history)
+        ? cleanItems(history)
+        : [];
 }
 
-/* =========================================================
-   STORAGE
-   ========================================================= */
-
-function getStorageArray(key) {
-  try {
-    const value = localStorage.getItem(key);
-
-    if (!value) {
-      return [];
-    }
-
-    const parsed = JSON.parse(value);
-
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    console.error("Erro ao ler armazenamento:", error);
-    return [];
-  }
-}
-
-function setStorageArray(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    console.error("Erro ao salvar armazenamento:", error);
-  }
+function saveHistory(items) {
+    setStorage(
+        STORAGE_KEYS.HISTORICO,
+        cleanItems(items).slice(
+            0,
+            CONFIG.HISTORY_LIMIT
+        )
+    );
 }
 
 function getProfile() {
-  try {
-    const value = localStorage.getItem(STORAGE_KEYS.profile);
+    const profile = getStorage(
+        STORAGE_KEYS.PERFIL,
+        {}
+    );
 
-    if (!value) {
-      return {
-        name: "Família",
-        avatar: "👤"
-      };
+    if (!profile || typeof profile !== "object") {
+        return {
+            name: "Visitante",
+            avatar: "😀"
+        };
     }
 
-    const parsed = JSON.parse(value);
-
     return {
-      name: parsed.name || "Família",
-      avatar: parsed.avatar || "👤"
+        name: profile.name || "Visitante",
+        avatar: profile.avatar || "😀"
     };
-  } catch (error) {
-    return {
-      name: "Família",
-      avatar: "👤"
-    };
-  }
 }
 
 function saveProfile(profile) {
-  const data = {
-    name: profile.name || "Família",
-    avatar: profile.avatar || "👤"
-  };
-
-  try {
-    localStorage.setItem(
-      STORAGE_KEYS.profile,
-      JSON.stringify(data)
+    setStorage(
+        STORAGE_KEYS.PERFIL,
+        {
+            name: profile.name || "Visitante",
+            avatar: profile.avatar || "😀"
+        }
     );
-  } catch (error) {
-    console.error("Erro ao salvar perfil:", error);
-  }
-
-  renderProfile();
 }
 
-/* =========================================================
-   FAVORITOS
-   ========================================================= */
-
-function getFavorites() {
-  const favorites = getStorageArray(STORAGE_KEYS.favorites);
-
-  appState.favorites = removeDuplicateItems(favorites);
-  registerItems(appState.favorites);
-
-  return appState.favorites;
-}
-
-function saveFavorites(favorites) {
-  appState.favorites = removeDuplicateItems(favorites);
-
-  registerItems(appState.favorites);
-
-  setStorageArray(
-    STORAGE_KEYS.favorites,
-    appState.favorites
-  );
-}
-
-function isFavorite(id, type) {
-  const normalizedType = normalizeType(type);
-
-  return appState.favorites.some(item => {
-    return (
-      Number(item.id) === Number(id) &&
-      normalizeType(item.type) === normalizedType
-    );
-  });
-}
-
-function findFavorite(id, type) {
-  const normalizedType = normalizeType(type);
-
-  return (
-    appState.favorites.find(item => {
-      return (
-        Number(item.id) === Number(id) &&
-        normalizeType(item.type) === normalizedType
-      );
-    }) || null
-  );
-}
-
-function toggleFavorite(item) {
-  if (!item || item.id === undefined) {
-    return;
-  }
-
-  const normalized = {
-    ...item,
-    id: Number(item.id),
-    type: normalizeType(item.type),
-    title: getTitle(item),
-    poster_path: getPoster(item),
-    backdrop_path: getBackdrop(item),
-    release_date: item.release_date || "",
-    first_air_date: item.first_air_date || "",
-    vote_average: item.vote_average || 0
-  };
-
-  registerItem(normalized);
-
-  const favorites = getFavorites();
-
-  const index = favorites.findIndex(favorite => {
-    return (
-      Number(favorite.id) === Number(normalized.id) &&
-      normalizeType(favorite.type) === normalized.type
-    );
-  });
-
-  if (index >= 0) {
-    favorites.splice(index, 1);
-  } else {
-    favorites.unshift(normalized);
-  }
-
-  saveFavorites(favorites);
-  refreshFavoriteVisuals();
-  renderFavoritesRow();
-
-  const currentPage = detectCurrentPage();
-
-  if (currentPage === "favorites") {
-    renderFavoritesPage();
-  }
-}
-
-function removeFavoriteItem(id, type) {
-  const normalizedType = normalizeType(type);
-
-  const favorites = getFavorites().filter(item => {
-    return !(
-      Number(item.id) === Number(id) &&
-      normalizeType(item.type) === normalizedType
-    );
-  });
-
-  saveFavorites(favorites);
-  refreshFavoriteVisuals();
-  renderFavoritesRow();
-
-  if (detectCurrentPage() === "favorites") {
-    renderFavoritesPage();
-  }
-}
-
-/* =========================================================
-   HISTÓRICO
-   ========================================================= */
-
-function getHistory() {
-  const history = getStorageArray(STORAGE_KEYS.history);
-
-  appState.history = removeDuplicateItems(history);
-  registerItems(appState.history);
-
-  return appState.history;
-}
-
-function saveHistory(history) {
-  appState.history = removeDuplicateItems(history).slice(0, 50);
-
-  registerItems(appState.history);
-
-  setStorageArray(
-    STORAGE_KEYS.history,
-    appState.history
-  );
-}
-
-function addToHistory(item) {
-  if (!item || item.id === undefined) {
-    return;
-  }
-
-  const normalized = {
-    ...item,
-    id: Number(item.id),
-    type: normalizeType(item.type),
-    title: getTitle(item),
-    poster_path: getPoster(item),
-    backdrop_path: getBackdrop(item),
-    release_date: item.release_date || "",
-    first_air_date: item.first_air_date || "",
-    vote_average: item.vote_average || 0
-  };
-
-  registerItem(normalized);
-
-  let history = getHistory();
-
-  history = history.filter(historyItem => {
-    return !(
-      Number(historyItem.id) === Number(normalized.id) &&
-      normalizeType(historyItem.type) === normalized.type
-    );
-  });
-
-  history.unshift(normalized);
-
-  saveHistory(history);
-  renderContinueRow();
-}
-
-function removeHistoryItem(id, type) {
-  const normalizedType = normalizeType(type);
-
-  const history = getHistory().filter(item => {
-    return !(
-      Number(item.id) === Number(id) &&
-      normalizeType(item.type) === normalizedType
-    );
-  });
-
-  saveHistory(history);
-  renderContinueRow();
-
-  if (detectCurrentPage() === "history") {
-    renderHistoryPage();
-  }
-}
-
-function clearHistory() {
-  saveHistory([]);
-  renderContinueRow();
-
-  if (detectCurrentPage() === "history") {
-    renderHistoryPage();
-  }
-}
-
-/* =========================================================
-   BUSCA NO CATÁLOGO LOCAL
-   ========================================================= */
-
-function findItemByIdAndType(id, type) {
-  const normalizedType = normalizeType(type);
-
-  const catalogItem = getItemFromCatalog(id, normalizedType);
-
-  if (catalogItem) {
-    return catalogItem;
-  }
-
-  const collections = [
-    appState.heroItems,
-    appState.popularMovies,
-    appState.popularSeries,
-    appState.latestMovies,
-    appState.latestSeries,
-    appState.doramas,
-    appState.gl,
-    appState.kids,
-    appState.favorites,
-    appState.history,
-    appState.searchResults
-  ];
-
-  for (const collection of collections) {
-    if (!Array.isArray(collection)) {
-      continue;
+function createKey(item) {
+    if (!item) {
+        return "";
     }
 
-    const found = collection.find(item => {
-      return (
-        Number(item.id) === Number(id) &&
-        normalizeType(item.type) === normalizedType
-      );
-    });
-
-    if (found) {
-      registerItem(found);
-      return found;
-    }
-  }
-
-  return null;
+    return `${normalizeType(item)}-${getItemId(item)}`;
 }
+
+function isFavorite(item) {
+    const key = createKey(item);
+
+    if (!key) {
+        return false;
+    }
+
+    return getFavorites().some(
+        favorite => createKey(favorite) === key
+    );
+}
+
 
 /* =========================================================
    API DO WORKER
    ========================================================= */
 
-async function workerFetch(path, options = {}) {
-  const cleanPath = String(path || "").replace(/^\/+/, "");
+async function apiFetch(path, options = {}) {
+    const cleanPath = String(path || "");
 
-  const url = `${TMDB_WORKER}/${cleanPath}`;
+    const url = cleanPath.startsWith("http")
+        ? cleanPath
+        : `${TMDB_WORKER}${cleanPath.startsWith("/") ? "" : "/"}${cleanPath}`;
 
-  const response = await fetch(url, {
-    method: options.method || "GET",
-    headers: {
-      Accept: "application/json",
-      ...(options.headers || {})
-    },
-    body: options.body
-  });
+    const controller = new AbortController();
 
-  if (!response.ok) {
-    throw new Error(
-      `Worker respondeu com HTTP ${response.status}`
-    );
-  }
+    const timeout = setTimeout(() => {
+        controller.abort();
+    }, 20000);
 
-  const data = await response.json();
+    try {
+        const response = await fetch(url, {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            },
+            cache: "no-store",
+            signal: controller.signal,
+            ...options
+        });
 
-  return data;
-}
+        clearTimeout(timeout);
 
-async function fetchJSON(path) {
-  return workerFetch(path);
-}
-
-function extractResults(data) {
-  if (!data) {
-    return [];
-  }
-
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (Array.isArray(data.results)) {
-    return data.results;
-  }
-
-  if (Array.isArray(data.items)) {
-    return data.items;
-  }
-
-  if (Array.isArray(data.data)) {
-    return data.data;
-  }
-
-  return [];
-}
-
-function normalizeResults(items, type) {
-  if (!Array.isArray(items)) {
-    return [];
-  }
-
-  return removeDuplicateItems(
-    items.map(item => ({
-      ...item,
-      id: Number(item.id),
-      type: normalizeType(item.type || type),
-      title: getTitle(item)
-    }))
-  );
-}
-
-/* =========================================================
-   CARREGAMENTO GENÉRICO
-   ========================================================= */
-
-async function loadEndpoint(path, type = null) {
-  try {
-    const data = await fetchJSON(path);
-    const results = extractResults(data);
-
-    return normalizeResults(results, type);
-  } catch (error) {
-    console.error(
-      `Erro ao carregar ${path}:`,
-      error
-    );
-
-    return [];
-  }
-}
-
-async function loadHome() {
-  showLoadingState();
-
-  try {
-    const [
-      movies,
-      series,
-      latestMovies,
-      latestSeries,
-      doramas,
-      gl,
-      kids
-    ] = await Promise.all([
-      loadEndpoint(
-        "api/discover/movie?sort_by=popularity.desc&page=1",
-        "movie"
-      ),
-      loadEndpoint(
-        "api/discover/tv?sort_by=popularity.desc&page=1",
-        "tv"
-      ),
-      loadEndpoint(
-        "api/movies?sort_by=release_date.desc&page=1",
-        "movie"
-      ),
-      loadEndpoint(
-        "api/series?sort_by=first_air_date.desc&page=1",
-        "tv"
-      ),
-      loadEndpoint(
-        "api/series?original_language=ko&sort_by=popularity.desc&page=1",
-        "tv"
-      ),
-      loadEndpoint(
-        "api/series?query=girls%20love&page=1",
-        "tv"
-      ),
-      loadEndpoint(
-        "api/discover/movie?genre=16&sort_by=popularity.desc&page=1",
-        "movie"
-      )
-    ]);
-
-    appState.popularMovies = movies.filter(
-      item => normalizeType(item.type) === "movie"
-    );
-
-    appState.popularSeries = series.filter(
-      item => normalizeType(item.type) === "tv"
-    );
-
-    appState.latestMovies = latestMovies.filter(
-      item => normalizeType(item.type) === "movie"
-    );
-
-    appState.latestSeries = latestSeries.filter(
-      item => normalizeType(item.type) === "tv"
-    );
-
-    appState.doramas = doramas.filter(item => {
-      return (
-        normalizeType(item.type) === "tv" &&
-        (
-          item.original_language === "ko" ||
-          item.language === "ko"
-        ) &&
-        !isAdult(item)
-      );
-    });
-
-    appState.gl = gl.filter(item => {
-      return (
-        normalizeType(item.type) === "tv" &&
-        !isAdult(item)
-      );
-    });
-
-    appState.kids = kids.filter(item => {
-      return (
-        !isAdult(item) &&
-        (
-          item.genre_ids?.includes(16) ||
-          item.genre_id === 16
-        )
-      );
-    });
-
-    registerItems(appState.popularMovies);
-    registerItems(appState.popularSeries);
-    registerItems(appState.latestMovies);
-    registerItems(appState.latestSeries);
-    registerItems(appState.doramas);
-    registerItems(appState.gl);
-    registerItems(appState.kids);
-
-    appState.heroItems = buildHeroItems();
-
-    registerItems(appState.heroItems);
-
-    renderHero();
-    renderHomeRows();
-
-    hideLoadingState();
-  } catch (error) {
-    console.error(
-      "Erro ao carregar página inicial:",
-      error
-    );
-
-    hideLoadingState();
-    showGlobalMessage(
-      "Não foi possível carregar os conteúdos agora."
-    );
-  }
-}
-
-function buildHeroItems() {
-  const source = [
-    ...appState.popularMovies.slice(0, 4),
-    ...appState.popularSeries.slice(0, 4),
-    ...appState.latestMovies.slice(0, 3),
-    ...appState.latestSeries.slice(0, 3)
-  ];
-
-  return removeDuplicateItems(source)
-    .filter(item => {
-      return (
-        !isAdult(item) &&
-        Boolean(getBackdrop(item) || getPoster(item))
-      );
-    })
-    .slice(0, 4);
-}
-/* =========================================================
-   RENDERIZAÇÃO DOS CARDS
-   ========================================================= */
-
-function createContentCard(item, options = {}) {
-  if (!isValidItem(item)) {
-    return "";
-  }
-
-  registerItem(item);
-
-  const id = Number(item.id);
-  const type = normalizeType(item.type);
-  const title = getTitle(item);
-  const poster = safeImageUrl(getPoster(item));
-  const year = getYear(item);
-  const rating = formatRating(item.vote_average);
-  const favorite = isFavorite(id, type);
-
-  const removableFavorite = options.removableFavorite === true;
-  const removableHistory = options.removableHistory === true;
-
-  const favoriteAction = removableFavorite
-    ? "remove-favorite"
-    : "favorite";
-
-  const favoriteIcon = removableFavorite
-    ? "✕"
-    : favorite
-      ? "★"
-      : "☆";
-
-  const favoriteLabel = removableFavorite
-    ? "Remover dos favoritos"
-    : favorite
-      ? "Remover dos favoritos"
-      : "Adicionar aos favoritos";
-
-  const historyButton = removableHistory
-    ? `
-      <button
-        class="content-card-action history-remove"
-        type="button"
-        data-action="remove-history"
-        data-media-id="${id}"
-        data-media-type="${type}"
-        aria-label="Remover do histórico"
-        title="Remover do histórico"
-      >✕</button>
-    `
-    : "";
-
-  return `
-    <article
-      class="content-card"
-      data-media-id="${id}"
-      data-media-type="${type}"
-      tabindex="0"
-      role="button"
-      aria-label="Abrir ${escapeHTML(title)}"
-    >
-      <div class="content-card-poster">
-        ${
-          poster
-            ? `
-              <img
-                class="content-card-image"
-                src="${escapeHTML(poster)}"
-                alt="${escapeHTML(title)}"
-                loading="lazy"
-              >
-            `
-            : `
-              <div class="content-card-image content-card-placeholder">
-                <span>CineFamily</span>
-              </div>
-            `
+        if (!response.ok) {
+            throw new Error(
+                `Erro HTTP ${response.status}`
+            );
         }
 
-        <div class="content-card-gradient"></div>
+        const data = await response.json();
 
-        <div class="content-card-top-actions">
-          <button
-            class="content-card-action favorite-action"
-            type="button"
-            data-action="${favoriteAction}"
-            data-media-id="${id}"
-            data-media-type="${type}"
-            aria-label="${escapeHTML(favoriteLabel)}"
-            title="${escapeHTML(favoriteLabel)}"
-          >${favoriteIcon}</button>
+        if (data && data.ok === false) {
+            throw new Error(
+                data.error ||
+                data.message ||
+                "Erro retornado pelo servidor."
+            );
+        }
 
-          ${historyButton}
-        </div>
+        return data;
+    } catch (error) {
+        clearTimeout(timeout);
 
-        <div class="content-card-overlay">
-          <button
-            class="content-card-watch"
-            type="button"
-            data-action="watch"
-            data-media-id="${id}"
-            data-media-type="${type}"
-          >
-            ▶ Assistir
-          </button>
-        </div>
+        console.error(
+            "Erro na API CineFamily:",
+            error
+        );
 
-        <div class="content-card-info">
-          <h3 class="content-card-title">
-            ${escapeHTML(title)}
-          </h3>
-
-          <div class="content-card-meta">
-            ${
-              year
-                ? `<span>${escapeHTML(year)}</span>`
-                : ""
-            }
-
-            ${
-              rating !== "N/A"
-                ? `<span>★ ${escapeHTML(rating)}</span>`
-                : ""
-            }
-
-            <span>${escapeHTML(getMediaTypeLabel(type))}</span>
-          </div>
-        </div>
-      </div>
-    </article>
-  `;
+        throw error;
+    }
 }
 
-function createHeroSlide(item, index) {
-  if (!isValidItem(item)) {
-    return "";
-  }
+async function apiHome() {
+    return apiFetch("/api/home");
+}
 
-  registerItem(item);
+async function apiSearch(query, page = 1) {
+    const params = new URLSearchParams();
 
-  const id = Number(item.id);
-  const type = normalizeType(item.type);
-  const title = getTitle(item);
-  const backdrop = safeImageUrl(getBackdrop(item));
-  const year = getYear(item);
-  const rating = formatRating(item.vote_average);
+    params.set("q", query);
+    params.set("page", String(page));
 
-  const overview =
-    item.overview ||
-    item.description ||
-    "Confira este conteúdo no CineFamily.";
+    return apiFetch(
+        `/api/search?${params.toString()}`
+    );
+}
 
-  const favorite = isFavorite(id, type);
+async function apiMovies(params = {}) {
+    const query = new URLSearchParams();
 
-  return `
-    <article
-      class="hero-slide ${index === 0 ? "active" : ""}"
-      data-hero-index="${index}"
-      data-media-id="${id}"
-      data-media-type="${type}"
-      style="${
-        backdrop
-          ? `background-image: url("${escapeHTML(backdrop)}");`
-          : ""
-      }"
-    >
-      <div class="hero-overlay"></div>
+    Object.entries(params).forEach(
+        ([key, value]) => {
+            if (
+                value !== undefined &&
+                value !== null &&
+                value !== ""
+            ) {
+                query.set(key, String(value));
+            }
+        }
+    );
 
-      <div class="hero-content">
-        <span class="hero-badge">
-          ${escapeHTML(getMediaTypeLabel(type))}
-        </span>
+    const suffix = query.toString()
+        ? `?${query.toString()}`
+        : "";
 
-        <h1 class="hero-title">
-          ${escapeHTML(title)}
-        </h1>
+    return apiFetch(
+        `/api/movies${suffix}`
+    );
+}
 
-        <div class="hero-meta">
-          ${
-            year
-              ? `<span>${escapeHTML(year)}</span>`
-              : ""
-          }
+async function apiSeries(params = {}) {
+    const query = new URLSearchParams();
 
-          ${
-            rating !== "N/A"
-              ? `<span>★ ${escapeHTML(rating)}</span>`
-              : ""
-          }
+    Object.entries(params).forEach(
+        ([key, value]) => {
+            if (
+                value !== undefined &&
+                value !== null &&
+                value !== ""
+            ) {
+                query.set(key, String(value));
+            }
+        }
+    );
+
+    const suffix = query.toString()
+        ? `?${query.toString()}`
+        : "";
+
+    return apiFetch(
+        `/api/series${suffix}`
+    );
+}
+
+async function apiDiscoverMovie(params = {}) {
+    const query = new URLSearchParams();
+
+    Object.entries(params).forEach(
+        ([key, value]) => {
+            if (
+                value !== undefined &&
+                value !== null &&
+                value !== ""
+            ) {
+                query.set(key, String(value));
+            }
+        }
+    );
+
+    const suffix = query.toString()
+        ? `?${query.toString()}`
+        : "";
+
+    return apiFetch(
+        `/api/discover/movie${suffix}`
+    );
+}
+
+async function apiDiscoverTV(params = {}) {
+    const query = new URLSearchParams();
+
+    Object.entries(params).forEach(
+        ([key, value]) => {
+            if (
+                value !== undefined &&
+                value !== null &&
+                value !== ""
+            ) {
+                query.set(key, String(value));
+            }
+        }
+    );
+
+    const suffix = query.toString()
+        ? `?${query.toString()}`
+        : "";
+
+    return apiFetch(
+        `/api/discover/tv${suffix}`
+    );
+}
+
+async function apiDetails(type, id) {
+    const safeType =
+        type === "tv" ? "tv" : "movie";
+
+    const safeId = Number(id);
+
+    if (!Number.isFinite(safeId)) {
+        throw new Error("ID inválido.");
+    }
+
+    return apiFetch(
+        `/api/details/${safeType}/${safeId}`
+    );
+}
+
+async function apiSeason(id, season) {
+    const safeId = Number(id);
+    const safeSeason = Number(season);
+
+    if (
+        !Number.isFinite(safeId) ||
+        !Number.isFinite(safeSeason)
+    ) {
+        throw new Error(
+            "Temporada inválida."
+        );
+    }
+
+    return apiFetch(
+        `/api/tv/${safeId}/season/${safeSeason}`
+    );
+}
+
+
+/* =========================================================
+   TOAST / LOADING
+   ========================================================= */
+
+function showToast(message, type = "normal") {
+    const container =
+        $("#toast-container");
+
+    if (!container) {
+        return;
+    }
+
+    const toast =
+        document.createElement("div");
+
+    toast.className =
+        `toast toast-${type}`;
+
+    toast.textContent =
+        String(message || "");
+
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        toast.classList.add("show");
+    });
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 2800);
+}
+
+function setLoading(show) {
+    const overlay =
+        $("#loading-overlay");
+
+    if (!overlay) {
+        return;
+    }
+
+    if (show) {
+        overlay.classList.add("active");
+        overlay.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+    } else {
+        overlay.classList.remove("active");
+        overlay.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+    }
+}
+
+
+/* =========================================================
+   CARDS
+   ========================================================= */
+
+function createCard(item) {
+    if (!isValidItem(item)) {
+        return null;
+    }
+
+    const type = normalizeType(item);
+    const id = getItemId(item);
+    const title = getItemTitle(item);
+    const poster = getPoster(item);
+    const rating = getRating(item);
+    const year = getYear(item);
+    const favorite = isFavorite(item);
+
+    const card =
+        document.createElement("article");
+
+    card.className = "movie-card";
+
+    card.dataset.id = String(id);
+    card.dataset.type = type;
+    card.dataset.title = title;
+
+    card.tabIndex = 0;
+
+    const posterHTML = poster
+        ? `
+            <img
+                class="movie-card-poster"
+                src="${escapeAttribute(poster)}"
+                alt="${escapeAttribute(title)}"
+                loading="lazy"
+                onerror="this.style.display='none';"
+            >
+        `
+        : `
+            <div class="movie-card-no-poster">
+                <span>🎬</span>
+                <strong>${escapeHTML(title)}</strong>
+            </div>
+        `;
+
+    card.innerHTML = `
+        <div class="movie-card-image">
+            ${posterHTML}
+
+            <div class="movie-card-gradient"></div>
+
+            <div class="movie-card-rating">
+                ⭐ ${escapeHTML(rating)}
+            </div>
+
+            <button
+                type="button"
+                class="card-favorite-button ${favorite ? "is-favorite" : ""}"
+                data-action="favorite"
+                aria-label="${favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}"
+                title="${favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}"
+            >
+                ${favorite ? "★" : "☆"}
+            </button>
+
+            <div class="movie-card-overlay">
+                <button
+                    type="button"
+                    class="card-play-button"
+                    data-action="details"
+                    aria-label="Abrir ${escapeAttribute(title)}"
+                >
+                    ▶
+                </button>
+            </div>
         </div>
 
-        <p class="hero-description">
-          ${escapeHTML(overview)}
-        </p>
+        <div class="movie-card-info">
+            <h3 class="movie-card-title">
+                ${escapeHTML(title)}
+            </h3>
 
-        <div class="hero-actions">
-          <button
-            class="hero-watch-button"
-            type="button"
-            data-action="watch"
-            data-media-id="${id}"
-            data-media-type="${type}"
-          >
-            ▶ Assistir agora
-          </button>
+            <div class="movie-card-meta">
+                <span>${escapeHTML(type === "tv" ? "Série" : "Filme")}</span>
+                ${
+                    year
+                        ? `<span>•</span><span>${escapeHTML(year)}</span>`
+                        : ""
+                }
+            </div>
+        </div>
+    `;
 
-          <button
-            class="hero-details-button"
-            type="button"
-            data-action="details"
-            data-media-id="${id}"
-            data-media-type="${type}"
-          >
-            ⓘ Detalhes
-          </button>
+    return card;
+}
 
-          <button
-            class="hero-favorite-button"
-            type="button"
-            data-action="favorite"
-            data-media-id="${id}"
-            data-media-type="${type}"
-            aria-label="${
-              favorite
+function renderRow(selector, items, emptyText = "") {
+    const row = $(selector);
+
+    if (!row) {
+        return;
+    }
+
+    row.innerHTML = "";
+
+    const clean = cleanItems(items);
+
+    if (!clean.length) {
+        if (emptyText) {
+            row.innerHTML = `
+                <div class="row-empty">
+                    ${escapeHTML(emptyText)}
+                </div>
+            `;
+        }
+
+        return;
+    }
+
+    const fragment =
+        document.createDocumentFragment();
+
+    clean.forEach(item => {
+        const card = createCard(item);
+
+        if (card) {
+            fragment.appendChild(card);
+        }
+    });
+
+    row.appendChild(fragment);
+}
+
+function appendItemsToRow(selector, items) {
+    const row = $(selector);
+
+    if (!row) {
+        return;
+    }
+
+    const clean = cleanItems(items);
+
+    clean.forEach(item => {
+        const card = createCard(item);
+
+        if (card) {
+            row.appendChild(card);
+        }
+    });
+}
+
+function showSection(selector, show = true) {
+    const section = $(selector);
+
+    if (!section) {
+        return;
+    }
+
+    if (show) {
+        section.hidden = false;
+        section.style.display = "";
+    } else {
+        section.hidden = true;
+    }
+}
+
+
+/* =========================================================
+   NAVEGAÇÃO HORIZONTAL DOS CARDS
+   ========================================================= */
+
+function setupRowNavigation() {
+    document.addEventListener(
+        "click",
+        event => {
+            const button =
+                event.target.closest(
+                    "[data-row-scroll]"
+                );
+
+            if (!button) {
+                return;
+            }
+
+            const targetSelector =
+                button.dataset.rowScroll;
+
+            if (!targetSelector) {
+                return;
+            }
+
+            const row =
+                $(targetSelector);
+
+            if (!row) {
+                return;
+            }
+
+            const direction =
+                button.dataset.direction === "left"
+                    ? -1
+                    : 1;
+
+            const amount =
+                Math.max(
+                    280,
+                    row.clientWidth * 0.8
+                );
+
+            row.scrollBy({
+                left: amount * direction,
+                behavior: "smooth"
+            });
+        }
+    );
+}
+
+
+/* =========================================================
+   FAVORITOS
+   ========================================================= */
+
+function toggleFavorite(item) {
+    if (!isValidItem(item)) {
+        return false;
+    }
+
+    const favorites =
+        getFavorites();
+
+    const key =
+        createKey(item);
+
+    const index =
+        favorites.findIndex(
+            favorite =>
+                createKey(favorite) === key
+        );
+
+    let added = false;
+
+    if (index >= 0) {
+        favorites.splice(index, 1);
+        added = false;
+    } else {
+        favorites.unshift({
+            ...item,
+            type: normalizeType(item)
+        });
+
+        added = true;
+    }
+
+    saveFavorites(favorites);
+
+    refreshFavoriteButtons(item);
+
+    renderFavoritesIfNeeded();
+
+    showToast(
+        added
+            ? "Adicionado aos favoritos ⭐"
+            : "Removido dos favoritos",
+        added ? "success" : "normal"
+    );
+
+    return added;
+}
+
+function refreshFavoriteButtons(item) {
+    const key =
+        createKey(item);
+
+    if (!key) {
+        return;
+    }
+
+    const favorite =
+        isFavorite(item);
+
+    $all(
+        `[data-id="${CSS.escape(String(getItemId(item)))}"][data-type="${CSS.escape(normalizeType(item))}"] .card-favorite-button`
+    ).forEach(button => {
+        button.classList.toggle(
+            "is-favorite",
+            favorite
+        );
+
+        button.textContent =
+            favorite ? "★" : "☆";
+
+        button.setAttribute(
+            "aria-label",
+            favorite
                 ? "Remover dos favoritos"
                 : "Adicionar aos favoritos"
-            }"
-          >
-            ${favorite ? "★" : "☆"}
-          </button>
-        </div>
-      </div>
-    </article>
-  `;
+        );
+    });
+
+    const detailsButton =
+        $("#details-favorite-button");
+
+    if (
+        detailsButton &&
+        state.currentDetails &&
+        createKey(state.currentDetails) === key
+    ) {
+        detailsButton.classList.toggle(
+            "is-favorite",
+            favorite
+        );
+
+        detailsButton.textContent =
+            favorite
+                ? "★ Favoritado"
+                : "☆ Favoritar";
+    }
 }
 
-function renderHero() {
-  const hero = qs("#hero");
+function renderFavoritesIfNeeded() {
+    const row =
+        $("#favorites-row");
 
-  if (!hero) {
-    return;
-  }
+    if (!row) {
+        return;
+    }
 
-  const items = appState.heroItems
-    .filter(isValidItem)
-    .slice(0, 4);
+    const favorites =
+        getFavorites();
 
-  if (!items.length) {
-    hero.innerHTML = `
-      <div class="hero-empty">
-        <h2>Bem-vindo ao CineFamily</h2>
-        <p>Carregando seus conteúdos...</p>
-      </div>
-    `;
-
-    return;
-  }
-
-  registerItems(items);
-
-  appState.heroItems = items;
-  appState.currentHero = 0;
-
-  hero.innerHTML = `
-    <div class="hero-slides">
-      ${items.map(createHeroSlide).join("")}
-    </div>
-
-    <button
-      class="hero-control hero-prev"
-      type="button"
-      data-hero-control="prev"
-      aria-label="Anterior"
-    >
-      ‹
-    </button>
-
-    <button
-      class="hero-control hero-next"
-      type="button"
-      data-hero-control="next"
-      aria-label="Próximo"
-    >
-      ›
-    </button>
-
-    <div class="hero-indicators">
-      ${items
-        .map(
-          (_, index) => `
-            <button
-              class="hero-indicator ${
-                index === 0 ? "active" : ""
-              }"
-              type="button"
-              data-hero-indicator="${index}"
-              aria-label="Ir para destaque ${index + 1}"
-            ></button>
-          `
-        )
-        .join("")}
-    </div>
-  `;
-
-  setHeroSlide(0);
-  startHeroAutoPlay();
-}
-
-function setHeroSlide(index) {
-  const slides = qsa(".hero-slide");
-
-  if (!slides.length) {
-    return;
-  }
-
-  if (index < 0) {
-    index = slides.length - 1;
-  }
-
-  if (index >= slides.length) {
-    index = 0;
-  }
-
-  appState.currentHero = index;
-
-  slides.forEach((slide, slideIndex) => {
-    slide.classList.toggle(
-      "active",
-      slideIndex === index
+    renderRow(
+        "#favorites-row",
+        favorites,
+        "Você ainda não adicionou nenhum favorito."
     );
-  });
 
-  const indicators = qsa(".hero-indicator");
+    const section =
+        $("#favorites-section");
 
-  indicators.forEach((indicator, indicatorIndex) => {
-    indicator.classList.toggle(
-      "active",
-      indicatorIndex === index
-    );
-  });
-}
-
-function nextHero() {
-  const slides = qsa(".hero-slide");
-
-  if (!slides.length) {
-    return;
-  }
-
-  setHeroSlide(appState.currentHero + 1);
-}
-
-function previousHero() {
-  const slides = qsa(".hero-slide");
-
-  if (!slides.length) {
-    return;
-  }
-
-  setHeroSlide(appState.currentHero - 1);
-}
-
-function startHeroAutoPlay() {
-  stopHeroAutoPlay();
-
-  if (appState.heroItems.length <= 1) {
-    return;
-  }
-
-  appState.heroTimer = setInterval(() => {
-    nextHero();
-  }, 7000);
-}
-
-function stopHeroAutoPlay() {
-  if (appState.heroTimer) {
-    clearInterval(appState.heroTimer);
-    appState.heroTimer = null;
-  }
-}
-
-function renderRow(container, items, options = {}) {
-  if (!container) {
-    return;
-  }
-
-  const validItems = removeDuplicateItems(
-    Array.isArray(items) ? items : []
-  );
-
-  registerItems(validItems);
-
-  if (!validItems.length) {
-    container.innerHTML = `
-      <div class="empty-row">
-        Nenhum conteúdo disponível no momento.
-      </div>
-    `;
-
-    return;
-  }
-
-  container.innerHTML = validItems
-    .map(item =>
-      createContentCard(item, options)
-    )
-    .join("");
-}
-
-function renderHomeRows() {
-  renderSectionByPossibleSelectors(
-    [
-      "#filmes-lista",
-      "#movies-list",
-      "#filmes-container",
-      "#movies-container"
-    ],
-    appState.popularMovies
-  );
-
-  renderSectionByPossibleSelectors(
-    [
-      "#series-lista",
-      "#series-list",
-      "#series-container",
-      "#tv-series-container"
-    ],
-    appState.popularSeries
-  );
-
-  renderSectionByPossibleSelectors(
-    [
-      "#lancamentos-filmes",
-      "#latest-movies-list",
-      "#latest-movies-container"
-    ],
-    appState.latestMovies
-  );
-
-  renderSectionByPossibleSelectors(
-    [
-      "#lancamentos-series",
-      "#latest-series-list",
-      "#latest-series-container"
-    ],
-    appState.latestSeries
-  );
-
-  renderSectionByPossibleSelectors(
-    [
-      "#doramas-lista",
-      "#doramas-list",
-      "#doramas-container"
-    ],
-    appState.doramas
-  );
-
-  renderSectionByPossibleSelectors(
-    [
-      "#gl-lista",
-      "#gl-list",
-      "#gl-container"
-    ],
-    appState.gl
-  );
-
-  renderSectionByPossibleSelectors(
-    [
-      "#kids-lista",
-      "#kids-list",
-      "#kids-container"
-    ],
-    appState.kids
-  );
-
-  renderFavoritesRow();
-  renderContinueRow();
-}
-
-function renderSectionByPossibleSelectors(
-  selectors,
-  items
-) {
-  for (const selector of selectors) {
-    const container = qs(selector);
-
-    if (container) {
-      renderRow(container, items);
-      return;
+    if (section) {
+        section.hidden =
+            favorites.length === 0;
     }
-  }
 }
 
-function renderFavoritesRow() {
-  const favorites = getFavorites();
-
-  const selectors = [
-    "#favoritos-lista",
-    "#favorites-list",
-    "#favorites-container",
-    "#home-favorites-list"
-  ];
-
-  for (const selector of selectors) {
-    const container = qs(selector);
-
-    if (container) {
-      renderRow(container, favorites, {
-        removableFavorite: true
-      });
-      return;
-    }
-  }
-}
-
-function renderContinueRow() {
-  const history = getHistory();
-
-  const selectors = [
-    "#continuar-lista",
-    "#continue-list",
-    "#continue-container",
-    "#historico-lista-home",
-    "#home-history-list"
-  ];
-
-  for (const selector of selectors) {
-    const container = qs(selector);
-
-    if (container) {
-      renderRow(container, history, {
-        removableHistory: true
-      });
-      return;
-    }
-  }
-}
 
 /* =========================================================
-   BUSCA
+   HISTÓRICO
    ========================================================= */
 
-async function searchContent(query) {
-  const term = String(query || "").trim();
+function addToHistory(item) {
+    if (!isValidItem(item)) {
+        return;
+    }
 
-  if (term.length < 2) {
-    appState.searchResults = [];
-    clearSearchResults();
-    return;
-  }
+    const history =
+        getHistory();
 
-  showSearchLoading();
+    const key =
+        createKey(item);
 
-  try {
-    const encoded = encodeURIComponent(term);
+    const filtered =
+        history.filter(
+            oldItem =>
+                createKey(oldItem) !== key
+        );
 
-    const data = await fetchJSON(
-      `api/search?query=${encoded}&page=1`
-    );
-
-    let results = extractResults(data);
-
-    results = results
-      .map(item => ({
+    const historyItem = {
         ...item,
-        title: getTitle(item),
-        id: Number(item.id),
-        type: normalizeType(item.type)
-      }))
-      .filter(item => !isAdult(item));
-
-    appState.searchResults =
-      removeDuplicateItems(results);
-
-    registerItems(appState.searchResults);
-
-    renderSearchResults(appState.searchResults);
-  } catch (error) {
-    console.error("Erro na busca:", error);
-
-    appState.searchResults = [];
-
-    renderSearchResults([]);
-  }
-}
-
-function realizarBusca(query) {
-  clearTimeout(appState.searchTimer);
-
-  appState.searchTimer = setTimeout(() => {
-    searchContent(query);
-  }, 350);
-}
-
-function renderSearchResults(items) {
-  const container =
-    qs("#search-results") ||
-    qs("#resultados-busca") ||
-    qs("#search-container");
-
-  if (!container) {
-    return;
-  }
-
-  if (!items.length) {
-    container.innerHTML = `
-      <div class="search-empty">
-        <div class="search-empty-icon">🔎</div>
-        <h3>Nenhum resultado encontrado</h3>
-        <p>Tente pesquisar por outro título.</p>
-      </div>
-    `;
-
-    return;
-  }
-
-  container.innerHTML = `
-    <div class="search-results-grid">
-      ${items.map(item =>
-        createContentCard(item)
-      ).join("")}
-    </div>
-  `;
-}
-
-function clearSearchResults() {
-  const container =
-    qs("#search-results") ||
-    qs("#resultados-busca") ||
-    qs("#search-container");
-
-  if (!container) {
-    return;
-  }
-
-  container.innerHTML = "";
-}
-
-function showSearchLoading() {
-  const container =
-    qs("#search-results") ||
-    qs("#resultados-busca") ||
-    qs("#search-container");
-
-  if (!container) {
-    return;
-  }
-
-  container.innerHTML = `
-    <div class="search-loading">
-      <div class="loading-spinner"></div>
-      <p>Pesquisando...</p>
-    </div>
-  `;
-}
-
-function setupSearch() {
-  const inputs = qsa(
-    "#search-input, #search, .search-input, [data-search-input]"
-  );
-
-  inputs.forEach(input => {
-    input.addEventListener("input", event => {
-      realizarBusca(event.target.value);
-    });
-
-    input.addEventListener("keydown", event => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-
-        searchContent(event.target.value);
-      }
-
-      if (event.key === "Escape") {
-        event.target.value = "";
-        clearSearchResults();
-      }
-    });
-  });
-}
-
-/* =========================================================
-   MODAL DE DETALHES
-   ========================================================= */
-
-function getDetailsModal() {
-  return (
-    qs("#details-modal") ||
-    qs("#modal-detalhes") ||
-    qs("#movie-modal")
-  );
-}
-
-function openDetails(id, type) {
-  const numericId = Number(id);
-
-  if (!numericId) {
-    return;
-  }
-
-  const normalizedType = normalizeType(type);
-
-  const item = findItemByIdAndType(
-    numericId,
-    normalizedType
-  );
-
-  appState.currentDetails = item || {
-    id: numericId,
-    type: normalizedType
-  };
-
-  const modal = getDetailsModal();
-
-  if (!modal) {
-    console.warn(
-      "Modal de detalhes não encontrado no HTML."
-    );
-    return;
-  }
-
-  modal.classList.add("active");
-  modal.classList.add("open");
-  modal.setAttribute("aria-hidden", "false");
-
-  document.body.classList.add("modal-open");
-
-  showDetailsLoading(modal);
-
-  loadDetails(numericId, normalizedType);
-}
-
-async function loadDetails(id, type) {
-  try {
-    const data = await fetchJSON(
-      `api/${type}/${id}`
-    );
-
-    if (!data || data.adult === true) {
-      throw new Error(
-        "Conteúdo não disponível."
-      );
-    }
-
-    const normalized = {
-      ...data,
-      id: Number(data.id || id),
-      type: normalizeType(data.type || type),
-      title: getTitle(data)
+        type: normalizeType(item),
+        watched_at: Date.now()
     };
 
-    registerItem(normalized);
+    filtered.unshift(historyItem);
 
-    appState.currentDetails = normalized;
+    saveHistory(filtered);
 
-    renderDetails(normalized);
-    loadDetailsTrailer(normalized);
+    renderHistoryIfNeeded();
+}
 
-    addToHistory(normalized);
-  } catch (error) {
-    console.error(
-      "Erro ao carregar detalhes:",
-      error
+function clearHistory() {
+    saveHistory([]);
+
+    renderHistoryIfNeeded();
+
+    showToast(
+        "Histórico apagado.",
+        "normal"
     );
-
-    renderDetailsError();
-  }
 }
 
-function showDetailsLoading(modal) {
-  const content =
-    qs(".details-content", modal) ||
-    qs(".details-body", modal) ||
-    qs(".modal-content", modal);
-
-  if (!content) {
-    return;
-  }
-
-  content.innerHTML = `
-    <div class="details-loading">
-      <div class="loading-spinner"></div>
-      <p>Carregando informações...</p>
-    </div>
-  `;
-}
-
-function renderDetailsError() {
-  const modal = getDetailsModal();
-
-  if (!modal) {
-    return;
-  }
-
-  const content =
-    qs(".details-content", modal) ||
-    qs(".details-body", modal) ||
-    qs(".modal-content", modal);
-
-  if (!content) {
-    return;
-  }
-
-  content.innerHTML = `
-    <div class="details-error">
-      <div class="details-error-icon">⚠</div>
-      <h2>Não foi possível carregar</h2>
-      <p>Verifique sua conexão e tente novamente.</p>
-
-      <button
-        type="button"
-        class="details-close-button"
-        data-action="close-details"
-      >
-        Fechar
-      </button>
-    </div>
-  `;
-}
-
-function renderDetails(data) {
-  const modal = getDetailsModal();
-
-  if (!modal) {
-    return;
-  }
-
-  const content =
-    qs(".details-content", modal) ||
-    qs(".details-body", modal) ||
-    qs(".modal-content", modal);
-
-  if (!content) {
-    return;
-  }
-
-  const id = Number(data.id);
-  const type = normalizeType(data.type);
-  const title = getTitle(data);
-  const poster = safeImageUrl(getPoster(data));
-  const backdrop = safeImageUrl(getBackdrop(data));
-  const year = getYear(data);
-  const rating = formatRating(data.vote_average);
-  const runtime = getRuntime(data);
-
-  const genres = Array.isArray(data.genres)
-    ? data.genres
-        .map(genre => {
-          if (typeof genre === "string") {
-            return genre;
-          }
-
-          return genre.name || "";
-        })
-        .filter(Boolean)
-    : [];
-
-  const overview =
-    data.overview ||
-    data.description ||
-    "Sinopse não disponível.";
-
-  const favorite = isFavorite(id, type);
-
-  const cast =
-    Array.isArray(data.cast)
-      ? data.cast.slice(0, 8)
-      : Array.isArray(data.credits?.cast)
-        ? data.credits.cast.slice(0, 8)
-        : [];
-
-  content.innerHTML = `
-    <div
-      class="details-backdrop"
-      style="${
-        backdrop
-          ? `background-image: url("${escapeHTML(backdrop)}");`
-          : ""
-      }"
-    >
-      <div class="details-backdrop-overlay"></div>
-    </div>
-
-    <button
-      type="button"
-      class="details-close-button"
-      data-action="close-details"
-      aria-label="Fechar"
-      title="Fechar"
-    >
-      ×
-    </button>
-
-    <div class="details-main">
-      <div class="details-poster">
-        ${
-          poster
-            ? `
-              <img
-                src="${escapeHTML(poster)}"
-                alt="${escapeHTML(title)}"
-              >
-            `
-            : `
-              <div class="details-poster-placeholder">
-                CineFamily
-              </div>
-            `
-        }
-      </div>
-
-      <div class="details-info">
-        <span class="details-type">
-          ${escapeHTML(getMediaTypeLabel(type))}
-        </span>
-
-        <h2 class="details-title">
-          ${escapeHTML(title)}
-        </h2>
-
-        <div class="details-meta">
-          ${
-            year
-              ? `<span>${escapeHTML(year)}</span>`
-              : ""
-          }
-
-          ${
-            rating !== "N/A"
-              ? `<span>★ ${escapeHTML(rating)}</span>`
-              : ""
-          }
-
-          ${
-            runtime
-              ? `<span>${escapeHTML(runtime)}</span>`
-              : ""
-          }
-        </div>
-
-        ${
-          genres.length
-            ? `
-              <div class="details-genres">
-                ${genres
-                  .map(
-                    genre =>
-                      `<span>${escapeHTML(
-                        genre
-                      )}</span>`
-                  )
-                  .join("")}
-              </div>
-            `
-            : ""
-        }
-
-        <p class="details-overview">
-          ${escapeHTML(overview)}
-        </p>
-
-        <div class="details-actions">
-          <button
-            type="button"
-            class="details-watch-button"
-            id="details-watch-button"
-            data-action="watch"
-            data-media-id="${id}"
-            data-media-type="${type}"
-          >
-            ▶ Assistir
-          </button>
-
-          <button
-            type="button"
-            class="details-favorite-button"
-            data-action="favorite"
-            data-media-id="${id}"
-            data-media-type="${type}"
-          >
-            ${
-              favorite
-                ? "★ Remover dos favoritos"
-                : "☆ Adicionar aos favoritos"
-            }
-          </button>
-        </div>
-      </div>
-    </div>
-
-    ${
-      cast.length
-        ? `
-          <section class="details-cast">
-            <h3>Elenco</h3>
-
-            <div class="cast-list">
-              ${cast
-                .map(person => {
-                  const personName =
-                    person.name || "Ator";
-
-                  const character =
-                    person.character || "";
-
-                  const profile =
-                    person.profile_path ||
-                    person.profile_url ||
-                    "";
-
-                  return `
-                    <div class="cast-item">
-                      ${
-                        profile
-                          ? `
-                            <img
-                              src="${escapeHTML(
-                                profile
-                              )}"
-                              alt="${escapeHTML(
-                                personName
-                              )}"
-                              loading="lazy"
-                            >
-                          `
-                          : `
-                            <div class="cast-placeholder">
-                              👤
-                            </div>
-                          `
-                      }
-
-                      <strong>
-                        ${escapeHTML(personName)}
-                      </strong>
-
-                      ${
-                        character
-                          ? `
-                            <span>
-                              ${escapeHTML(
-                                character
-                              )}
-                            </span>
-                          `
-                          : ""
-                      }
-                    </div>
-                  `;
-                })
-                .join("")}
-            </div>
-          </section>
-        `
-        : ""
-    }
-
-    <div class="details-trailer-container"></div>
-  `;
-
-  setupDetailsImageFallbacks();
-}
-
-function setupDetailsImageFallbacks() {
-  const modal = getDetailsModal();
-
-  if (!modal) {
-    return;
-  }
-
-  qsa("img", modal).forEach(image => {
-    image.addEventListener(
-      "error",
-      () => {
-        createFallbackImage(image);
-      },
-      {
-        once: true
-      }
-    );
-  });
-}
-
-function closeDetails() {
-  const modal = getDetailsModal();
-
-  if (!modal) {
-    return;
-  }
-
-  modal.classList.remove("active");
-  modal.classList.remove("open");
-  modal.setAttribute("aria-hidden", "true");
-
-  document.body.classList.remove("modal-open");
-
-  const trailer = qs(
-    ".details-trailer",
-    modal
-  );
-
-  if (trailer) {
-    trailer.remove();
-  }
-
-  appState.currentDetails = null;
-}
-
-/* =========================================================
-   TRAILER
-   ========================================================= */
-
-async function loadDetailsTrailer(data) {
-  if (!data) {
-    return;
-  }
-
-  try {
-    const type = normalizeType(data.type);
-    const id = Number(data.id);
-
-    const response = await fetchJSON(
-      `api/${type}/${id}/videos`
-    );
-
-    const videos = extractResults(response);
-
-    const trailer =
-      videos.find(video => {
-        return (
-          video.site === "YouTube" &&
-          (
-            String(video.type).toLowerCase() ===
-              "trailer" ||
-            String(video.type).toLowerCase() ===
-              "teaser"
-          ) &&
-          video.key
-        );
-      }) ||
-      videos.find(video => {
-        return (
-          video.site === "YouTube" &&
-          video.key
-        );
-      });
-
-    if (trailer) {
-      renderDetailsTrailer(trailer);
-    }
-  } catch (error) {
-    console.warn(
-      "Trailer não disponível:",
-      error
-    );
-  }
-}
-
-function renderDetailsTrailer(video) {
-  const modal = getDetailsModal();
-
-  if (!modal || !video || !video.key) {
-    return;
-  }
-
-  const container =
-    qs(".details-trailer-container", modal) ||
-    qs(".details-content", modal) ||
-    qs(".details-body", modal);
-
-  if (!container) {
-    return;
-  }
-
-  const oldTrailer =
-    qs(".details-trailer", modal);
-
-  if (oldTrailer) {
-    oldTrailer.remove();
-  }
-
-  const trailer = document.createElement("section");
-
-  trailer.className = "details-trailer";
-
-  trailer.innerHTML = `
-    <div class="details-trailer-header">
-      <h3>Trailer</h3>
-    </div>
-
-    <div class="details-trailer-video">
-      <iframe
-        src="https://www.youtube.com/embed/${encodeURIComponent(
-          video.key
-        )}"
-        title="Trailer"
-        loading="lazy"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowfullscreen
-      ></iframe>
-    </div>
-  `;
-
-  container.appendChild(trailer);
-}
-
-/* =========================================================
-   MENSAGENS E LOADING
-   ========================================================= */
-
-function showLoadingState() {
-  qsa(
-    ".home-loading, #home-loading, [data-home-loading]"
-  ).forEach(element => {
-    element.classList.add("active");
-    element.style.display = "";
-  });
-}
-
-function hideLoadingState() {
-  qsa(
-    ".home-loading, #home-loading, [data-home-loading]"
-  ).forEach(element => {
-    element.classList.remove("active");
-    element.style.display = "none";
-  });
-}
-
-function showGlobalMessage(message) {
-  let element = qs("#cinefamily-message");
-
-  if (!element) {
-    element = document.createElement("div");
-    element.id = "cinefamily-message";
-    element.className = "cinefamily-message";
-
-    document.body.appendChild(element);
-  }
-
-  element.textContent = message;
-  element.classList.add("show");
-
-  clearTimeout(
-    element._hideTimer
-  );
-
-  element._hideTimer = setTimeout(() => {
-    element.classList.remove("show");
-  }, 3500);
-}
-/* =========================================================
-   PLAYER
-   ========================================================= */
-
-function getPlayerModal() {
-  return (
-    qs("#player-modal") ||
-    qs("#video-modal") ||
-    qs("#modal-player")
-  );
-}
-
-function openPlayer(item) {
-  if (!item || item.id === undefined) {
-    return;
-  }
-
-  const normalized = {
-    ...item,
-    id: Number(item.id),
-    type: normalizeType(item.type),
-    title: getTitle(item)
-  };
-
-  registerItem(normalized);
-
-  appState.currentPlayer = normalized;
-
-  const modal = getPlayerModal();
-
-  if (!modal) {
-    showGlobalMessage(
-      "Player não encontrado no HTML."
-    );
-    return;
-  }
-
-  const content =
-    qs(".player-content", modal) ||
-    qs(".video-content", modal) ||
-    qs(".modal-content", modal);
-
-  if (!content) {
-    return;
-  }
-
-  modal.classList.add("active");
-  modal.classList.add("open");
-  modal.setAttribute("aria-hidden", "false");
-
-  document.body.classList.add("modal-open");
-
-  renderPlayerContent(content, normalized);
-}
-
-function renderPlayerContent(container, item) {
-  const title = getTitle(item);
-
-  const trailerKey =
-    item.trailer_key ||
-    item.youtube_key ||
-    item.video_key ||
-    "";
-
-  if (trailerKey) {
-    renderYouTubePlayer(
-      container,
-      trailerKey,
-      title
-    );
-
-    return;
-  }
-
-  container.innerHTML = `
-    <div class="player-unavailable">
-      <div class="player-unavailable-icon">▶</div>
-
-      <h2>Reprodução não disponível</h2>
-
-      <p>
-        Não encontramos um vídeo autorizado para
-        este conteúdo.
-      </p>
-
-      <p class="player-note">
-        O CineFamily não fornece links de reprodução
-        não autorizados.
-      </p>
-
-      <button
-        type="button"
-        class="player-close-button"
-        data-action="close-player"
-      >
-        Fechar
-      </button>
-    </div>
-  `;
-}
-
-function renderYouTubePlayer(
-  container,
-  key,
-  title
-) {
-  container.innerHTML = `
-    <div class="player-header">
-      <h2>${escapeHTML(title)}</h2>
-
-      <button
-        type="button"
-        class="player-close-button"
-        data-action="close-player"
-        aria-label="Fechar player"
-      >
-        ×
-      </button>
-    </div>
-
-    <div class="player-video-wrapper">
-      <iframe
-        class="player-video"
-        src="https://www.youtube.com/embed/${encodeURIComponent(
-          key
-        )}?autoplay=1&rel=0"
-        title="${escapeHTML(title)}"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowfullscreen
-      ></iframe>
-    </div>
-  `;
-}
-
-function closePlayer() {
-  const modal = getPlayerModal();
-
-  if (!modal) {
-    return;
-  }
-
-  const iframe = qs(
-    "iframe",
-    modal
-  );
-
-  if (iframe) {
-    iframe.src = "about:blank";
-  }
-
-  modal.classList.remove("active");
-  modal.classList.remove("open");
-  modal.setAttribute("aria-hidden", "true");
-
-  document.body.classList.remove("modal-open");
-
-  appState.currentPlayer = null;
-}
-
-function setupPlayerFullscreen() {
-  const modal = getPlayerModal();
-
-  if (!modal) {
-    return;
-  }
-
-  modal.addEventListener(
-    "dblclick",
-    event => {
-      const videoWrapper =
-        event.target.closest(
-          ".player-video-wrapper"
-        );
-
-      if (!videoWrapper) {
+function renderHistoryIfNeeded() {
+    const row =
+        $("#history-row");
+
+    if (!row) {
         return;
-      }
-
-      if (!document.fullscreenElement) {
-        if (
-          videoWrapper.requestFullscreen
-        ) {
-          videoWrapper.requestFullscreen();
-        }
-      } else if (
-        document.exitFullscreen
-      ) {
-        document.exitFullscreen();
-      }
-    }
-  );
-}
-
-/* =========================================================
-   EPISÓDIOS E TEMPORADAS
-   ========================================================= */
-
-async function loadSeasons(id) {
-  try {
-    const data = await fetchJSON(
-      `api/tv/${Number(id)}/seasons`
-    );
-
-    const seasons =
-      Array.isArray(data)
-        ? data
-        : Array.isArray(data.seasons)
-          ? data.seasons
-          : extractResults(data);
-
-    return seasons;
-  } catch (error) {
-    console.error(
-      "Erro ao carregar temporadas:",
-      error
-    );
-
-    return [];
-  }
-}
-
-async function loadEpisodes(
-  id,
-  seasonNumber
-) {
-  try {
-    const data = await fetchJSON(
-      `api/tv/${Number(id)}/season/${Number(
-        seasonNumber
-      )}`
-    );
-
-    if (Array.isArray(data)) {
-      return data;
     }
 
-    if (Array.isArray(data.episodes)) {
-      return data.episodes;
+    const history =
+        getHistory();
+
+    renderRow(
+        "#history-row",
+        history,
+        "Seu histórico está vazio."
+    );
+
+    const section =
+        $("#historico-section");
+
+    if (section) {
+        section.hidden =
+            history.length === 0;
     }
-
-    return extractResults(data);
-  } catch (error) {
-    console.error(
-      "Erro ao carregar episódios:",
-      error
-    );
-
-    return [];
-  }
 }
 
-function renderSeasons(
-  container,
-  seasons
-) {
-  if (!container) {
-    return;
-  }
-
-  if (!seasons.length) {
-    container.innerHTML = `
-      <div class="seasons-empty">
-        Temporadas não disponíveis.
-      </div>
-    `;
-
-    return;
-  }
-
-  container.innerHTML = `
-    <div class="season-selector">
-      <label for="season-select">
-        Temporada
-      </label>
-
-      <select id="season-select">
-        ${seasons
-          .map(season => {
-            const number =
-              Number(
-                season.season_number
-              );
-
-            const name =
-              season.name ||
-              `Temporada ${number}`;
-
-            return `
-              <option value="${number}">
-                ${escapeHTML(name)}
-              </option>
-            `;
-          })
-          .join("")}
-      </select>
-    </div>
-
-    <div
-      class="episodes-list"
-      id="episodes-list"
-    ></div>
-  `;
-
-  const select =
-    qs("#season-select", container);
-
-  if (select) {
-    select.addEventListener(
-      "change",
-      async event => {
-        const season =
-          Number(event.target.value);
-
-        const episodes =
-          await loadEpisodes(
-            appState.currentDetails.id,
-            season
-          );
-
-        renderEpisodes(
-          qs(
-            "#episodes-list",
-            container
-          ),
-          episodes
-        );
-      }
-    );
-
-    loadEpisodes(
-      appState.currentDetails.id,
-      Number(select.value)
-    ).then(episodes => {
-      renderEpisodes(
-        qs(
-          "#episodes-list",
-          container
-        ),
-        episodes
-      );
-    });
-  }
-}
-
-function renderEpisodes(
-  container,
-  episodes
-) {
-  if (!container) {
-    return;
-  }
-
-  if (!Array.isArray(episodes) || !episodes.length) {
-    container.innerHTML = `
-      <div class="episodes-empty">
-        Nenhum episódio encontrado.
-      </div>
-    `;
-
-    return;
-  }
-
-  container.innerHTML = episodes
-    .map(episode => {
-      const number =
-        Number(
-          episode.episode_number
-        );
-
-      const name =
-        episode.name ||
-        `Episódio ${number}`;
-
-      const overview =
-        episode.overview ||
-        "Sem descrição.";
-
-      const still =
-        episode.still_url ||
-        episode.still_path ||
-        "";
-
-      return `
-        <article
-          class="episode-card"
-          data-episode-number="${number}"
-        >
-          ${
-            still
-              ? `
-                <img
-                  src="${escapeHTML(still)}"
-                  alt="${escapeHTML(name)}"
-                  loading="lazy"
-                >
-              `
-              : `
-                <div class="episode-placeholder">
-                  ${number}
-                </div>
-              `
-          }
-
-          <div class="episode-info">
-            <span class="episode-number">
-              Episódio ${number}
-            </span>
-
-            <h4>
-              ${escapeHTML(name)}
-            </h4>
-
-            <p>
-              ${escapeHTML(overview)}
-            </p>
-
-            <button
-              type="button"
-              data-action="episode"
-              data-episode-id="${
-                episode.id || ""
-              }"
-              data-episode-number="${number}"
-            >
-              ▶ Assistir
-            </button>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
-}
 
 /* =========================================================
    PERFIL
    ========================================================= */
 
-function renderProfile() {
-  const profile = getProfile();
+function updateProfileUI() {
+    const profile =
+        getProfile();
 
-  qsa(
-    "#profile-name, [data-profile-name]"
-  ).forEach(element => {
-    element.textContent = profile.name;
-  });
+    const name =
+        profile.name || "Visitante";
 
-  qsa(
-    "#profile-avatar, [data-profile-avatar]"
-  ).forEach(element => {
-    element.textContent = profile.avatar;
-  });
+    const avatar =
+        profile.avatar || "😀";
 
-  qsa(
-    ".user-name, #user-name"
-  ).forEach(element => {
-    element.textContent = profile.name;
-  });
+    const elements = [
+        "#header-profile-avatar",
+        "#user-menu-avatar",
+        "#profile-avatar-large"
+    ];
 
-  qsa(
-    ".user-avatar, #user-avatar"
-  ).forEach(element => {
-    element.textContent = profile.avatar;
-  });
+    elements.forEach(selector => {
+        const element = $(selector);
 
-  qsa(
-    "[data-current-avatar]"
-  ).forEach(element => {
-    element.textContent = profile.avatar;
-  });
+        if (element) {
+            element.textContent = avatar;
+        }
+    });
+
+    const userName =
+        $("#user-menu-name");
+
+    if (userName) {
+        userName.textContent = name;
+    }
+
+    const profileName =
+        $("#profile-name");
+
+    if (profileName) {
+        profileName.value = name;
+    }
+
+    state.selectedAvatar = avatar;
+
+    $all(
+        ".avatar-options [data-avatar]"
+    ).forEach(button => {
+        button.classList.toggle(
+            "selected",
+            button.dataset.avatar === avatar
+        );
+    });
 }
 
 function openProfile() {
-  const modal =
-    qs("#profile-modal") ||
-    qs("#modal-profile") ||
-    qs("#perfil-modal");
+    updateProfileUI();
 
-  if (!modal) {
-    return;
-  }
+    const modal =
+        $("#profile-modal");
 
-  const profile = getProfile();
+    if (!modal) {
+        return;
+    }
 
-  const nameInput =
-    qs(
-      "#profile-name-input",
-      modal
-    ) ||
-    qs(
-      "[data-profile-name-input]",
-      modal
+    modal.classList.add("open");
+    modal.setAttribute(
+        "aria-hidden",
+        "false"
     );
 
-  if (nameInput) {
-    nameInput.value = profile.name;
-  }
-
-  qsa(
-    "[data-avatar]",
-    modal
-  ).forEach(button => {
-    button.classList.toggle(
-      "selected",
-      button.dataset.avatar ===
-        profile.avatar
+    document.body.classList.add(
+        "modal-open"
     );
-  });
-
-  modal.classList.add("active");
-  modal.classList.add("open");
-  modal.setAttribute(
-    "aria-hidden",
-    "false"
-  );
-
-  document.body.classList.add(
-    "modal-open"
-  );
 }
 
 function closeProfile() {
-  const modal =
-    qs("#profile-modal") ||
-    qs("#modal-profile") ||
-    qs("#perfil-modal");
+    const modal =
+        $("#profile-modal");
 
-  if (!modal) {
-    return;
-  }
+    if (!modal) {
+        return;
+    }
 
-  modal.classList.remove("active");
-  modal.classList.remove("open");
-  modal.setAttribute(
-    "aria-hidden",
-    "true"
-  );
-
-  document.body.classList.remove(
-    "modal-open"
-  );
-}
-
-function saveProfileFromModal() {
-  const modal =
-    qs("#profile-modal") ||
-    qs("#modal-profile") ||
-    qs("#perfil-modal");
-
-  if (!modal) {
-    return;
-  }
-
-  const nameInput =
-    qs(
-      "#profile-name-input",
-      modal
-    ) ||
-    qs(
-      "[data-profile-name-input]",
-      modal
+    modal.classList.remove("open");
+    modal.setAttribute(
+        "aria-hidden",
+        "true"
     );
 
-  const selectedAvatar =
-    qs(
-      "[data-avatar].selected",
-      modal
+    document.body.classList.remove(
+        "modal-open"
     );
-
-  const currentProfile =
-    getProfile();
-
-  const name =
-    nameInput &&
-    nameInput.value.trim()
-      ? nameInput.value.trim()
-      : currentProfile.name;
-
-  const avatar =
-    selectedAvatar?.dataset.avatar ||
-    currentProfile.avatar;
-
-  saveProfile({
-    name,
-    avatar
-  });
-
-  closeProfile();
-
-  showGlobalMessage(
-    "Perfil atualizado."
-  );
 }
 
-function setupProfileControls() {
-  qsa(
-    "#profile-form, [data-profile-form]"
-  ).forEach(form => {
-    form.addEventListener(
-      "submit",
-      event => {
-        event.preventDefault();
-        saveProfileFromModal();
-      }
+function saveProfileFromForm() {
+    const input =
+        $("#profile-name");
+
+    const name =
+        input
+            ? input.value.trim()
+            : "";
+
+    const avatar =
+        state.selectedAvatar || "😀";
+
+    saveProfile({
+        name:
+            name || "Visitante",
+        avatar
+    });
+
+    updateProfileUI();
+    closeProfile();
+
+    showToast(
+        "Perfil salvo com sucesso! 👤",
+        "success"
     );
-  });
+}
+/* =========================================================
+   RENDERIZAÇÃO DA HOME
+   ========================================================= */
+
+async function carregarHome() {
+    if (state.homeLoaded || state.loadingHome) {
+        return;
+    }
+
+    state.loadingHome = true;
+    setLoading(true);
+
+    try {
+        const data = await apiHome();
+
+        if (!data) {
+            throw new Error("Resposta vazia da API.");
+        }
+
+        const destaque = cleanItems(
+            data.destaque || []
+        );
+
+        const filmes = cleanItems(
+            data.filmes || []
+        );
+
+        const series = cleanItems(
+            data.series || []
+        );
+
+        const filmesPopulares = cleanItems(
+            data.filmes_populares || []
+        );
+
+        const seriesPopulares = cleanItems(
+            data.series_populares || []
+        );
+
+        renderRow(
+            "#movies-row",
+            filmes,
+            "Nenhum filme encontrado."
+        );
+
+        renderRow(
+            "#series-row",
+            series,
+            "Nenhuma série encontrada."
+        );
+
+        renderRow(
+            "#top-rated-row",
+            [
+                ...filmesPopulares,
+                ...seriesPopulares
+            ],
+            "Nenhum conteúdo encontrado."
+        );
+
+        state.heroItems =
+            destaque.length
+                ? destaque
+                : [
+                    ...filmes.slice(0, 5),
+                    ...series.slice(0, 5)
+                ];
+
+        renderHero();
+
+        await carregarSecoesExtras();
+
+        state.homeLoaded = true;
+
+        renderContinueWatching();
+        renderFavoritesIfNeeded();
+        renderHistoryIfNeeded();
+        renderRecommended();
+
+    } catch (error) {
+        console.error(
+            "Erro ao carregar a página inicial:",
+            error
+        );
+
+        showToast(
+            "Não foi possível carregar os conteúdos.",
+            "error"
+        );
+
+        showEmptyHome();
+
+    } finally {
+        state.loadingHome = false;
+        setLoading(false);
+    }
 }
 
-function setupAvatarOptions() {
-  qsa(
-    "[data-avatar]"
-  ).forEach(button => {
-    button.addEventListener(
-      "click",
-      event => {
-        event.preventDefault();
+function showEmptyHome() {
+    const empty =
+        $("#empty-state");
 
-        qsa(
-          "[data-avatar]"
-        ).forEach(item => {
-          item.classList.remove(
-            "selected"
-          );
+    if (empty) {
+        empty.hidden = false;
+    }
+
+    const homeRows = [
+        "#movies-row",
+        "#series-row",
+        "#top-rated-row",
+        "#latest-row",
+        "#doramas-row",
+        "#gl-row",
+        "#kids-row"
+    ];
+
+    homeRows.forEach(selector => {
+        const row = $(selector);
+
+        if (row) {
+            row.innerHTML = "";
+        }
+    });
+}
+
+
+/* =========================================================
+   SEÇÕES EXTRAS DA HOME
+   ========================================================= */
+
+async function carregarSecoesExtras() {
+    const tarefas = [
+        carregarLancamentos(),
+        carregarDoramas(),
+        carregarKids(),
+        carregarGenerosHome(),
+        carregarGL()
+    ];
+
+    const resultados =
+        await Promise.allSettled(tarefas);
+
+    resultados.forEach(resultado => {
+        if (resultado.status === "rejected") {
+            console.warn(
+                "Uma seção não pôde ser carregada:",
+                resultado.reason
+            );
+        }
+    });
+}
+
+async function carregarLancamentos() {
+    try {
+        const [moviesData, seriesData] =
+            await Promise.all([
+                apiMovies({
+                    sort_by: "release_date.desc",
+                    page: 1
+                }),
+                apiSeries({
+                    sort_by: "first_air_date.desc",
+                    page: 1
+                })
+            ]);
+
+        const movies =
+            cleanItems(
+                moviesData.results ||
+                moviesData.movies ||
+                []
+            );
+
+        const series =
+            cleanItems(
+                seriesData.results ||
+                seriesData.series ||
+                []
+            );
+
+        const combined =
+            [...movies, ...series]
+                .sort(
+                    (a, b) =>
+                        String(
+                            getItemDate(b)
+                        ).localeCompare(
+                            String(
+                                getItemDate(a)
+                            )
+                        )
+                )
+                .slice(
+                    0,
+                    CONFIG.HOME_LIMIT
+                );
+
+        renderRow(
+            "#latest-row",
+            combined,
+            "Nenhum lançamento encontrado."
+        );
+
+    } catch (error) {
+        console.warn(
+            "Erro ao carregar lançamentos:",
+            error
+        );
+    }
+}
+
+async function carregarDoramas() {
+    try {
+        const data =
+            await apiSeries({
+                original_language: "ko",
+                sort_by: "popularity.desc",
+                page: 1
+            });
+
+        const items =
+            cleanItems(
+                data.results ||
+                data.series ||
+                []
+            );
+
+        renderRow(
+            "#doramas-row",
+            items,
+            "Nenhum dorama encontrado."
+        );
+
+    } catch (error) {
+        console.warn(
+            "Erro ao carregar doramas:",
+            error
+        );
+    }
+}
+
+async function carregarKids() {
+    try {
+        const [moviesData, seriesData] =
+            await Promise.all([
+                apiDiscoverMovie({
+                    genre: 16,
+                    sort_by: "popularity.desc",
+                    page: 1
+                }),
+                apiDiscoverTV({
+                    genre: 16,
+                    sort_by: "popularity.desc",
+                    page: 1
+                })
+            ]);
+
+        const movies =
+            cleanItems(
+                moviesData.results ||
+                moviesData.movies ||
+                []
+            );
+
+        const series =
+            cleanItems(
+                seriesData.results ||
+                seriesData.series ||
+                []
+            );
+
+        const items =
+            [...movies, ...series]
+                .filter(item => !isAdult(item))
+                .slice(
+                    0,
+                    CONFIG.HOME_LIMIT
+                );
+
+        renderRow(
+            "#kids-row",
+            items,
+            "Nenhum conteúdo infantil encontrado."
+        );
+
+    } catch (error) {
+        console.warn(
+            "Erro ao carregar Kids:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   GL — BUSCA ESPECÍFICA
+   ========================================================= */
+
+async function carregarGL() {
+    const row =
+        $("#gl-row");
+
+    if (!row) {
+        return;
+    }
+
+    try {
+        const queries = [
+            "girls love",
+            "girl love",
+            "GL romance",
+            "women love women"
+        ];
+
+        const responses =
+            await Promise.allSettled(
+                queries.map(query =>
+                    apiSearch(query, 1)
+                )
+            );
+
+        let items = [];
+
+        responses.forEach(result => {
+            if (
+                result.status !==
+                "fulfilled"
+            ) {
+                return;
+            }
+
+            const data =
+                result.value;
+
+            const results =
+                data.results ||
+                data.items ||
+                data.data ||
+                [];
+
+            items.push(
+                ...cleanItems(results)
+            );
         });
 
-        button.classList.add(
-          "selected"
+        items = uniqueItems(items);
+
+        renderRow(
+            "#gl-row",
+            items.slice(
+                0,
+                CONFIG.HOME_LIMIT
+            ),
+            "Nenhum conteúdo GL encontrado."
         );
-      }
-    );
-  });
+
+    } catch (error) {
+        console.warn(
+            "Erro ao carregar GL:",
+            error
+        );
+
+        renderRow(
+            "#gl-row",
+            [],
+            "Nenhum conteúdo GL encontrado."
+        );
+    }
 }
+
+function uniqueItems(items) {
+    const result = [];
+    const seen = new Set();
+
+    cleanItems(items).forEach(item => {
+        const key =
+            createKey(item);
+
+        if (!seen.has(key)) {
+            seen.add(key);
+            result.push(item);
+        }
+    });
+
+    return result;
+}
+
+
+/* =========================================================
+   GÊNEROS DA HOME
+   ========================================================= */
+
+async function carregarGenerosHome() {
+    const genreMap = {
+        acao: 28,
+        aventura: 12,
+        comedia: 35,
+        drama: 18,
+        romance: 10749,
+        fantasia: 14,
+        terror: 27,
+        ficcao: 878
+    };
+
+    const entries =
+        Object.entries(genreMap);
+
+    await Promise.all(
+        entries.map(
+            async ([name, genre]) => {
+                try {
+                    const data =
+                        await apiDiscoverMovie({
+                            genre,
+                            sort_by:
+                                "popularity.desc",
+                            page: 1
+                        });
+
+                    const items =
+                        cleanItems(
+                            data.results ||
+                            data.movies ||
+                            []
+                        );
+
+                    renderRow(
+                        `#${name}-row`,
+                        items,
+                        `Nenhum conteúdo de ${name} encontrado.`
+                    );
+
+                } catch (error) {
+                    console.warn(
+                        `Erro no gênero ${name}:`,
+                        error
+                    );
+                }
+            }
+        )
+    );
+}
+
+
+/* =========================================================
+   HERO / DESTAQUES
+   ========================================================= */
+
+function renderHero() {
+    const slider =
+        $("#hero-slider");
+
+    if (!slider) {
+        return;
+    }
+
+    const items =
+        cleanItems(
+            state.heroItems
+        ).slice(0, 10);
+
+    if (!items.length) {
+        return;
+    }
+
+    state.heroItems = items;
+
+    slider.innerHTML = "";
+
+    items.forEach(
+        (item, index) => {
+            const slide =
+                document.createElement("article");
+
+            slide.className =
+                "hero-slide";
+
+            slide.dataset.index =
+                String(index);
+
+            const backdrop =
+                getBackdrop(item);
+
+            const poster =
+                getPoster(item);
+
+            const title =
+                getItemTitle(item);
+
+            const overview =
+                item.overview ||
+                "Descubra este conteúdo no CineFamily.";
+
+            const year =
+                getYear(item);
+
+            const type =
+                getTypeLabel(
+                    normalizeType(item)
+                );
+
+            slide.innerHTML = `
+                <div
+                    class="hero-background"
+                    style="background-image:url('${escapeAttribute(backdrop || poster)}')"
+                ></div>
+
+                <div class="hero-overlay"></div>
+
+                <div class="hero-content">
+                    <span class="hero-kicker">
+                        ${escapeHTML(type)}
+                        ${
+                            year
+                                ? ` • ${escapeHTML(year)}`
+                                : ""
+                        }
+                    </span>
+
+                    <h1 class="hero-title">
+                        ${escapeHTML(title)}
+                    </h1>
+
+                    <p class="hero-overview">
+                        ${escapeHTML(
+                            truncateText(
+                                overview,
+                                280
+                            )
+                        )}
+                    </p>
+
+                    <div class="hero-actions">
+                        <button
+                            type="button"
+                            class="hero-watch-button"
+                            data-action="watch"
+                            data-id="${escapeAttribute(item.id)}"
+                            data-type="${escapeAttribute(normalizeType(item))}"
+                        >
+                            ▶ Assistir agora
+                        </button>
+
+                        <button
+                            type="button"
+                            class="hero-info-button"
+                            data-action="details"
+                            data-id="${escapeAttribute(item.id)}"
+                            data-type="${escapeAttribute(normalizeType(item))}"
+                        >
+                            ⓘ Mais informações
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            slider.appendChild(slide);
+        }
+    );
+
+    state.currentHero = 0;
+
+    renderHeroIndicators();
+    updateHero();
+
+    startHeroTimer();
+}
+
+function truncateText(text, maxLength) {
+    const value =
+        String(text || "").trim();
+
+    if (value.length <= maxLength) {
+        return value;
+    }
+
+    return (
+        value.substring(
+            0,
+            maxLength
+        ).trim() + "..."
+    );
+}
+
+function renderHeroIndicators() {
+    const container =
+        $("#hero-indicators");
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = "";
+
+    state.heroItems.forEach(
+        (_, index) => {
+            const button =
+                document.createElement("button");
+
+            button.type = "button";
+
+            button.className =
+                "hero-indicator";
+
+            button.dataset.heroIndex =
+                String(index);
+
+            button.setAttribute(
+                "aria-label",
+                `Ir para destaque ${index + 1}`
+            );
+
+            if (
+                index ===
+                state.currentHero
+            ) {
+                button.classList.add(
+                    "active"
+                );
+            }
+
+            container.appendChild(
+                button
+            );
+        }
+    );
+}
+
+function updateHero() {
+    const slides =
+        $all(".hero-slide");
+
+    if (!slides.length) {
+        return;
+    }
+
+    const total =
+        slides.length;
+
+    if (
+        state.currentHero < 0
+    ) {
+        state.currentHero =
+            total - 1;
+    }
+
+    if (
+        state.currentHero >= total
+    ) {
+        state.currentHero = 0;
+    }
+
+    slides.forEach(
+        (slide, index) => {
+            slide.classList.toggle(
+                "active",
+                index ===
+                state.currentHero
+            );
+        }
+    );
+
+    $all(
+        ".hero-indicator"
+    ).forEach(
+        (indicator, index) => {
+            indicator.classList.toggle(
+                "active",
+                index ===
+                state.currentHero
+            );
+        }
+    );
+}
+
+function changeHero(direction) {
+    const total =
+        state.heroItems.length;
+
+    if (total <= 1) {
+        return;
+    }
+
+    state.currentHero +=
+        Number(direction) || 0;
+
+    if (
+        state.currentHero < 0
+    ) {
+        state.currentHero =
+            total - 1;
+    }
+
+    if (
+        state.currentHero >= total
+    ) {
+        state.currentHero = 0;
+    }
+
+    updateHero();
+    restartHeroTimer();
+}
+
+function goToHero(index) {
+    const value =
+        Number(index);
+
+    if (
+        !Number.isFinite(value) ||
+        !state.heroItems.length
+    ) {
+        return;
+    }
+
+    state.currentHero =
+        Math.max(
+            0,
+            Math.min(
+                value,
+                state.heroItems.length - 1
+            )
+        );
+
+    updateHero();
+    restartHeroTimer();
+}
+
+function startHeroTimer() {
+    stopHeroTimer();
+
+    if (
+        state.heroItems.length <= 1
+    ) {
+        return;
+    }
+
+    state.heroTimer =
+        setInterval(() => {
+            changeHero(1);
+        }, CONFIG.HERO_INTERVAL);
+}
+
+function stopHeroTimer() {
+    if (state.heroTimer) {
+        clearInterval(
+            state.heroTimer
+        );
+
+        state.heroTimer = null;
+    }
+}
+
+function restartHeroTimer() {
+    startHeroTimer();
+}
+
+
+/* =========================================================
+   CONTINUE ASSISTINDO
+   ========================================================= */
+
+function renderContinueWatching() {
+    const section =
+        $("#continue-section");
+
+    const row =
+        $("#continue-row");
+
+    if (!section || !row) {
+        return;
+    }
+
+    const history =
+        getHistory();
+
+    if (!history.length) {
+        section.hidden = true;
+        row.innerHTML = "";
+        return;
+    }
+
+    section.hidden = false;
+
+    renderRow(
+        "#continue-row",
+        history.slice(
+            0,
+            CONFIG.HISTORY_LIMIT
+        )
+    );
+}
+
+
+/* =========================================================
+   RECOMENDADOS
+   ========================================================= */
+
+function renderRecommended() {
+    const row =
+        $("#recommended-row");
+
+    if (!row) {
+        return;
+    }
+
+    const favorites =
+        getFavorites();
+
+    const history =
+        getHistory();
+
+    const source =
+        uniqueItems([
+            ...favorites,
+            ...history
+        ]);
+
+    if (source.length) {
+        renderRow(
+            "#recommended-row",
+            source.slice(
+                0,
+                CONFIG.HOME_LIMIT
+            )
+        );
+
+        return;
+    }
+
+    const homeItems =
+        uniqueItems([
+            ...state.heroItems
+        ]);
+
+    renderRow(
+        "#recommended-row",
+        homeItems
+    );
+}
+
+
+/* =========================================================
+   BUSCA
+   ========================================================= */
+
+function openSearch() {
+    const area =
+        $("#search-area");
+
+    if (!area) {
+        return;
+    }
+
+    area.classList.add("open");
+    area.hidden = false;
+
+    const input =
+        $("#search-input");
+
+    if (input) {
+        setTimeout(() => {
+            input.focus();
+        }, 100);
+    }
+}
+
+function closeSearch() {
+    const area =
+        $("#search-area");
+
+    if (!area) {
+        return;
+    }
+
+    area.classList.remove("open");
+
+    setTimeout(() => {
+        if (
+            !area.classList.contains("open")
+        ) {
+            area.hidden = true;
+        }
+    }, 250);
+}
+
+function clearSearch() {
+    const input =
+        $("#search-input");
+
+    if (input) {
+        input.value = "";
+        input.focus();
+    }
+
+    state.currentSearch = "";
+
+    const section =
+        $("#search-results-section");
+
+    const row =
+        $("#search-results-row");
+
+    if (section) {
+        section.hidden = true;
+    }
+
+    if (row) {
+        row.innerHTML = "";
+    }
+}
+
+async function realizarBusca(query) {
+    const value =
+        String(query || "")
+            .trim();
+
+    if (!value) {
+        clearSearch();
+        return;
+    }
+
+    if (state.searchLoading) {
+        return;
+    }
+
+    state.currentSearch =
+        value;
+
+    state.searchLoading = true;
+
+    const section =
+        $("#search-results-section");
+
+    const row =
+        $("#search-results-row");
+
+    if (section) {
+        section.hidden = false;
+    }
+
+    if (row) {
+        row.innerHTML = `
+            <div class="row-loading">
+                Buscando conteúdos...
+            </div>
+        `;
+    }
+
+    try {
+        const data =
+            await apiSearch(
+                value,
+                1
+            );
+
+        const results =
+            cleanItems(
+                data.results ||
+                data.items ||
+                data.data ||
+                []
+            );
+
+        if (row) {
+            renderRow(
+                "#search-results-row",
+                results,
+                "Nenhum resultado encontrado."
+            );
+        }
+
+        if (section) {
+            section.hidden = false;
+        }
+
+        const resultsHeading =
+            section
+                ? section.querySelector(
+                    ".section-title"
+                )
+                : null;
+
+        if (resultsHeading) {
+            resultsHeading.textContent =
+                `Resultados para "${value}"`;
+        }
+
+        if (!results.length) {
+            showToast(
+                "Nenhum conteúdo encontrado.",
+                "normal"
+            );
+        }
+
+    } catch (error) {
+        console.error(
+            "Erro na busca:",
+            error
+        );
+
+        if (row) {
+            row.innerHTML = `
+                <div class="row-empty">
+                    Não foi possível realizar a busca.
+                </div>
+            `;
+        }
+
+        showToast(
+            "Erro ao realizar a busca.",
+            "error"
+        );
+
+    } finally {
+        state.searchLoading = false;
+    }
+}
+/* =========================================================
+   DETALHES DO FILME / SÉRIE
+   ========================================================= */
+
+async function abrirDetalhes(itemOuId, tipo) {
+    let item = itemOuId;
+
+    if (
+        typeof itemOuId === "number" ||
+        typeof itemOuId === "string"
+    ) {
+        item = {
+            id: Number(itemOuId),
+            type: tipo === "tv" ? "tv" : "movie"
+        };
+    }
+
+    if (!item || !getItemId(item)) {
+        showToast(
+            "Não foi possível identificar este conteúdo.",
+            "error"
+        );
+        return;
+    }
+
+    const id = getItemId(item);
+    const type = normalizeType(item);
+
+    const modal = $("#details-modal");
+
+    if (!modal) {
+        return;
+    }
+
+    state.currentDetails = {
+        ...item,
+        id,
+        type
+    };
+
+    preencherDetalhesBasicos(state.currentDetails);
+
+    modal.classList.add("open");
+    modal.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+    document.body.classList.add(
+        "modal-open"
+    );
+
+    const extra = $("#details-extra");
+
+    if (extra) {
+        extra.innerHTML = `
+            <div class="details-loading">
+                Carregando informações...
+            </div>
+        `;
+    }
+
+    try {
+        const data =
+            await apiDetails(type, id);
+
+        const details =
+            normalizeDetails(
+                data,
+                state.currentDetails
+            );
+
+        state.currentDetails =
+            details;
+
+        preencherDetalhes(details);
+
+        addToHistory(details);
+
+    } catch (error) {
+        console.error(
+            "Erro ao carregar detalhes:",
+            error
+        );
+
+        const extraElement =
+            $("#details-extra");
+
+        if (extraElement) {
+            extraElement.innerHTML = `
+                <div class="details-error">
+                    Não foi possível carregar todos os detalhes deste conteúdo.
+                </div>
+            `;
+        }
+
+        showToast(
+            "Algumas informações não puderam ser carregadas.",
+            "error"
+        );
+    }
+}
+
+function normalizeDetails(data, fallback) {
+    const source =
+        data && typeof data === "object"
+            ? data
+            : {};
+
+    const base =
+        fallback || {};
+
+    const type =
+        source.type ||
+        base.type ||
+        "movie";
+
+    const normalized = {
+        ...base,
+        ...source,
+        id:
+            Number(
+                source.id ??
+                base.id
+            ),
+        type:
+            type === "tv"
+                ? "tv"
+                : "movie",
+        title:
+            getItemTitle(source) ||
+            getItemTitle(base),
+        overview:
+            source.overview ||
+            base.overview ||
+            "",
+        poster_path:
+            source.poster_path ||
+            base.poster_path ||
+            "",
+        backdrop_path:
+            source.backdrop_path ||
+            base.backdrop_path ||
+            "",
+        vote_average:
+            source.vote_average ??
+            base.vote_average ??
+            0,
+        release_date:
+            source.release_date ||
+            source.first_air_date ||
+            base.release_date ||
+            base.first_air_date ||
+            ""
+    };
+
+    return normalized;
+}
+
+function preencherDetalhesBasicos(item) {
+    const title =
+        getItemTitle(item);
+
+    const type =
+        normalizeType(item);
+
+    const poster =
+        getPoster(item);
+
+    const backdrop =
+        getBackdrop(item);
+
+    const titleElement =
+        $("#details-title");
+
+    if (titleElement) {
+        titleElement.textContent =
+            title;
+    }
+
+    const typeElement =
+        $("#details-type");
+
+    if (typeElement) {
+        typeElement.textContent =
+            getTypeLabel(type);
+    }
+
+    const posterElement =
+        $("#details-poster");
+
+    if (posterElement) {
+        if (poster) {
+            posterElement.src =
+                poster;
+
+            posterElement.alt =
+                title;
+
+            posterElement.style.display =
+                "";
+        } else {
+            posterElement.removeAttribute(
+                "src"
+            );
+
+            posterElement.style.display =
+                "none";
+        }
+    }
+
+    const backdropElement =
+        $("#details-backdrop");
+
+    if (backdropElement) {
+        if (backdrop) {
+            backdropElement.style.backgroundImage =
+                `url("${escapeAttribute(backdrop)}")`;
+        } else {
+            backdropElement.style.backgroundImage =
+                "none";
+        }
+    }
+
+    const overview =
+        $("#details-overview");
+
+    if (overview) {
+        overview.textContent =
+            item.overview ||
+            "Sinopse não disponível.";
+    }
+
+    const meta =
+        $("#details-meta");
+
+    if (meta) {
+        meta.innerHTML = buildMetaHTML(
+            item
+        );
+    }
+
+    updateDetailsFavoriteButton();
+}
+
+function preencherDetalhes(item) {
+    preencherDetalhesBasicos(
+        item
+    );
+
+    const extra =
+        $("#details-extra");
+
+    if (extra) {
+        extra.innerHTML =
+            buildDetailsExtraHTML(
+                item
+            );
+    }
+
+    configurarEpisodios(
+        item
+    );
+
+    updateDetailsFavoriteButton();
+}
+
+function buildMetaHTML(item) {
+    const type =
+        normalizeType(item);
+
+    const year =
+        getYear(item);
+
+    const rating =
+        getRating(item);
+
+    const runtime =
+        formatRuntime(
+            item.runtime ||
+            (
+                Array.isArray(
+                    item.episode_run_time
+                )
+                    ? item.episode_run_time[0]
+                    : 0
+            )
+        );
+
+    const genres =
+        Array.isArray(item.genres)
+            ? item.genres
+                .map(
+                    genre =>
+                        typeof genre === "string"
+                            ? genre
+                            : genre?.name
+                )
+                .filter(Boolean)
+                .slice(0, 4)
+            : [];
+
+    const parts = [];
+
+    parts.push(
+        `<span>${escapeHTML(getTypeLabel(type))}</span>`
+    );
+
+    if (year) {
+        parts.push(
+            `<span>${escapeHTML(year)}</span>`
+        );
+    }
+
+    if (rating !== "0.0") {
+        parts.push(
+            `<span>⭐ ${escapeHTML(rating)}</span>`
+        );
+    }
+
+    if (runtime) {
+        parts.push(
+            `<span>${escapeHTML(runtime)}</span>`
+        );
+    }
+
+    genres.forEach(genre => {
+        parts.push(
+            `<span>${escapeHTML(genre)}</span>`
+        );
+    });
+
+    return parts.join(
+        '<span class="meta-separator">•</span>'
+    );
+}
+
+function buildDetailsExtraHTML(item) {
+    const sections = [];
+
+    const genres =
+        Array.isArray(item.genres)
+            ? item.genres
+                .map(
+                    genre =>
+                        typeof genre === "string"
+                            ? genre
+                            : genre?.name
+                )
+                .filter(Boolean)
+            : [];
+
+    if (genres.length) {
+        sections.push(`
+            <div class="details-extra-block">
+                <strong>Gêneros</strong>
+                <div class="details-tags">
+                    ${genres
+                        .map(
+                            genre =>
+                                `<span>${escapeHTML(genre)}</span>`
+                        )
+                        .join("")}
+                </div>
+            </div>
+        `);
+    }
+
+    if (
+        item.original_language
+    ) {
+        sections.push(`
+            <div class="details-extra-block">
+                <strong>Idioma original</strong>
+                <span>${escapeHTML(
+                    String(
+                        item.original_language
+                    ).toUpperCase()
+                )}</span>
+            </div>
+        `);
+    }
+
+    if (
+        item.vote_count
+    ) {
+        sections.push(`
+            <div class="details-extra-block">
+                <strong>Avaliações</strong>
+                <span>${escapeHTML(
+                    String(
+                        item.vote_count
+                    )
+                )}</span>
+            </div>
+        `);
+    }
+
+    const cast =
+        Array.isArray(item.cast)
+            ? item.cast
+            : [];
+
+    if (cast.length) {
+        const names =
+            cast
+                .map(person => {
+                    if (
+                        typeof person ===
+                        "string"
+                    ) {
+                        return person;
+                    }
+
+                    return (
+                        person?.name ||
+                        person?.character ||
+                        ""
+                    );
+                })
+                .filter(Boolean)
+                .slice(0, 10);
+
+        if (names.length) {
+            sections.push(`
+                <div class="details-extra-block">
+                    <strong>Elenco</strong>
+                    <div class="details-cast">
+                        ${names
+                            .map(
+                                name =>
+                                    `<span>${escapeHTML(name)}</span>`
+                            )
+                            .join("")}
+                    </div>
+                </div>
+            `);
+        }
+    }
+
+    const trailer =
+        getTrailer(item);
+
+    if (trailer) {
+        sections.push(`
+            <div class="details-extra-block trailer-block">
+                <strong>Trailer</strong>
+
+                <button
+                    type="button"
+                    class="details-trailer-button"
+                    data-action="trailer"
+                >
+                    ▶ Assistir trailer
+                </button>
+            </div>
+        `);
+    }
+
+    return sections.length
+        ? sections.join("")
+        : `
+            <div class="details-extra-block">
+                <span>Informações adicionais não disponíveis.</span>
+            </div>
+        `;
+}
+
+
+/* =========================================================
+   TRAILER
+   ========================================================= */
+
+function getTrailer(item) {
+    if (!item) {
+        return null;
+    }
+
+    if (
+        item.trailer &&
+        typeof item.trailer === "object"
+    ) {
+        return item.trailer;
+    }
+
+    const videos =
+        Array.isArray(item.videos)
+            ? item.videos
+            : (
+                item.videos &&
+                Array.isArray(
+                    item.videos.results
+                )
+                    ? item.videos.results
+                    : []
+            );
+
+    const youtubeVideos =
+        videos.filter(video => {
+            const site =
+                String(
+                    video?.site || ""
+                ).toLowerCase();
+
+            const type =
+                String(
+                    video?.type || ""
+                ).toLowerCase();
+
+            return (
+                site === "youtube" &&
+                (
+                    type === "trailer" ||
+                    type === "teaser"
+                ) &&
+                video?.key
+            );
+        });
+
+    if (!youtubeVideos.length) {
+        return null;
+    }
+
+    const official =
+        youtubeVideos.find(
+            video =>
+                video.official === true
+        );
+
+    return (
+        official ||
+        youtubeVideos[0]
+    );
+}
+
+function openTrailer() {
+    const item =
+        state.currentDetails;
+
+    if (!item) {
+        return;
+    }
+
+    const trailer =
+        getTrailer(item);
+
+    if (!trailer) {
+        showToast(
+            "Trailer não disponível.",
+            "normal"
+        );
+        return;
+    }
+
+    const key =
+        trailer.key;
+
+    if (!key) {
+        showToast(
+            "Trailer indisponível.",
+            "normal"
+        );
+        return;
+    }
+
+    openPlayer({
+        title:
+            `${getItemTitle(item)} — Trailer`,
+        url:
+            `https://www.youtube.com/embed/${encodeURIComponent(key)}?autoplay=1&rel=0`,
+        type:
+            "youtube"
+    });
+}
+
+
+/* =========================================================
+   FAVORITO NO MODAL
+   ========================================================= */
+
+function updateDetailsFavoriteButton() {
+    const button =
+        $("#details-favorite-button");
+
+    const item =
+        state.currentDetails;
+
+    if (!button || !item) {
+        return;
+    }
+
+    const favorite =
+        isFavorite(item);
+
+    button.classList.toggle(
+        "is-favorite",
+        favorite
+    );
+
+    button.textContent =
+        favorite
+            ? "★ Favoritado"
+            : "☆ Favoritar";
+
+    button.setAttribute(
+        "aria-label",
+        favorite
+            ? "Remover dos favoritos"
+            : "Adicionar aos favoritos"
+    );
+}
+
+function toggleCurrentFavorite() {
+    if (!state.currentDetails) {
+        return;
+    }
+
+    toggleFavorite(
+        state.currentDetails
+    );
+
+    updateDetailsFavoriteButton();
+}
+
+
+/* =========================================================
+   EPISÓDIOS E TEMPORADAS
+   ========================================================= */
+
+function configurarEpisodios(item) {
+    const container =
+        $("#episodes-container");
+
+    const list =
+        $("#episodes-list");
+
+    if (!container || !list) {
+        return;
+    }
+
+    if (
+        normalizeType(item) !==
+        "tv"
+    ) {
+        container.hidden = true;
+        list.innerHTML = "";
+        return;
+    }
+
+    const seasons =
+        Array.isArray(item.seasons)
+            ? item.seasons
+            : [];
+
+    const validSeasons =
+        seasons.filter(
+            season =>
+                season &&
+                Number(
+                    season.season_number
+                ) >= 0
+        );
+
+    if (!validSeasons.length) {
+        container.hidden = true;
+        list.innerHTML = "";
+        return;
+    }
+
+    container.hidden = false;
+
+    const firstSeason =
+        validSeasons.find(
+            season =>
+                Number(
+                    season.season_number
+                ) > 0
+        ) ||
+        validSeasons[0];
+
+    renderSeasonSelector(
+        validSeasons,
+        firstSeason.season_number
+    );
+
+    carregarTemporada(
+        item.id,
+        firstSeason.season_number
+    );
+}
+
+function renderSeasonSelector(
+    seasons,
+    selectedSeason
+) {
+    const list =
+        $("#episodes-list");
+
+    if (!list) {
+        return;
+    }
+
+    list.innerHTML = "";
+
+    const wrapper =
+        document.createElement(
+            "div"
+        );
+
+    wrapper.className =
+        "season-selector";
+
+    seasons.forEach(season => {
+        const number =
+            Number(
+                season.season_number
+            );
+
+        const button =
+            document.createElement(
+                "button"
+            );
+
+        button.type = "button";
+
+        button.className =
+            "season-button";
+
+        if (
+            number ===
+            Number(selectedSeason)
+        ) {
+            button.classList.add(
+                "active"
+            );
+        }
+
+        button.dataset.action =
+            "season";
+
+        button.dataset.season =
+            String(number);
+
+        button.textContent =
+            season.name ||
+            `Temporada ${number}`;
+
+        wrapper.appendChild(
+            button
+        );
+    });
+
+    list.appendChild(
+        wrapper
+    );
+
+    const episodes =
+        document.createElement(
+            "div"
+        );
+
+    episodes.className =
+        "episodes-results";
+
+    episodes.id =
+        "episodes-results";
+
+    list.appendChild(
+        episodes
+    );
+}
+
+async function carregarTemporada(
+    tvId,
+    seasonNumber
+) {
+    const results =
+        $("#episodes-results");
+
+    if (!results) {
+        return;
+    }
+
+    results.innerHTML = `
+        <div class="episodes-loading">
+            Carregando episódios...
+        </div>
+    `;
+
+    try {
+        const data =
+            await apiSeason(
+                tvId,
+                seasonNumber
+            );
+
+        const episodes =
+            Array.isArray(
+                data.episodes
+            )
+                ? data.episodes
+                : [];
+
+        if (!episodes.length) {
+            results.innerHTML = `
+                <div class="episodes-empty">
+                    Nenhum episódio encontrado.
+                </div>
+            `;
+
+            return;
+        }
+
+        results.innerHTML =
+            episodes
+                .map(
+                    episode =>
+                        buildEpisodeHTML(
+                            episode,
+                            tvId,
+                            seasonNumber
+                        )
+                )
+                .join("");
+
+    } catch (error) {
+        console.error(
+            "Erro ao carregar temporada:",
+            error
+        );
+
+        results.innerHTML = `
+            <div class="episodes-error">
+                Não foi possível carregar os episódios.
+            </div>
+        `;
+    }
+}
+
+function buildEpisodeHTML(
+    episode,
+    tvId,
+    seasonNumber
+) {
+    const number =
+        Number(
+            episode.episode_number
+        );
+
+    const name =
+        episode.name ||
+        `Episódio ${number}`;
+
+    const overview =
+        episode.overview ||
+        "";
+
+    const still =
+        episode.still_path ||
+        episode.still ||
+        "";
+
+    const runtime =
+        formatRuntime(
+            episode.runtime
+        );
+
+    return `
+        <article
+            class="episode-card"
+            data-episode="${escapeAttribute(number)}"
+        >
+            ${
+                still
+                    ? `
+                        <img
+                            class="episode-image"
+                            src="${escapeAttribute(still)}"
+                            alt="${escapeAttribute(name)}"
+                            loading="lazy"
+                        >
+                    `
+                    : `
+                        <div class="episode-no-image">
+                            🎬
+                        </div>
+                    `
+            }
+
+            <div class="episode-info">
+                <div class="episode-number">
+                    Episódio ${escapeHTML(number)}
+                </div>
+
+                <h4>
+                    ${escapeHTML(name)}
+                </h4>
+
+                ${
+                    overview
+                        ? `
+                            <p>
+                                ${escapeHTML(
+                                    truncateText(
+                                        overview,
+                                        160
+                                    )
+                                )}
+                            </p>
+                        `
+                        : ""
+                }
+
+                ${
+                    runtime
+                        ? `
+                            <span class="episode-runtime">
+                                ${escapeHTML(runtime)}
+                            </span>
+                        `
+                        : ""
+                }
+
+                <button
+                    type="button"
+                    class="episode-watch-button"
+                    data-action="episode"
+                    data-id="${escapeAttribute(tvId)}"
+                    data-season="${escapeAttribute(seasonNumber)}"
+                    data-episode="${escapeAttribute(number)}"
+                >
+                    ▶ Assistir episódio
+                </button>
+            </div>
+        </article>
+    `;
+}
+
+
+/* =========================================================
+   PLAYER
+   ========================================================= */
+
+function openPlayer(config = {}) {
+    const modal =
+        $("#player-modal");
+
+    const body =
+        $("#player-body");
+
+    const title =
+        $("#player-title");
+
+    const status =
+        $("#player-status");
+
+    if (!modal || !body) {
+        return;
+    }
+
+    const playerTitle =
+        config.title ||
+        "CineFamily";
+
+    if (title) {
+        title.textContent =
+            playerTitle;
+    }
+
+    body.innerHTML = "";
+
+    if (status) {
+        status.textContent = "";
+    }
+
+    if (
+        config.type === "youtube" &&
+        config.url
+    ) {
+        const iframe =
+            document.createElement(
+                "iframe"
+            );
+
+        iframe.src =
+            config.url;
+
+        iframe.title =
+            playerTitle;
+
+        iframe.allow =
+            "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+
+        iframe.allowFullscreen =
+            true;
+
+        iframe.referrerPolicy =
+            "strict-origin-when-cross-origin";
+
+        iframe.className =
+            "player-iframe";
+
+        body.appendChild(
+            iframe
+        );
+
+    } else {
+        body.innerHTML = `
+            <div class="player-placeholder">
+                <div class="player-placeholder-icon">
+                    ▶
+                </div>
+
+                <h3>
+                    Conteúdo pronto para reprodução
+                </h3>
+
+                <p>
+                    O CineFamily não possui uma fonte de vídeo própria configurada para este conteúdo.
+                </p>
+            </div>
+        `;
+    }
+
+    modal.classList.add("open");
+
+    modal.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+    document.body.classList.add(
+        "modal-open"
+    );
+}
+
+function closePlayer() {
+    const modal =
+        $("#player-modal");
+
+    const body =
+        $("#player-body");
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.remove(
+        "open"
+    );
+
+    modal.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+    if (body) {
+        body.innerHTML = "";
+    }
+
+    document.body.classList.remove(
+        "modal-open"
+    );
+}
+
+async function assistirConteudo(
+    item
+) {
+    if (!item) {
+        return;
+    }
+
+    const type =
+        normalizeType(item);
+
+    const id =
+        getItemId(item);
+
+    if (!id) {
+        return;
+    }
+
+    addToHistory(item);
+
+    if (type === "tv") {
+        await abrirDetalhes(
+            item
+        );
+
+        return;
+    }
+
+    try {
+        const data =
+            await apiDetails(
+                type,
+                id
+            );
+
+        const details =
+            normalizeDetails(
+                data,
+                item
+            );
+
+        state.currentDetails =
+            details;
+
+        const trailer =
+            getTrailer(details);
+
+        if (trailer?.key) {
+            openPlayer({
+                title:
+                    `${getItemTitle(details)} — Trailer`,
+                url:
+                    `https://www.youtube.com/embed/${encodeURIComponent(trailer.key)}?autoplay=1&rel=0`,
+                type:
+                    "youtube"
+            });
+
+            return;
+        }
+
+        await abrirDetalhes(
+            details
+        );
+
+    } catch (error) {
+        console.error(
+            "Erro ao iniciar reprodução:",
+            error
+        );
+
+        await abrirDetalhes(
+            item
+        );
+    }
+}
+
+async function assistirEpisodio(
+    tvId,
+    season,
+    episode
+) {
+    const id =
+        Number(tvId);
+
+    const seasonNumber =
+        Number(season);
+
+    const episodeNumber =
+        Number(episode);
+
+    if (
+        !Number.isFinite(id) ||
+        !Number.isFinite(seasonNumber) ||
+        !Number.isFinite(episodeNumber)
+    ) {
+        return;
+    }
+
+    try {
+        const data =
+            await apiFetch(
+                `/api/tv/${id}/season/${seasonNumber}/episode/${episodeNumber}`
+            );
+
+        const title =
+            data.name ||
+            `Episódio ${episodeNumber}`;
+
+        const trailer =
+            getTrailer(data);
+
+        if (trailer?.key) {
+            openPlayer({
+                title,
+                url:
+                    `https://www.youtube.com/embed/${encodeURIComponent(trailer.key)}?autoplay=1&rel=0`,
+                type:
+                    "youtube"
+            });
+
+            return;
+        }
+
+        showToast(
+            "Este episódio não possui vídeo disponível.",
+            "normal"
+        );
+
+    } catch (error) {
+        console.error(
+            "Erro ao carregar episódio:",
+            error
+        );
+
+        showToast(
+            "Não foi possível abrir este episódio.",
+            "error"
+        );
+    }
+}
+/* =========================================================
+   FECHAR MODAIS
+   ========================================================= */
+
+function closeDetails() {
+    const modal =
+        $("#details-modal");
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.remove("open");
+
+    modal.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+    document.body.classList.remove(
+        "modal-open"
+    );
+
+    state.currentDetails = null;
+}
+
+function closeCategoryModal() {
+    const modal =
+        $("#category-modal");
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.remove("open");
+
+    modal.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+    document.body.classList.remove(
+        "modal-open"
+    );
+
+    state.currentCategory = null;
+}
+
+function closeAllModals() {
+    closeDetails();
+    closePlayer();
+    closeProfile();
+    closeCategoryModal();
+}
+
 
 /* =========================================================
    MENU DO USUÁRIO
    ========================================================= */
 
-function setupUserMenu() {
-  const profileButton =
-    qs("#user-profile") ||
-    qs("#profile-button") ||
-    qs("[data-profile-button]");
+function toggleUserMenu() {
+    const menu =
+        $("#user-menu");
 
-  if (profileButton) {
-    profileButton.addEventListener(
-      "click",
-      event => {
-        event.preventDefault();
-        event.stopPropagation();
+    if (!menu) {
+        return;
+    }
 
-        openProfile();
-      }
-    );
-  }
+    const isOpen =
+        menu.classList.contains("open");
 
-  const editButton =
-    qs("#user-profile-edit") ||
-    qs("[data-action='edit-profile']");
-
-  if (editButton) {
-    editButton.addEventListener(
-      "click",
-      event => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        openProfile();
-      }
-    );
-  }
-
-  const menu =
-    qs("#user-menu") ||
-    qs(".user-menu");
-
-  if (menu) {
-    document.addEventListener(
-      "click",
-      event => {
-        if (
-          !menu.contains(event.target) &&
-          !profileButton?.contains(
-            event.target
-          )
-        ) {
-          menu.classList.remove(
-            "active"
-          );
-          menu.classList.remove(
-            "open"
-          );
-        }
-      }
-    );
-  }
+    if (isOpen) {
+        closeUserMenu();
+    } else {
+        openUserMenu();
+    }
 }
+
+function openUserMenu() {
+    const menu =
+        $("#user-menu");
+
+    if (!menu) {
+        return;
+    }
+
+    updateProfileUI();
+
+    menu.classList.add("open");
+
+    menu.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+}
+
+function closeUserMenu() {
+    const menu =
+        $("#user-menu");
+
+    if (!menu) {
+        return;
+    }
+
+    menu.classList.remove("open");
+
+    menu.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+}
+
 
 /* =========================================================
    NAVEGAÇÃO
    ========================================================= */
 
-function setupNavigation() {
-  qsa(
-    "[data-nav], .nav-link, .menu-link"
-  ).forEach(link => {
-    link.addEventListener(
-      "click",
-      event => {
-        const href =
-          link.getAttribute("href");
+function scrollToSection(id) {
+    const element =
+        document.getElementById(id);
 
-        if (
-          href &&
-          href !== "#" &&
-          !href.startsWith(
-            "javascript:"
-          )
-        ) {
-          return;
-        }
+    if (!element) {
+        return;
+    }
 
-        const target =
-          link.dataset.nav ||
-          link.dataset.target;
-
-        if (!target) {
-          return;
-        }
-
-        event.preventDefault();
-
-        navigateToSection(target);
-      }
-    );
-  });
-}
-
-function navigateToSection(section) {
-  const normalized =
-    String(section || "")
-      .toLowerCase()
-      .trim();
-
-  appState.currentSection =
-    normalized;
-
-  const element =
-    qs(
-      `#${CSS.escape(normalized)}`
-    ) ||
-    qs(
-      `[data-section="${CSS.escape(
-        normalized
-      )}"]`
-    );
-
-  if (element) {
     element.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
+        behavior: "smooth",
+        block: "start"
     });
-  }
 
-  qsa(
-    "[data-nav], .nav-link, .menu-link"
-  ).forEach(link => {
-    const target =
-      link.dataset.nav ||
-      link.dataset.target ||
-      "";
-
-    link.classList.toggle(
-      "active",
-      target.toLowerCase() ===
-        normalized
-    );
-  });
+    closeUserMenu();
 }
 
+function setupNavigation() {
+    $all(
+        ".main-nav a"
+    ).forEach(link => {
+        link.addEventListener(
+            "click",
+            event => {
+                const href =
+                    link.getAttribute("href");
+
+                if (
+                    !href ||
+                    !href.startsWith("#")
+                ) {
+                    return;
+                }
+
+                const id =
+                    href.substring(1);
+
+                if (!id) {
+                    return;
+                }
+
+                const target =
+                    document.getElementById(id);
+
+                if (!target) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                scrollToSection(id);
+            }
+        );
+    });
+}
+
+
 /* =========================================================
-   CONTROLES DO HERO
+   MODAL DE CATEGORIA
    ========================================================= */
 
-function setupHeroControls() {
-  const hero = qs("#hero");
-
-  if (!hero) {
-    return;
-  }
-
-  hero.addEventListener(
-    "mouseenter",
-    () => {
-      stopHeroAutoPlay();
+const CATEGORY_CONFIG = {
+    acao: {
+        title: "Ação",
+        type: "movie",
+        genre: 28
+    },
+    aventura: {
+        title: "Aventura",
+        type: "movie",
+        genre: 12
+    },
+    comedia: {
+        title: "Comédia",
+        type: "movie",
+        genre: 35
+    },
+    drama: {
+        title: "Drama",
+        type: "movie",
+        genre: 18
+    },
+    romance: {
+        title: "Romance",
+        type: "movie",
+        genre: 10749
+    },
+    fantasia: {
+        title: "Fantasia",
+        type: "movie",
+        genre: 14
+    },
+    terror: {
+        title: "Terror",
+        type: "movie",
+        genre: 27
+    },
+    ficcao: {
+        title: "Ficção científica",
+        type: "movie",
+        genre: 878
     }
-  );
+};
 
-  hero.addEventListener(
-    "mouseleave",
-    () => {
-      startHeroAutoPlay();
+async function openCategory(category) {
+    const config =
+        CATEGORY_CONFIG[category];
+
+    if (!config) {
+        return;
     }
-  );
 
-  hero.addEventListener(
-    "click",
-    event => {
-      const control =
-        event.target.closest(
-          "[data-hero-control]"
-        );
+    const modal =
+        $("#category-modal");
 
-      if (control) {
-        const action =
-          control.dataset.heroControl;
+    if (!modal) {
+        return;
+    }
 
-        if (action === "next") {
-          nextHero();
-        } else if (
-          action === "prev"
-        ) {
-          previousHero();
+    state.currentCategory =
+        category;
+
+    state.categoryPage = 1;
+    state.categoryTotalPages = 1;
+
+    const kicker =
+        $("#category-kicker");
+
+    const title =
+        $("#category-title");
+
+    const results =
+        $("#category-results");
+
+    const loading =
+        $("#category-loading");
+
+    const empty =
+        $("#category-empty");
+
+    const page =
+        $("#category-page");
+
+    if (kicker) {
+        kicker.textContent =
+            "Explorar";
+    }
+
+    if (title) {
+        title.textContent =
+            config.title;
+    }
+
+    if (results) {
+        results.innerHTML = "";
+    }
+
+    if (empty) {
+        empty.hidden = true;
+    }
+
+    if (loading) {
+        loading.hidden = false;
+    }
+
+    modal.classList.add("open");
+
+    modal.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+    document.body.classList.add(
+        "modal-open"
+    );
+
+    await loadCategoryPage();
+
+    if (page) {
+        page.textContent =
+            String(state.categoryPage);
+    }
+}
+
+async function loadCategoryPage() {
+    const category =
+        state.currentCategory;
+
+    const config =
+        CATEGORY_CONFIG[category];
+
+    if (!config) {
+        return;
+    }
+
+    const results =
+        $("#category-results");
+
+    const loading =
+        $("#category-loading");
+
+    const empty =
+        $("#category-empty");
+
+    if (loading) {
+        loading.hidden = false;
+    }
+
+    if (empty) {
+        empty.hidden = true;
+    }
+
+    try {
+        const data =
+            await apiDiscoverMovie({
+                genre: config.genre,
+                sort_by: "popularity.desc",
+                page: state.categoryPage
+            });
+
+        const items =
+            cleanItems(
+                data.results ||
+                data.movies ||
+                []
+            );
+
+        state.categoryTotalPages =
+            Math.max(
+                1,
+                Number(
+                    data.total_pages ||
+                    1
+                )
+            );
+
+        if (results) {
+            results.innerHTML = "";
+
+            if (!items.length) {
+                if (empty) {
+                    empty.hidden = false;
+                }
+            } else {
+                items.forEach(item => {
+                    const card =
+                        createCard(item);
+
+                    if (card) {
+                        results.appendChild(
+                            card
+                        );
+                    }
+                });
+            }
         }
 
-        return;
-      }
+        updateCategoryPagination();
 
-      const indicator =
-        event.target.closest(
-          "[data-hero-indicator]"
+    } catch (error) {
+        console.error(
+            "Erro ao carregar categoria:",
+            error
         );
 
-      if (indicator) {
-        const index =
-          Number(
-            indicator.dataset.heroIndicator
-          );
+        if (results) {
+            results.innerHTML = `
+                <div class="category-error">
+                    Não foi possível carregar esta categoria.
+                </div>
+            `;
+        }
+
+    } finally {
+        if (loading) {
+            loading.hidden = true;
+        }
+    }
+}
+
+function updateCategoryPagination() {
+    const page =
+        $("#category-page");
+
+    const previous =
+        $("#category-prev");
+
+    const next =
+        $("#category-next");
+
+    if (page) {
+        page.textContent =
+            `${state.categoryPage}`;
+    }
+
+    if (previous) {
+        previous.disabled =
+            state.categoryPage <= 1;
+    }
+
+    if (next) {
+        next.disabled =
+            state.categoryPage >=
+            state.categoryTotalPages;
+    }
+}
+
+async function changeCategoryPage(
+    direction
+) {
+    const newPage =
+        state.categoryPage +
+        Number(direction);
+
+    if (
+        newPage < 1 ||
+        newPage >
+            state.categoryTotalPages
+    ) {
+        return;
+    }
+
+    state.categoryPage =
+        newPage;
+
+    await loadCategoryPage();
+}
+
+
+/* =========================================================
+   BOTÃO HOME / LOGO
+   ========================================================= */
+
+function goHome() {
+    closeAllModals();
+    closeUserMenu();
+
+    const searchSection =
+        $("#search-results-section");
+
+    if (searchSection) {
+        searchSection.hidden = true;
+    }
+
+    const inicio =
+        $("#inicio");
+
+    if (inicio) {
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    }
+}
+
+
+/* =========================================================
+   EVENTOS DOS CARDS
+   ========================================================= */
+
+async function handleAction(
+    actionElement,
+    card
+) {
+    if (!actionElement) {
+        return;
+    }
+
+    const action =
+        actionElement.dataset.action;
+
+    if (!action) {
+        return;
+    }
+
+    if (action === "favorite") {
+        let item = null;
+
+        if (card) {
+            item = {
+                id:
+                    Number(
+                        card.dataset.id
+                    ),
+                type:
+                    card.dataset.type,
+                title:
+                    card.dataset.title
+            };
+        }
 
         if (
-          Number.isFinite(index)
+            !item ||
+            !item.id
         ) {
-          setHeroSlide(index);
-          startHeroAutoPlay();
+            return;
         }
-      }
-    }
-  );
-}
 
-/* =========================================================
-   BOTÕES DE SCROLL DAS FILEIRAS
-   ========================================================= */
+        const button =
+            actionElement;
 
-function setupScrollButtons() {
-  document.addEventListener(
-    "click",
-    event => {
-      const button =
-        event.target.closest(
-          "[data-scroll]"
-        );
+        button.disabled = true;
 
-      if (!button) {
-        return;
-      }
-
-      const direction =
-        button.dataset.scroll;
-
-      const targetSelector =
-        button.dataset.target;
-
-      let container = null;
-
-      if (targetSelector) {
         try {
-          container =
-            qs(targetSelector);
-        } catch (error) {
-          container = null;
+            let fullItem =
+                item;
+
+            try {
+                const data =
+                    await apiDetails(
+                        item.type,
+                        item.id
+                    );
+
+                fullItem =
+                    normalizeDetails(
+                        data,
+                        item
+                    );
+            } catch (error) {
+                console.warn(
+                    "Não foi possível obter detalhes para favorito:",
+                    error
+                );
+            }
+
+            toggleFavorite(
+                fullItem
+            );
+
+            refreshFavoriteButtons(
+                fullItem
+            );
+
+        } finally {
+            button.disabled = false;
         }
-      }
 
-      if (!container) {
-        container =
-          button.parentElement?.querySelector(
-            ".content-row, .cards-row, .movies-row, .series-row"
-          );
-      }
-
-      if (!container) {
         return;
-      }
-
-      const amount =
-        Math.max(
-          container.clientWidth * 0.8,
-          300
-        );
-
-      container.scrollBy({
-        left:
-          direction === "left"
-            ? -amount
-            : amount,
-        behavior: "smooth"
-      });
-    }
-  );
-}
-
-/* =========================================================
-   FALLBACKS DE IMAGENS
-   ========================================================= */
-
-function setupImageFallbacks() {
-  qsa("img").forEach(image => {
-    if (
-      image.dataset.fallbackConfigured
-    ) {
-      return;
     }
 
-    image.dataset.fallbackConfigured =
-      "true";
+    if (action === "details") {
+        if (
+            card &&
+            card.dataset.id
+        ) {
+            await abrirDetalhes(
+                Number(
+                    card.dataset.id
+                ),
+                card.dataset.type
+            );
+        }
 
-    image.addEventListener(
-      "error",
-      () => {
-        createFallbackImage(image);
-      },
-      {
-        once: true
-      }
-    );
-  });
-}
-
-/* =========================================================
-   BOTÃO DO USUÁRIO NO HEADER
-   ========================================================= */
-
-function setupHeaderUserButton() {
-  const buttons = qsa(
-    "#header-user-button, [data-header-user]"
-  );
-
-  buttons.forEach(button => {
-    button.addEventListener(
-      "click",
-      event => {
-        event.preventDefault();
-        openProfile();
-      }
-    );
-  });
-}
-
-/* =========================================================
-   BOTÕES DE FECHAR
-   ========================================================= */
-
-function setupCloseButtons() {
-  document.addEventListener(
-    "click",
-    event => {
-      const closeDetails =
-        event.target.closest(
-          "[data-action='close-details']"
-        );
-
-      if (closeDetails) {
-        event.preventDefault();
-        closeDetailsModalSafely();
         return;
-      }
-
-      const closePlayerButton =
-        event.target.closest(
-          "[data-action='close-player']"
-        );
-
-      if (closePlayerButton) {
-        event.preventDefault();
-        closePlayer();
-        return;
-      }
-
-      const closeProfileButton =
-        event.target.closest(
-          "[data-action='close-profile']"
-        );
-
-      if (closeProfileButton) {
-        event.preventDefault();
-        closeProfile();
-        return;
-      }
     }
-  );
-}
 
-function closeDetailsModalSafely() {
-  closeDetails();
-}
+    if (action === "watch") {
+        if (
+            actionElement.dataset.id
+        ) {
+            await assistirConteudo({
+                id:
+                    Number(
+                        actionElement.dataset.id
+                    ),
+                type:
+                    actionElement.dataset.type
+            });
 
-/* =========================================================
-   BOTÕES DE FAVORITOS NOS DETALHES
-   ========================================================= */
+            return;
+        }
 
-function setupFavoriteDetailsButton() {
-  document.addEventListener(
-    "click",
-    event => {
-      const button =
-        event.target.closest(
-          ".details-favorite-button"
-        );
+        if (
+            card &&
+            card.dataset.id
+        ) {
+            await assistirConteudo({
+                id:
+                    Number(
+                        card.dataset.id
+                    ),
+                type:
+                    card.dataset.type,
+                title:
+                    card.dataset.title
+            });
+        }
 
-      if (!button) {
         return;
-      }
-
-      const id =
-        Number(
-          button.dataset.mediaId
-        );
-
-      const type =
-        normalizeType(
-          button.dataset.mediaType
-        );
-
-      const item =
-        findItemByIdAndType(
-          id,
-          type
-        );
-
-      if (item) {
-        toggleFavorite(item);
-      }
     }
-  );
-}
 
-/* =========================================================
-   BOTÕES ASSISTIR
-   ========================================================= */
-
-function setupWatchButtons() {
-  document.addEventListener(
-    "click",
-    event => {
-      const button =
-        event.target.closest(
-          "[data-action='watch']"
-        );
-
-      if (!button) {
+    if (action === "trailer") {
+        openTrailer();
         return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      const id =
-        Number(
-          button.dataset.mediaId
-        );
-
-      const type =
-        normalizeType(
-          button.dataset.mediaType
-        );
-
-      if (!id) {
-        return;
-      }
-
-      openDetails(
-        id,
-        type
-      );
     }
-  );
+
+    if (action === "episode") {
+        await assistirEpisodio(
+            actionElement.dataset.id,
+            actionElement.dataset.season,
+            actionElement.dataset.episode
+        );
+
+        return;
+    }
+
+    if (action === "season") {
+        const item =
+            state.currentDetails;
+
+        if (!item) {
+            return;
+        }
+
+        $all(
+            ".season-button"
+        ).forEach(button => {
+            button.classList.toggle(
+                "active",
+                button ===
+                actionElement
+            );
+        });
+
+        await carregarTemporada(
+            item.id,
+            Number(
+                actionElement.dataset.season
+            )
+        );
+
+        return;
+    }
 }
 
+
 /* =========================================================
-   HISTÓRICO PAGE
+   EVENTO CENTRAL DE CLIQUES
    ========================================================= */
 
-function renderHistoryPage() {
-  const container =
-    qs("#historico-lista") ||
-    qs("#history-list") ||
-    qs("#history-container");
+function setupGlobalClickHandler() {
+    document.addEventListener(
+        "click",
+        async event => {
+            const actionElement =
+                event.target.closest(
+                    "[data-action]"
+                );
 
-  if (!container) {
-    return;
-  }
+            if (actionElement) {
+                event.preventDefault();
+                event.stopPropagation();
 
-  const history =
-    getHistory();
+                const card =
+                    actionElement.closest(
+                        ".movie-card"
+                    );
 
-  if (!history.length) {
-    container.innerHTML = `
-      <div class="history-empty">
-        <div class="history-empty-icon">
-          🕘
-        </div>
+                await handleAction(
+                    actionElement,
+                    card
+                );
 
-        <h2>Seu histórico está vazio</h2>
-
-        <p>
-          Os conteúdos que você abrir
-          aparecerão aqui.
-        </p>
-      </div>
-    `;
-
-    return;
-  }
-
-  container.innerHTML = `
-    <div class="page-actions">
-      <button
-        type="button"
-        class="clear-history-button"
-        data-action="clear-history"
-      >
-        🗑 Limpar histórico
-      </button>
-    </div>
-
-    <div class="history-grid">
-      ${history
-        .map(item =>
-          createContentCard(
-            item,
-            {
-              removableHistory: true
+                return;
             }
-          )
-        )
-        .join("")}
-    </div>
-  `;
-}
 
-/* =========================================================
-   FAVORITOS PAGE
-   ========================================================= */
+            const card =
+                event.target.closest(
+                    ".movie-card"
+                );
 
-function renderFavoritesPage() {
-  const container =
-    qs("#favoritos-lista") ||
-    qs("#favorites-list") ||
-    qs("#favorites-container");
+            if (card) {
+                if (
+                    event.target.closest(
+                        "button"
+                    )
+                ) {
+                    return;
+                }
 
-  if (!container) {
-    return;
-  }
+                const id =
+                    Number(
+                        card.dataset.id
+                    );
 
-  const favorites =
-    getFavorites();
+                const type =
+                    card.dataset.type;
 
-  if (!favorites.length) {
-    container.innerHTML = `
-      <div class="favorites-empty">
-        <div class="favorites-empty-icon">
-          ☆
-        </div>
+                if (id) {
+                    await abrirDetalhes(
+                        id,
+                        type
+                    );
+                }
 
-        <h2>Você ainda não tem favoritos</h2>
-
-        <p>
-          Clique na estrela dos conteúdos
-          que deseja guardar.
-        </p>
-      </div>
-    `;
-
-    return;
-  }
-
-  container.innerHTML = `
-    <div class="favorites-grid">
-      ${favorites
-        .map(item =>
-          createContentCard(
-            item,
-            {
-              removableFavorite: true
+                return;
             }
-          )
-        )
-        .join("")}
-    </div>
-  `;
+
+            const categoryButton =
+                event.target.closest(
+                    "[data-category]"
+                );
+
+            if (categoryButton) {
+                event.preventDefault();
+
+                const category =
+                    categoryButton.dataset.category;
+
+                await openCategory(
+                    category
+                );
+
+                return;
+            }
+
+            const heroIndicator =
+                event.target.closest(
+                    "[data-hero-index]"
+                );
+
+            if (heroIndicator) {
+                event.preventDefault();
+
+                goToHero(
+                    heroIndicator.dataset.heroIndex
+                );
+
+                return;
+            }
+
+            const rowScroll =
+                event.target.closest(
+                    "[data-row-scroll]"
+                );
+
+            if (rowScroll) {
+                return;
+            }
+        }
+    );
 }
 
+
 /* =========================================================
-   EVENTO CENTRAL DOS CARDS
+   BOTÕES DO HEADER / MODAIS
    ========================================================= */
 
-function handleDocumentClick(event) {
-  const favoriteButton =
-    event.target.closest(
-      "[data-action='favorite']"
-    );
+function setupInterfaceButtons() {
+    const logo =
+        $(".site-logo");
 
-  if (favoriteButton) {
-    event.preventDefault();
-    event.stopPropagation();
+    if (logo) {
+        logo.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                goHome();
+            }
+        );
+    }
 
-    const id =
-      Number(
-        favoriteButton.dataset.mediaId
-      );
+    const searchToggle =
+        $("#search-toggle");
 
-    const type =
-      normalizeType(
-        favoriteButton.dataset.mediaType
-      );
+    if (searchToggle) {
+        searchToggle.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                openSearch();
+            }
+        );
+    }
 
-    let item =
-      findItemByIdAndType(
-        id,
-        type
-      );
+    const searchClose =
+        $("#search-close");
 
-    if (!item) {
-      const card =
-        favoriteButton.closest(
-          "[data-media-id]"
+    if (searchClose) {
+        searchClose.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                closeSearch();
+            }
+        );
+    }
+
+    const searchClear =
+        $("#search-clear");
+
+    if (searchClear) {
+        searchClear.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                clearSearch();
+            }
+        );
+    }
+
+    const searchButton =
+        $("#search-button");
+
+    if (searchButton) {
+        searchButton.addEventListener(
+            "click",
+            async event => {
+                event.preventDefault();
+
+                const input =
+                    $("#search-input");
+
+                await realizarBusca(
+                    input
+                        ? input.value
+                        : ""
+                );
+            }
+        );
+    }
+
+    const searchInput =
+        $("#search-input");
+
+    if (searchInput) {
+        searchInput.addEventListener(
+            "keydown",
+            async event => {
+                if (
+                    event.key ===
+                    "Enter"
+                ) {
+                    event.preventDefault();
+
+                    await realizarBusca(
+                        searchInput.value
+                    );
+                }
+
+                if (
+                    event.key ===
+                    "Escape"
+                ) {
+                    closeSearch();
+                }
+            }
         );
 
-      if (card) {
-        item = {
-          id: Number(
-            card.dataset.mediaId
-          ),
-          type:
-            card.dataset.mediaType ||
-            type,
-          title:
-            qs(
-              ".content-card-title",
-              card
-            )?.textContent.trim() ||
-            "Sem título",
-          poster_path:
-            qs(
-              ".content-card-image",
-              card
-            )?.getAttribute("src") ||
-            ""
-        };
-      }
+        searchInput.addEventListener(
+            "input",
+            () => {
+                const value =
+                    searchInput.value.trim();
+
+                const clear =
+                    $("#search-clear");
+
+                if (clear) {
+                    clear.style.visibility =
+                        value
+                            ? "visible"
+                            : "hidden";
+                }
+            }
+        );
     }
 
-    if (item) {
-      toggleFavorite(item);
+    const profileButton =
+        $("#profile-button");
+
+    if (profileButton) {
+        profileButton.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                toggleUserMenu();
+            }
+        );
     }
 
-    return;
-  }
+    const footerProfile =
+        $("#footer-profile-button");
 
-  const removeFavorite =
-    event.target.closest(
-      "[data-action='remove-favorite']"
-    );
-
-  if (removeFavorite) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const id =
-      Number(
-        removeFavorite.dataset.mediaId
-      );
-
-    const type =
-      normalizeType(
-        removeFavorite.dataset.mediaType
-      );
-
-    removeFavoriteItem(
-      id,
-      type
-    );
-
-    return;
-  }
-
-  const removeHistory =
-    event.target.closest(
-      "[data-action='remove-history']"
-    );
-
-  if (removeHistory) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const id =
-      Number(
-        removeHistory.dataset.mediaId
-      );
-
-    const type =
-      normalizeType(
-        removeHistory.dataset.mediaType
-      );
-
-    removeHistoryItem(
-      id,
-      type
-    );
-
-    return;
-  }
-
-  const watchButton =
-    event.target.closest(
-      "[data-action='watch']"
-    );
-
-  if (watchButton) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const id =
-      Number(
-        watchButton.dataset.mediaId
-      );
-
-    const type =
-      normalizeType(
-        watchButton.dataset.mediaType
-      );
-
-    if (id) {
-      openDetails(
-        id,
-        type
-      );
+    if (footerProfile) {
+        footerProfile.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                openProfile();
+            }
+        );
     }
 
-    return;
-  }
+    const editProfile =
+        $("#user-profile-edit");
 
-  const detailsButton =
-    event.target.closest(
-      "[data-action='details']"
-    );
-
-  if (detailsButton) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const id =
-      Number(
-        detailsButton.dataset.mediaId
-      );
-
-    const type =
-      normalizeType(
-        detailsButton.dataset.mediaType
-      );
-
-    if (id) {
-      openDetails(
-        id,
-        type
-      );
+    if (editProfile) {
+        editProfile.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                closeUserMenu();
+                openProfile();
+            }
+        );
     }
 
-    return;
-  }
+    const userFavorites =
+        $("#user-favorites-button");
 
-  const clearHistoryButton =
-    event.target.closest(
-      "[data-action='clear-history']"
-    );
+    if (userFavorites) {
+        userFavorites.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                closeUserMenu();
 
-  if (clearHistoryButton) {
-    event.preventDefault();
+                const section =
+                    $("#favorites-section");
 
-    const confirmed =
-      window.confirm(
-        "Deseja realmente limpar todo o histórico?"
-      );
+                if (section) {
+                    section.hidden = false;
 
-    if (confirmed) {
-      clearHistory();
+                    section.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start"
+                    });
+                }
+            }
+        );
     }
 
-    return;
-  }
+    const userHistory =
+        $("#user-history-button");
 
-  const closePlayerAction =
-    event.target.closest(
-      "[data-action='close-player']"
-    );
+    if (userHistory) {
+        userHistory.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                closeUserMenu();
 
-  if (closePlayerAction) {
-    event.preventDefault();
-    closePlayer();
-    return;
-  }
+                const section =
+                    $("#historico-section");
 
-  const episodeButton =
-    event.target.closest(
-      "[data-action='episode']"
-    );
+                if (section) {
+                    section.hidden = false;
 
-  if (episodeButton) {
-    event.preventDefault();
-
-    showGlobalMessage(
-      "Episódio selecionado. A reprodução depende de uma fonte autorizada."
-    );
-
-    return;
-  }
-
-  const avatar =
-    event.target.closest(
-      "[data-avatar]"
-    );
-
-  if (
-    avatar &&
-    !avatar.closest(
-      "#profile-modal, #modal-profile, #perfil-modal"
-    )
-  ) {
-    return;
-  }
-
-  const card =
-    event.target.closest(
-      "[data-media-id]"
-    );
-
-  if (card) {
-    event.preventDefault();
-
-    const id =
-      Number(
-        card.dataset.mediaId
-      );
-
-    const type =
-      normalizeType(
-        card.dataset.mediaType
-      );
-
-    if (id) {
-      openDetails(
-        id,
-        type
-      );
+                    section.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start"
+                    });
+                }
+            }
+        );
     }
 
-    return;
-  }
+    const profileClose =
+        $("#profile-close");
+
+    if (profileClose) {
+        profileClose.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                closeProfile();
+            }
+        );
+    }
+
+    const detailsClose =
+        $("#details-close");
+
+    if (detailsClose) {
+        detailsClose.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                closeDetails();
+            }
+        );
+    }
+
+    const playerClose =
+        $("#player-close");
+
+    if (playerClose) {
+        playerClose.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                closePlayer();
+            }
+        );
+    }
+
+    const categoryClose =
+        $("#category-close");
+
+    if (categoryClose) {
+        categoryClose.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                closeCategoryModal();
+            }
+        );
+    }
+
+    const detailsFavorite =
+        $("#details-favorite-button");
+
+    if (detailsFavorite) {
+        detailsFavorite.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                toggleCurrentFavorite();
+            }
+        );
+    }
+
+    const detailsWatch =
+        $("#details-watch-button");
+
+    if (detailsWatch) {
+        detailsWatch.addEventListener(
+            "click",
+            async event => {
+                event.preventDefault();
+
+                if (
+                    state.currentDetails
+                ) {
+                    await assistirConteudo(
+                        state.currentDetails
+                    );
+                }
+            }
+        );
+    }
+
+    const playerFullscreen =
+        $("#player-fullscreen");
+
+    if (playerFullscreen) {
+        playerFullscreen.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+
+                const body =
+                    $("#player-body");
+
+                if (!body) {
+                    return;
+                }
+
+                const iframe =
+                    body.querySelector(
+                        "iframe"
+                    );
+
+                const target =
+                    iframe || body;
+
+                if (
+                    document.fullscreenElement
+                ) {
+                    document.exitFullscreen();
+                } else if (
+                    target.requestFullscreen
+                ) {
+                    target.requestFullscreen();
+                }
+            }
+        );
+    }
+
+    const profileForm =
+        $("#profile-form");
+
+    if (profileForm) {
+        profileForm.addEventListener(
+            "submit",
+            event => {
+                event.preventDefault();
+                saveProfileFromForm();
+            }
+        );
+    }
+
+    $all(
+        ".avatar-options [data-avatar]"
+    ).forEach(button => {
+        button.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+
+                state.selectedAvatar =
+                    button.dataset.avatar ||
+                    button.textContent.trim();
+
+                $all(
+                    ".avatar-options [data-avatar]"
+                ).forEach(option => {
+                    option.classList.toggle(
+                        "selected",
+                        option === button
+                    );
+                });
+            }
+        );
+    });
+
+    const heroPrev =
+        $("#hero-prev");
+
+    if (heroPrev) {
+        heroPrev.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                changeHero(-1);
+            }
+        );
+    }
+
+    const heroNext =
+        $("#hero-next");
+
+    if (heroNext) {
+        heroNext.addEventListener(
+            "click",
+            event => {
+                event.preventDefault();
+                changeHero(1);
+            }
+        );
+    }
+
+    const categoryPrev =
+        $("#category-prev");
+
+    if (categoryPrev) {
+        categoryPrev.addEventListener(
+            "click",
+            async event => {
+                event.preventDefault();
+                await changeCategoryPage(-1);
+            }
+        );
+    }
+
+    const categoryNext =
+        $("#category-next");
+
+    if (categoryNext) {
+        categoryNext.addEventListener(
+            "click",
+            async event => {
+                event.preventDefault();
+                await changeCategoryPage(1);
+            }
+        );
+    }
 }
+
+
+/* =========================================================
+   CLIQUE NO BACKDROP DOS MODAIS
+   ========================================================= */
+
+function setupModalBackdrops() {
+    $all(
+        ".modal-backdrop[data-close-modal]"
+    ).forEach(backdrop => {
+        backdrop.addEventListener(
+            "click",
+            event => {
+                if (
+                    event.target !==
+                    backdrop
+                ) {
+                    return;
+                }
+
+                const type =
+                    backdrop.dataset.closeModal;
+
+                if (type === "details") {
+                    closeDetails();
+                }
+
+                if (type === "player") {
+                    closePlayer();
+                }
+
+                if (type === "profile") {
+                    closeProfile();
+                }
+
+                if (type === "category") {
+                    closeCategoryModal();
+                }
+            }
+        );
+    });
+}
+
 
 /* =========================================================
    TECLADO
    ========================================================= */
 
-function setupKeyboardNavigation() {
-  document.addEventListener(
-    "keydown",
-    event => {
-      const activeElement =
-        document.activeElement;
-
-      const tag =
-        activeElement?.tagName;
-
-      const typing =
-        tag === "INPUT" ||
-        tag === "TEXTAREA" ||
-        tag === "SELECT";
-
-      if (
-        event.key === "Escape"
-      ) {
-        closeDetails();
-        closePlayer();
-        closeProfile();
-
-        return;
-      }
-
-      if (typing) {
-        return;
-      }
-
-      if (
-        event.key === "ArrowRight"
-      ) {
-        const focusedCard =
-          document.activeElement?.closest(
-            "[data-media-id]"
-          );
-
-        if (focusedCard) {
-          const cards =
-            qsa(
-              "[data-media-id]"
-            ).filter(
-              element =>
-                element.offsetParent !==
-                null
-            );
-
-          const index =
-            cards.indexOf(
-              focusedCard
-            );
-
-          if (
-            index >= 0 &&
-            cards[index + 1]
-          ) {
-            cards[index + 1].focus();
-          }
-        }
-      }
-
-      if (
-        event.key === "ArrowLeft"
-      ) {
-        const focusedCard =
-          document.activeElement?.closest(
-            "[data-media-id]"
-          );
-
-        if (focusedCard) {
-          const cards =
-            qsa(
-              "[data-media-id]"
-            ).filter(
-              element =>
-                element.offsetParent !==
-                null
-            );
-
-          const index =
-            cards.indexOf(
-              focusedCard
-            );
-
-          if (
-            index > 0 &&
-            cards[index - 1]
-          ) {
-            cards[index - 1].focus();
-          }
-        }
-      }
-
-      if (
-        event.key === "Enter"
-      ) {
-        const focused =
-          document.activeElement;
-
-        if (
-          focused?.matches(
-            "[data-media-id]"
-          )
-        ) {
-          const id =
-            Number(
-              focused.dataset.mediaId
-            );
-
-          const type =
-            normalizeType(
-              focused.dataset.mediaType
-            );
-
-          if (id) {
-            openDetails(
-              id,
-              type
-            );
-          }
-        }
-      }
-    }
-  );
-}
-
-/* =========================================================
-   DETECÇÃO DE PÁGINA
-   ========================================================= */
-
-function detectCurrentPage() {
-  const path =
-    window.location.pathname
-      .toLowerCase();
-
-  if (
-    path.endsWith(
-      "/favoritos.html"
-    ) ||
-    path.endsWith(
-      "favoritos.html"
-    )
-  ) {
-    return "favorites";
-  }
-
-  if (
-    path.endsWith(
-      "/historico.html"
-    ) ||
-    path.endsWith(
-      "historico.html"
-    )
-  ) {
-    return "history";
-  }
-
-  return "home";
-}
-
-/* =========================================================
-   PÁGINAS SEPARADAS
-   ========================================================= */
-
-function setupStandalonePages() {
-  appState.currentPage =
-    detectCurrentPage();
-
-  if (
-    appState.currentPage ===
-    "favorites"
-  ) {
-    renderFavoritesPage();
-  }
-
-  if (
-    appState.currentPage ===
-    "history"
-  ) {
-    renderHistoryPage();
-  }
-}
-
-/* =========================================================
-   MODAL BACKDROP
-   ========================================================= */
-
-function setupModalBackdrop() {
-  document.addEventListener(
-    "click",
-    event => {
-      const detailsModal =
-        getDetailsModal();
-
-      if (
-        detailsModal &&
-        event.target ===
-          detailsModal
-      ) {
-        closeDetails();
-      }
-
-      const playerModal =
-        getPlayerModal();
-
-      if (
-        playerModal &&
-        event.target ===
-          playerModal
-      ) {
-        closePlayer();
-      }
-
-      const profileModal =
-        qs("#profile-modal") ||
-        qs("#modal-profile") ||
-        qs("#perfil-modal");
-
-      if (
-        profileModal &&
-        event.target ===
-          profileModal
-      ) {
-        closeProfile();
-      }
-    }
-  );
-}
-
-/* =========================================================
-   CONTROLE DO FORMULÁRIO DE PERFIL
-   ========================================================= */
-
-function setupProfileModalButtons() {
-  document.addEventListener(
-    "click",
-    event => {
-      const saveButton =
-        event.target.closest(
-          "[data-action='save-profile']"
-        );
-
-      if (saveButton) {
-        event.preventDefault();
-        saveProfileFromModal();
-        return;
-      }
-
-      const closeButton =
-        event.target.closest(
-          "[data-action='close-profile']"
-        );
-
-      if (closeButton) {
-        event.preventDefault();
-        closeProfile();
-      }
-    }
-  );
-}
-
-/* =========================================================
-   DETALHES DE SÉRIES
-   ========================================================= */
-
-async function setupSeriesDetails(data) {
-  if (!data) {
-    return;
-  }
-
-  if (
-    normalizeType(data.type) !==
-    "tv"
-  ) {
-    return;
-  }
-
-  const modal =
-    getDetailsModal();
-
-  if (!modal) {
-    return;
-  }
-
-  const container =
-    qs(
-      ".details-seasons",
-      modal
-    );
-
-  if (!container) {
-    return;
-  }
-
-  container.innerHTML = `
-    <div class="seasons-loading">
-      Carregando temporadas...
-    </div>
-  `;
-
-  const seasons =
-    await loadSeasons(
-      Number(data.id)
-    );
-
-  renderSeasons(
-    container,
-    seasons
-  );
-}
-
-/* =========================================================
-   ATUALIZAÇÃO VISUAL DOS FAVORITOS
-   ========================================================= */
-
-function refreshFavoriteVisuals() {
-  const favorites =
-    getFavorites();
-
-  qsa(
-    "[data-action='favorite']"
-  ).forEach(button => {
-    const id =
-      Number(
-        button.dataset.mediaId
-      );
-
-    const type =
-      normalizeType(
-        button.dataset.mediaType
-      );
-
-    const favorite =
-      favorites.some(item => {
-        return (
-          Number(item.id) === id &&
-          normalizeType(
-            item.type
-          ) === type
-        );
-      });
-
-    if (
-      button.classList.contains(
-        "hero-favorite-button"
-      )
-    ) {
-      button.textContent =
-        favorite
-          ? "★"
-          : "☆";
-    } else if (
-      button.classList.contains(
-        "details-favorite-button"
-      )
-    ) {
-      button.textContent =
-        favorite
-          ? "★ Remover dos favoritos"
-          : "☆ Adicionar aos favoritos";
-    } else {
-      button.textContent =
-        favorite
-          ? "★"
-          : "☆";
-    }
-
-    button.setAttribute(
-      "aria-label",
-      favorite
-        ? "Remover dos favoritos"
-        : "Adicionar aos favoritos"
-    );
-  });
-}
-/* =========================================================
-   FAVORITOS E HISTÓRICO - ATUALIZAÇÃO
-   ========================================================= */
-
-function updatePageCounters() {
-  const favorites = getFavorites();
-  const history = getHistory();
-
-  qsa(
-    "[data-favorites-count], #favorites-count"
-  ).forEach(element => {
-    element.textContent =
-      String(favorites.length);
-  });
-
-  qsa(
-    "[data-history-count], #history-count"
-  ).forEach(element => {
-    element.textContent =
-      String(history.length);
-  });
-}
-
-/* =========================================================
-   MENU MOBILE
-   ========================================================= */
-
-function setupMobileMenu() {
-  const buttons = qsa(
-    "#menu-toggle, .menu-toggle, [data-menu-toggle]"
-  );
-
-  buttons.forEach(button => {
-    button.addEventListener(
-      "click",
-      event => {
-        event.preventDefault();
-
-        const menu =
-          qs("#main-menu") ||
-          qs(".main-menu") ||
-          qs(".nav-menu") ||
-          qs("nav");
-
-        if (!menu) {
-          return;
-        }
-
-        menu.classList.toggle(
-          "active"
-        );
-
-        menu.classList.toggle(
-          "open"
-        );
-
-        button.classList.toggle(
-          "active"
-        );
-      }
-    );
-  });
-
-  qsa(
-    ".nav-link, .menu-link, [data-nav]"
-  ).forEach(link => {
-    link.addEventListener(
-      "click",
-      () => {
-        const menu =
-          qs("#main-menu") ||
-          qs(".main-menu") ||
-          qs(".nav-menu");
-
-        if (!menu) {
-          return;
-        }
-
-        menu.classList.remove(
-          "active"
-        );
-
-        menu.classList.remove(
-          "open"
-        );
-      }
-    );
-  });
-}
-
-/* =========================================================
-   TOUCH / SWIPE NO HERO
-   ========================================================= */
-
-function setupHeroTouch() {
-  const hero = qs("#hero");
-
-  if (!hero) {
-    return;
-  }
-
-  let startX = 0;
-  let startY = 0;
-
-  hero.addEventListener(
-    "touchstart",
-    event => {
-      const touch =
-        event.touches[0];
-
-      if (!touch) {
-        return;
-      }
-
-      startX = touch.clientX;
-      startY = touch.clientY;
-    },
-    {
-      passive: true
-    }
-  );
-
-  hero.addEventListener(
-    "touchend",
-    event => {
-      const touch =
-        event.changedTouches[0];
-
-      if (!touch) {
-        return;
-      }
-
-      const deltaX =
-        touch.clientX - startX;
-
-      const deltaY =
-        touch.clientY - startY;
-
-      if (
-        Math.abs(deltaX) < 50 ||
-        Math.abs(deltaX) <
-          Math.abs(deltaY)
-      ) {
-        return;
-      }
-
-      if (deltaX < 0) {
-        nextHero();
-      } else {
-        previousHero();
-      }
-
-      startHeroAutoPlay();
-    },
-    {
-      passive: true
-    }
-  );
-}
-
-/* =========================================================
-   PESQUISA ABERTA PELO BOTÃO
-   ========================================================= */
-
-function setupSearchButton() {
-  const buttons = qsa(
-    "#search-button, .search-button, [data-search-button]"
-  );
-
-  buttons.forEach(button => {
-    button.addEventListener(
-      "click",
-      event => {
-        event.preventDefault();
-
-        const input =
-          qs(
-            "#search-input"
-          ) ||
-          qs(
-            "#search"
-          ) ||
-          qs(
-            ".search-input"
-          ) ||
-          qs(
-            "[data-search-input]"
-          );
-
-        if (input) {
-          input.focus();
-
-          input.scrollIntoView({
-            behavior: "smooth",
-            block: "center"
-          });
-        }
-      }
-    );
-  });
-}
-
-/* =========================================================
-   BOTÃO DE FAVORITOS DO HEADER
-   ========================================================= */
-
-function setupFavoritesButton() {
-  const buttons = qsa(
-    "#favorites-button, [data-favorites-button]"
-  );
-
-  buttons.forEach(button => {
-    button.addEventListener(
-      "click",
-      event => {
-        const href =
-          button.getAttribute(
-            "href"
-          );
-
-        if (
-          href &&
-          href !== "#"
-        ) {
-          return;
-        }
-
-        event.preventDefault();
-
-        window.location.href =
-          "favoritos.html";
-      }
-    );
-  });
-}
-
-/* =========================================================
-   BOTÃO DE HISTÓRICO DO HEADER
-   ========================================================= */
-
-function setupHistoryButton() {
-  const buttons = qsa(
-    "#history-button, [data-history-button]"
-  );
-
-  buttons.forEach(button => {
-    button.addEventListener(
-      "click",
-      event => {
-        const href =
-          button.getAttribute(
-            "href"
-          );
-
-        if (
-          href &&
-          href !== "#"
-        ) {
-          return;
-        }
-
-        event.preventDefault();
-
-        window.location.href =
-          "historico.html";
-      }
-    );
-  });
-}
-
-/* =========================================================
-   BOTÃO VOLTAR
-   ========================================================= */
-
-function setupBackButtons() {
-  qsa(
-    "[data-action='back'], .back-button"
-  ).forEach(button => {
-    button.addEventListener(
-      "click",
-      event => {
-        event.preventDefault();
-
-        if (
-          window.history.length >
-          1
-        ) {
-          window.history.back();
-        } else {
-          window.location.href =
-            "index.html";
-        }
-      }
-    );
-  });
-}
-
-/* =========================================================
-   FAVORITOS - LINK DA NAVEGAÇÃO
-   ========================================================= */
-
-function setupFavoriteLinks() {
-  qsa(
-    "a[href='favoritos.html'], a[href='./favoritos.html']"
-  ).forEach(link => {
-    link.addEventListener(
-      "click",
-      () => {
-        getFavorites();
-      }
-    );
-  });
-}
-
-/* =========================================================
-   HISTÓRICO - LINK DA NAVEGAÇÃO
-   ========================================================= */
-
-function setupHistoryLinks() {
-  qsa(
-    "a[href='historico.html'], a[href='./historico.html']"
-  ).forEach(link => {
-    link.addEventListener(
-      "click",
-      () => {
-        getHistory();
-      }
-    );
-  });
-}
-
-/* =========================================================
-   FECHAR MODAIS COM ESC
-   ========================================================= */
-
-function setupEscapeKey() {
-  document.addEventListener(
-    "keydown",
-    event => {
-      if (
-        event.key !==
-        "Escape"
-      ) {
-        return;
-      }
-
-      closeDetails();
-      closePlayer();
-      closeProfile();
-    }
-  );
-}
-
-/* =========================================================
-   PREVENIR CLIQUE DUPLO INDESEJADO
-   ========================================================= */
-
-function setupButtonProtection() {
-  qsa(
-    "button"
-  ).forEach(button => {
-    button.addEventListener(
-      "click",
-      event => {
-        if (
-          button.disabled
-        ) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
-      }
-    );
-  });
-}
-
-/* =========================================================
-   CARREGAMENTO DE DETALHES DE SÉRIE
-   ========================================================= */
-
-function renderSeriesSeasonsIfNeeded() {
-  const data =
-    appState.currentDetails;
-
-  if (!data) {
-    return;
-  }
-
-  if (
-    normalizeType(data.type) !==
-    "tv"
-  ) {
-    return;
-  }
-
-  setupSeriesDetails(data);
-}
-
-/* =========================================================
-   OBSERVADOR DO MODAL DE DETALHES
-   ========================================================= */
-
-function setupDetailsObserver() {
-  const modal =
-    getDetailsModal();
-
-  if (!modal) {
-    return;
-  }
-
-  const observer =
-    new MutationObserver(() => {
-      if (
-        !modal.classList.contains(
-          "active"
-        ) &&
-        !modal.classList.contains(
-          "open"
-        )
-      ) {
-        return;
-      }
-
-      const data =
-        appState.currentDetails;
-
-      if (!data) {
-        return;
-      }
-
-      if (
-        normalizeType(
-          data.type
-        ) !== "tv"
-      ) {
-        return;
-      }
-
-      const container =
-        qs(
-          ".details-seasons",
-          modal
-        );
-
-      if (
-        container &&
-        !container.dataset.loaded
-      ) {
-        container.dataset.loaded =
-          "true";
-
-        setupSeriesDetails(
-          data
-        );
-      }
-    });
-
-  observer.observe(
-    modal,
-    {
-      childList: true,
-      subtree: true
-    }
-  );
-}
-
-/* =========================================================
-   ATUALIZAÇÃO DOS BOTÕES DO CARD
-   ========================================================= */
-
-function updateCardFavoriteState(
-  id,
-  type
-) {
-  const favorite =
-    isFavorite(id, type);
-
-  qsa(
-    `[data-media-id="${Number(
-      id
-    )}"][data-media-type="${normalizeType(
-      type
-    )}"]`
-  ).forEach(element => {
-    const button =
-      element.matches(
-        "button"
-      )
-        ? element
-        : qs(
-            "[data-action='favorite']",
-            element
-          );
-
-    if (!button) {
-      return;
-    }
-
-    if (
-      button.dataset.action ===
-      "remove-favorite"
-    ) {
-      button.textContent =
-        "✕";
-
-      return;
-    }
-
-    button.textContent =
-      favorite
-        ? "★"
-        : "☆";
-  });
-}
-
-/* =========================================================
-   CORREÇÃO VISUAL DOS CARDS
-   ========================================================= */
-
-function ensureRowsHaveHorizontalClass() {
-  const selectors = [
-    ".content-row",
-    ".cards-row",
-    ".movies-row",
-    ".series-row",
-    ".content-list",
-    ".movie-list",
-    ".series-list",
-    ".cards-container"
-  ];
-
-  selectors.forEach(selector => {
-    qsa(selector).forEach(row => {
-      row.classList.add(
-        "cinefamily-horizontal-row"
-      );
-    });
-  });
-}
-
-/* =========================================================
-   OBSERVADOR PARA NOVOS CARDS
-   ========================================================= */
-
-function setupContentObserver() {
-  const observer =
-    new MutationObserver(
-      mutations => {
-        let changed = false;
-
-        mutations.forEach(
-          mutation => {
+function setupKeyboard() {
+    document.addEventListener(
+        "keydown",
+        event => {
             if (
-              mutation.addedNodes &&
-              mutation.addedNodes.length
+                event.key ===
+                "Escape"
             ) {
-              changed = true;
+                closeAllModals();
+                closeUserMenu();
+                return;
             }
-          }
-        );
 
-        if (!changed) {
-          return;
+            const active =
+                document.activeElement;
+
+            if (
+                event.key ===
+                "Enter" &&
+                active &&
+                active.classList.contains(
+                    "movie-card"
+                )
+            ) {
+                event.preventDefault();
+
+                const id =
+                    Number(
+                        active.dataset.id
+                    );
+
+                const type =
+                    active.dataset.type;
+
+                if (id) {
+                    abrirDetalhes(
+                        id,
+                        type
+                    );
+                }
+            }
         }
+    );
+}
 
-        ensureRowsHaveHorizontalClass();
-        setupImageFallbacks();
-        refreshFavoriteVisuals();
-      }
+
+/* =========================================================
+   FECHAR MENU CLICANDO FORA
+   ========================================================= */
+
+function setupOutsideUserMenu() {
+    document.addEventListener(
+        "click",
+        event => {
+            const menu =
+                $("#user-menu");
+
+            const button =
+                $("#profile-button");
+
+            if (!menu) {
+                return;
+            }
+
+            if (
+                menu.contains(
+                    event.target
+                )
+            ) {
+                return;
+            }
+
+            if (
+                button &&
+                button.contains(
+                    event.target
+                )
+            ) {
+                return;
+            }
+
+            closeUserMenu();
+        }
+    );
+}
+
+
+/* =========================================================
+   PAUSAR HERO QUANDO O MOUSE ESTÁ SOBRE ELE
+   ========================================================= */
+
+function setupHeroHover() {
+    const slider =
+        $("#hero-slider");
+
+    if (!slider) {
+        return;
+    }
+
+    slider.addEventListener(
+        "mouseenter",
+        () => {
+            stopHeroTimer();
+        }
     );
 
-  observer.observe(
-    document.body,
-    {
-      childList: true,
-      subtree: true
+    slider.addEventListener(
+        "mouseleave",
+        () => {
+            startHeroTimer();
+        }
+    );
+}
+
+
+/* =========================================================
+   ERROS GLOBAIS DE IMAGEM
+   ========================================================= */
+
+function setupImageFallback() {
+    document.addEventListener(
+        "error",
+        event => {
+            const image =
+                event.target;
+
+            if (
+                !image ||
+                image.tagName !==
+                    "IMG"
+            ) {
+                return;
+            }
+
+            if (
+                image.dataset.fallbackApplied
+            ) {
+                return;
+            }
+
+            image.dataset.fallbackApplied =
+                "true";
+
+            if (
+                image.classList.contains(
+                    "movie-card-poster"
+                )
+            ) {
+                image.style.display =
+                    "none";
+            }
+        },
+        true
+    );
+}
+
+
+/* =========================================================
+   PÁGINAS FAVORITOS / HISTÓRICO
+   ========================================================= */
+
+function renderStandaloneFavorites() {
+    const possibleRows = [
+        "#favorites-row",
+        "#favoritos-row",
+        "#movies-row",
+        "#content-row"
+    ];
+
+    const favorites =
+        getFavorites();
+
+    for (const selector of possibleRows) {
+        const row = $(selector);
+
+        if (!row) {
+            continue;
+        }
+
+        if (
+            selector ===
+            "#favorites-row"
+        ) {
+            renderRow(
+                selector,
+                favorites,
+                "Você ainda não possui favoritos."
+            );
+
+            return;
+        }
     }
-  );
 }
 
+function renderStandaloneHistory() {
+    const possibleRows = [
+        "#history-row",
+        "#historico-row",
+        "#movies-row",
+        "#content-row"
+    ];
+
+    const history =
+        getHistory();
+
+    for (const selector of possibleRows) {
+        const row = $(selector);
+
+        if (!row) {
+            continue;
+        }
+
+        if (
+            selector ===
+            "#history-row"
+        ) {
+            renderRow(
+                selector,
+                history,
+                "Seu histórico está vazio."
+            );
+
+            return;
+        }
+    }
+}
+
+
 /* =========================================================
-   INICIALIZAÇÃO ÚNICA
+   INICIALIZAÇÃO
    ========================================================= */
 
-async function initializeCineFamily() {
-  if (appState.initialized) {
-    return;
-  }
+async function initCineFamily() {
+    try {
+        updateProfileUI();
 
-  appState.initialized =
-    true;
+        setupNavigation();
+        setupRowNavigation();
+        setupGlobalClickHandler();
+        setupInterfaceButtons();
+        setupModalBackdrops();
+        setupKeyboard();
+        setupOutsideUserMenu();
+        setupHeroHover();
+        setupImageFallback();
 
-  appState.currentPage =
-    detectCurrentPage();
+        renderFavoritesIfNeeded();
+        renderHistoryIfNeeded();
+        renderContinueWatching();
+        renderRecommended();
 
-  getFavorites();
-  getHistory();
+        const empty =
+            $("#empty-state");
 
-  setupSearch();
-  setupSearchButton();
+        if (empty) {
+            empty.hidden = true;
+        }
 
-  setupHeroControls();
-  setupHeroTouch();
+        await carregarHome();
 
-  setupProfileControls();
-  setupAvatarOptions();
-  setupUserMenu();
-  setupHeaderUserButton();
+    } catch (error) {
+        console.error(
+            "Erro na inicialização do CineFamily:",
+            error
+        );
 
-  setupNavigation();
+        setLoading(false);
 
-  setupScrollButtons();
-
-  setupImageFallbacks();
-
-  setupCloseButtons();
-  setupModalBackdrop();
-
-  setupFavoriteDetailsButton();
-  setupWatchButtons();
-
-  setupKeyboardNavigation();
-  setupEscapeKey();
-
-  setupPlayerFullscreen();
-
-  setupProfileModalButtons();
-
-  setupMobileMenu();
-
-  setupFavoritesButton();
-  setupHistoryButton();
-
-  setupBackButtons();
-
-  setupFavoriteLinks();
-  setupHistoryLinks();
-
-  setupStandalonePages();
-
-  setupDetailsObserver();
-
-  setupContentObserver();
-
-  ensureRowsHaveHorizontalClass();
-
-  updatePageCounters();
-
-  renderProfile();
-  renderFavoritesRow();
-  renderContinueRow();
-
-  if (
-    appState.currentPage ===
-    "home"
-  ) {
-    await loadHome();
-  }
-
-  if (
-    appState.currentPage ===
-    "favorites"
-  ) {
-    renderFavoritesPage();
-  }
-
-  if (
-    appState.currentPage ===
-    "history"
-  ) {
-    renderHistoryPage();
-  }
+        showToast(
+            "O CineFamily encontrou um erro ao iniciar.",
+            "error"
+        );
+    }
 }
 
-/* =========================================================
-   EVENTO CENTRAL
-   ========================================================= */
-
-function setupCentralClickHandler() {
-  document.addEventListener(
-    "click",
-    handleDocumentClick
-  );
-}
 
 /* =========================================================
-   INICIALIZAÇÃO QUANDO O HTML ESTIVER PRONTO
+   GARANTIR UMA ÚNICA INICIALIZAÇÃO
    ========================================================= */
 
 if (
-  document.readyState ===
-  "loading"
+    document.readyState ===
+    "loading"
 ) {
-  document.addEventListener(
-    "DOMContentLoaded",
-    () => {
-      setupCentralClickHandler();
-      initializeCineFamily();
-    },
-    {
-      once: true
-    }
-  );
+    document.addEventListener(
+        "DOMContentLoaded",
+        initCineFamily,
+        {
+            once: true
+        }
+    );
 } else {
-  setupCentralClickHandler();
-  initializeCineFamily();
+    initCineFamily();
 }
-
-/* =========================================================
-   API PÚBLICA DO CINEFAMILY
-   ========================================================= */
-
-window.CineFamily = {
-  openDetails,
-  closeDetails,
-  openPlayer,
-  closePlayer,
-  openProfile,
-  closeProfile,
-  toggleFavorite,
-  removeFavoriteItem,
-  removeHistoryItem,
-  clearHistory,
-  getFavorites,
-  getHistory,
-  searchContent,
-  realizarBusca,
-  nextHero,
-  previousHero,
-  setHeroSlide,
-  loadHome
-};
-
-/* =========================================================
-   COMPATIBILIDADE COM NOMES ANTIGOS
-   ========================================================= */
-
-window.abrirDetalhes =
-  openDetails;
-
-window.fecharDetalhes =
-  closeDetails;
-
-window.adicionarFavorito =
-  toggleFavorite;
-
-window.obterFavoritos =
-  getFavorites;
-
-window.obterHistorico =
-  getHistory;
-
-window.registrarHistorico =
-  addToHistory;
-
-window.realizarBusca =
-  realizarBusca;
-
-window.buscarTMDB =
-  searchContent;
-
-/* =========================================================
-   FINAL DO SCRIPT
-   ========================================================= */
