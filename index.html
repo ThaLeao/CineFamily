@@ -1,2090 +1,1925 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <meta name="theme-color"
-          content="#08080b">
-
-    <meta name="description"
-          content="CineFamily — filmes, séries, doramas, GL, Kids e TV ao vivo.">
-
-    <title>CineFamily</title>
-
-    <link rel="stylesheet"
-          href="style.css">
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#050505">
+  <meta name="description" content="CineFamily - Filmes, séries, doramas, GL, Kids e muito mais.">
+  <title>CineFamily</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <!-- =====================================================
-         HEADER
-    ====================================================== -->
+  <div id="app">
 
     <header class="site-header">
 
-        <a href="#inicio"
-           class="site-logo"
-           aria-label="CineFamily - Início">
+      <div class="header-left">
 
-            CineFamily
-
+        <a href="index.html" class="site-logo" aria-label="CineFamily - Início">
+          <span class="logo-cine">Cine</span><span class="logo-family">Family</span>
         </a>
 
-
-        <nav class="main-nav"
-             aria-label="Navegação principal">
-
-            <a href="#inicio"
-               class="nav-link active">
-
-                TV
-
-            </a>
-
-            <a href="#destaques"
-               class="nav-link">
-
-                Destaques
-
-            </a>
-
-            <a href="#filmes"
-               class="nav-link">
-
-                Filmes
-
-            </a>
-
-            <a href="#series"
-               class="nav-link">
-
-                Séries
-
-            </a>
-
-            <a href="#doramas"
-               class="nav-link">
-
-                Doramas
-
-            </a>
-
-            <a href="#gl"
-               class="nav-link">
-
-                GL
-
-            </a>
-
-            <a href="#kids"
-               class="nav-link">
-
-                Kids
-
-            </a>
-
-            <a href="#explorar"
-               class="nav-link">
-
-                Explorar
-
-            </a>
-
+        <nav class="main-nav" aria-label="Navegação principal">
+          <a href="#inicio">Início</a>
+          <a href="#tv">TV</a>
+          <a href="#destaques">Destaques</a>
+          <a href="#filmes">Filmes</a>
+          <a href="#series">Séries</a>
+          <a href="#doramas">Doramas</a>
+          <a href="#gl">GL</a>
+          <a href="#kids">Kids</a>
+          <a href="#explorar">Explorar</a>
         </nav>
 
+      </div>
 
-        <div class="header-actions">
+      <div class="header-actions">
 
-            <button
-                type="button"
-                class="header-action-button"
-                id="search-toggle"
-                aria-label="Buscar"
-                title="Buscar">
+        <button
+          id="search-toggle"
+          class="header-icon-button"
+          type="button"
+          aria-label="Abrir pesquisa"
+          title="Pesquisar"
+        >
+          🔎
+        </button>
 
-                🔎
+        <a
+          href="favoritos.html"
+          class="header-icon-button"
+          aria-label="Favoritos"
+          title="Favoritos"
+        >
+          ⭐
+        </a>
 
-            </button>
+        <a
+          href="historico.html"
+          class="header-icon-button"
+          aria-label="Histórico"
+          title="Histórico"
+        >
+          🕘
+        </a>
 
+        <button
+          id="profile-button"
+          class="profile-header-button"
+          type="button"
+          aria-label="Abrir perfil"
+          title="Perfil"
+        >
+          <span id="header-profile-avatar">👤</span>
+        </button>
 
-            <a
-                href="favoritos.html"
-                class="header-action-button"
-                aria-label="Favoritos"
-                title="Favoritos">
-
-                ⭐
-
-            </a>
-
-
-            <a
-                href="historico.html"
-                class="header-action-button"
-                aria-label="Histórico"
-                title="Histórico">
-
-                🕘
-
-            </a>
-
-
-            <button
-                type="button"
-                class="header-action-button"
-                id="profile-button"
-                aria-label="Perfil"
-                title="Perfil">
-
-                👤
-
-            </button>
-
-        </div>
+      </div>
 
     </header>
 
 
-    <!-- =====================================================
-         BUSCA
-    ====================================================== -->
+    <section id="search-area" class="search-area" aria-label="Pesquisa">
 
-    <section
-        id="search-area"
-        class="search-area"
-        aria-label="Busca">
+      <div class="search-container">
 
-        <div class="search-box">
+        <div class="search-input-wrapper">
 
-            <input
-                type="search"
-                id="search-input"
-                class="search-input"
-                placeholder="Buscar filmes, séries, doramas..."
-                autocomplete="off">
+          <span class="search-input-icon">🔎</span>
 
-            <button
-                type="button"
-                id="search-button"
-                class="search-button">
+          <input
+            id="search-input"
+            type="search"
+            placeholder="Buscar filmes, séries, doramas..."
+            autocomplete="off"
+            aria-label="Pesquisar filmes e séries"
+          >
 
-                🔎 Buscar
-
-            </button>
+          <button
+            id="search-clear"
+            class="search-clear"
+            type="button"
+            aria-label="Limpar pesquisa"
+            title="Limpar"
+          >
+            ✕
+          </button>
 
         </div>
 
         <button
-            type="button"
-            id="search-close"
-            class="search-close"
-            aria-label="Fechar busca">
-
-            ✕
-
+          id="search-button"
+          class="search-submit"
+          type="button"
+        >
+          🔎 Buscar
         </button>
+
+        <button
+          id="search-close"
+          class="search-close"
+          type="button"
+          aria-label="Fechar pesquisa"
+          title="Fechar pesquisa"
+        >
+          ✕
+        </button>
+
+      </div>
 
     </section>
 
 
-    <!-- =====================================================
-         CONTEÚDO PRINCIPAL
-    ====================================================== -->
-
     <main id="inicio">
 
 
-        <!-- =================================================
-             HERO / DESTAQUES
-        ================================================== -->
+      <section id="destaques" class="hero-section">
 
-        <section
-            id="destaques"
-            class="hero-section"
-            aria-label="Conteúdo em destaque">
+        <div id="hero-slider" class="hero-slider">
+
+          <article class="hero-slide active">
 
             <div
-                id="hero-slider"
-                class="hero-slider">
+              class="hero-background"
+              style="background-image: linear-gradient(90deg, rgba(5,5,5,1) 0%, rgba(5,5,5,0.9) 35%, rgba(5,5,5,0.35) 70%, rgba(5,5,5,0.15) 100%), linear-gradient(0deg, rgba(5,5,5,0.95) 0%, rgba(5,5,5,0) 55%);"
+            ></div>
 
-                <div class="hero-slide active">
+            <div class="hero-overlay"></div>
 
-                    <div
-                        class="hero-background"
-                        id="hero-background-1">
-                    </div>
+            <div class="hero-content">
 
+              <span id="hero-kicker" class="hero-kicker">
+                CINEFAMILY
+              </span>
 
-                    <div class="hero-overlay"></div>
+              <h1 id="hero-title">
+                Filmes e Séries
+              </h1>
 
+              <p id="hero-overview">
+                Encontre seus filmes, séries, doramas e conteúdos favoritos em um só lugar.
+              </p>
 
-                    <div class="hero-content">
-
-                        <span
-                            class="hero-kicker"
-                            id="hero-kicker">
-
-                            DESTAQUE
-
-                        </span>
-
-
-                        <h1
-                            class="hero-title"
-                            id="hero-title">
-
-                            Filmes e Séries
-
-                        </h1>
-
-
-                        <p
-                            class="hero-overview"
-                            id="hero-overview">
-
-                            Encontre seus filmes, séries,
-                            doramas e conteúdos favoritos
-                            em um só lugar.
-
-                        </p>
-
-
-                        <div class="hero-actions">
-
-                            <button
-                                type="button"
-                                class="hero-button hero-button-primary"
-                                id="hero-watch-button">
-
-                                ▶ Assistir agora
-
-                            </button>
-
-
-                            <button
-                                type="button"
-                                class="hero-button hero-button-secondary"
-                                id="hero-info-button">
-
-                                ⓘ Mais informações
-
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <div class="hero-slide">
-
-                    <div
-                        class="hero-background"
-                        id="hero-background-2">
-                    </div>
-
-
-                    <div class="hero-overlay"></div>
-
-
-                    <div class="hero-content">
-
-                        <span class="hero-kicker">
-
-                            CINEFAMILY
-
-                        </span>
-
-
-                        <h1 class="hero-title">
-
-                            Grandes histórias
-
-                        </h1>
-
-
-                        <p class="hero-overview">
-
-                            Descubra novos filmes e
-                            histórias para assistir
-                            com toda a família.
-
-                        </p>
-
-
-                        <div class="hero-actions">
-
-                            <button
-                                type="button"
-                                class="hero-button hero-button-primary">
-
-                                ▶ Explorar agora
-
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <div class="hero-slide">
-
-                    <div
-                        class="hero-background"
-                        id="hero-background-3">
-                    </div>
-
-
-                    <div class="hero-overlay"></div>
-
-
-                    <div class="hero-content">
-
-                        <span class="hero-kicker">
-
-                            ORIENTAL
-
-                        </span>
-
-
-                        <h1 class="hero-title">
-
-                            Histórias inesquecíveis
-
-                        </h1>
-
-
-                        <p class="hero-overview">
-
-                            Explore doramas e conteúdos
-                            asiáticos selecionados
-                            para você.
-
-                        </p>
-
-
-                        <div class="hero-actions">
-
-                            <button
-                                type="button"
-                                class="hero-button hero-button-primary">
-
-                                ▶ Ver doramas
-
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
+              <div class="hero-actions">
 
                 <button
-                    type="button"
-                    class="hero-arrow hero-arrow-left"
-                    id="hero-prev"
-                    aria-label="Destaque anterior">
-
-                    ❮
-
+                  id="hero-watch-button"
+                  class="btn-primary"
+                  type="button"
+                >
+                  ▶ Assistir agora
                 </button>
-
 
                 <button
-                    type="button"
-                    class="hero-arrow hero-arrow-right"
-                    id="hero-next"
-                    aria-label="Próximo destaque">
-
-                    ❯
-
+                  id="hero-info-button"
+                  class="btn-secondary"
+                  type="button"
+                >
+                  ⓘ Mais informações
                 </button>
 
-
-                <div
-                    class="hero-indicators"
-                    id="hero-indicators">
-
-                    <button
-                        type="button"
-                        class="hero-indicator active"
-                        data-slide="0"
-                        aria-label="Destaque 1">
-                    </button>
-
-                    <button
-                        type="button"
-                        class="hero-indicator"
-                        data-slide="1"
-                        aria-label="Destaque 2">
-                    </button>
-
-                    <button
-                        type="button"
-                        class="hero-indicator"
-                        data-slide="2"
-                        aria-label="Destaque 3">
-                    </button>
-
-                </div>
+              </div>
 
             </div>
 
-        </section>
+          </article>
 
 
-        <!-- =================================================
-             RESULTADOS DA BUSCA
-        ================================================== -->
-
-        <section
-            id="search-results-section"
-            class="content-section search-results-section hidden">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <span class="section-kicker">
-
-                        RESULTADOS
-
-                    </span>
-
-                    <h2 class="section-title">
-
-                        Busca
-
-                    </h2>
-
-                </div>
-
-            </div>
-
+          <article class="hero-slide">
 
             <div
-                id="search-results-row"
-                class="horizontal-content-row">
+              class="hero-background"
+              style="background-image: linear-gradient(90deg, rgba(5,5,5,1) 0%, rgba(5,5,5,0.9) 35%, rgba(5,5,5,0.35) 70%, rgba(5,5,5,0.15) 100%), linear-gradient(0deg, rgba(5,5,5,0.95) 0%, rgba(5,5,5,0) 55%);"
+            ></div>
+
+            <div class="hero-overlay"></div>
+
+            <div class="hero-content">
+
+              <span class="hero-kicker">
+                CINEFAMILY
+              </span>
+
+              <h1>
+                Grandes histórias
+              </h1>
+
+              <p>
+                Descubra novos filmes e histórias para assistir com toda a família.
+              </p>
+
+              <div class="hero-actions">
+
+                <button
+                  class="btn-primary hero-explore-button"
+                  type="button"
+                >
+                  ▶ Explorar agora
+                </button>
+
+              </div>
 
             </div>
 
-        </section>
+          </article>
 
 
-        <!-- =================================================
-             CONTINUAR ASSISTINDO
-        ================================================== -->
-
-        <section
-            id="continue-section"
-            class="content-section hidden">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <span class="section-kicker">
-
-                        CINEFAMILY
-
-                    </span>
-
-                    <h2 class="section-title">
-
-                        Continuar assistindo
-
-                    </h2>
-
-                </div>
-
-            </div>
-
+          <article class="hero-slide">
 
             <div
-                id="continue-row"
-                class="horizontal-content-row">
+              class="hero-background"
+              style="background-image: linear-gradient(90deg, rgba(5,5,5,1) 0%, rgba(5,5,5,0.9) 35%, rgba(5,5,5,0.35) 70%, rgba(5,5,5,0.15) 100%), linear-gradient(0deg, rgba(5,5,5,0.95) 0%, rgba(5,5,5,0) 55%);"
+            ></div>
+
+            <div class="hero-overlay"></div>
+
+            <div class="hero-content">
+
+              <span class="hero-kicker">
+                ORIENTAL
+              </span>
+
+              <h1>
+                Histórias inesquecíveis
+              </h1>
+
+              <p>
+                Explore doramas e conteúdos asiáticos selecionados para você.
+              </p>
+
+              <div class="hero-actions">
+
+                <button
+                  class="btn-primary hero-dorama-button"
+                  type="button"
+                >
+                  ▶ Ver doramas
+                </button>
+
+              </div>
 
             </div>
 
-        </section>
-
-
-        <!-- =================================================
-             FILMES
-        ================================================== -->
-
-        <section
-            id="filmes"
-            class="content-section">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <span class="section-kicker">
-
-                        CINEFAMILY
-
-                    </span>
-
-                    <h2 class="section-title">
-
-                        Filmes
-
-                    </h2>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    class="section-see-all"
-                    data-category="filmes">
-
-                    Ver todos →
-
-                </button>
-
-            </div>
-
-
-            <div class="content-row-wrapper">
-
-                <button
-                    type="button"
-                    class="row-arrow row-arrow-left"
-                    data-target="movies-row"
-                    aria-label="Filmes anteriores">
-
-                    ❮
-
-                </button>
-
-
-                <div
-                    id="movies-row"
-                    class="horizontal-content-row">
-
-                    <div class="cards-loading">
-
-                        Carregando filmes...
-
-                    </div>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    class="row-arrow row-arrow-right"
-                    data-target="movies-row"
-                    aria-label="Mais filmes">
-
-                    ❯
-
-                </button>
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             FIM DA PARTE 1/4
-        ================================================== -->
-                <!-- =================================================
-             SÉRIES
-        ================================================== -->
-
-        <section
-            id="series"
-            class="content-section">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <span class="section-kicker">
-
-                        CINEFAMILY
-
-                    </span>
-
-                    <h2 class="section-title">
-
-                        Séries
-
-                    </h2>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    class="section-see-all"
-                    data-category="series">
-
-                    Ver todos →
-
-                </button>
-
-            </div>
-
-
-            <div class="content-row-wrapper">
-
-                <button
-                    type="button"
-                    class="row-arrow row-arrow-left"
-                    data-target="series-row"
-                    aria-label="Séries anteriores">
-
-                    ❮
-
-                </button>
-
-
-                <div
-                    id="series-row"
-                    class="horizontal-content-row">
-
-                    <div class="cards-loading">
-
-                        Carregando séries...
-
-                    </div>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    class="row-arrow row-arrow-right"
-                    data-target="series-row"
-                    aria-label="Mais séries">
-
-                    ❯
-
-                </button>
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             DORAMAS
-        ================================================== -->
-
-        <section
-            id="doramas"
-            class="content-section">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <span class="section-kicker">
-
-                        ORIENTAL
-
-                    </span>
-
-                    <h2 class="section-title">
-
-                        Doramas
-
-                    </h2>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    class="section-see-all"
-                    data-category="doramas">
-
-                    Ver todos →
-
-                </button>
-
-            </div>
-
-
-            <div class="content-row-wrapper">
-
-                <button
-                    type="button"
-                    class="row-arrow row-arrow-left"
-                    data-target="doramas-row"
-                    aria-label="Doramas anteriores">
-
-                    ❮
-
-                </button>
-
-
-                <div
-                    id="doramas-row"
-                    class="horizontal-content-row">
-
-                    <div class="cards-loading">
-
-                        Carregando doramas...
-
-                    </div>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    class="row-arrow row-arrow-right"
-                    data-target="doramas-row"
-                    aria-label="Mais doramas">
-
-                    ❯
-
-                </button>
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             GL
-        ================================================== -->
-
-        <section
-            id="gl"
-            class="content-section">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <span class="section-kicker">
-
-                        CATEGORIA
-
-                    </span>
-
-                    <h2 class="section-title">
-
-                        GL
-
-                    </h2>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    class="section-see-all"
-                    data-category="gl">
-
-                    Ver todos →
-
-                </button>
-
-            </div>
-
-
-            <div class="content-row-wrapper">
-
-                <button
-                    type="button"
-                    class="row-arrow row-arrow-left"
-                    data-target="gl-row"
-                    aria-label="GL anteriores">
-
-                    ❮
-
-                </button>
-
-
-                <div
-                    id="gl-row"
-                    class="horizontal-content-row">
-
-                    <div class="cards-loading">
-
-                        Carregando GL...
-
-                    </div>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    class="row-arrow row-arrow-right"
-                    data-target="gl-row"
-                    aria-label="Mais GL">
-
-                    ❯
-
-                </button>
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             KIDS
-        ================================================== -->
-
-        <section
-            id="kids"
-            class="content-section">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <span class="section-kicker">
-
-                        FAMÍLIA
-
-                    </span>
-
-                    <h2 class="section-title">
-
-                        Kids
-
-                    </h2>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    class="section-see-all"
-                    data-category="kids">
-
-                    Ver todos →
-
-                </button>
-
-            </div>
-
-
-            <div class="content-row-wrapper">
-
-                <button
-                    type="button"
-                    class="row-arrow row-arrow-left"
-                    data-target="kids-row"
-                    aria-label="Kids anteriores">
-
-                    ❮
-
-                </button>
-
-
-                <div
-                    id="kids-row"
-                    class="horizontal-content-row">
-
-                    <div class="cards-loading">
-
-                        Carregando Kids...
-
-                    </div>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    class="row-arrow row-arrow-right"
-                    data-target="kids-row"
-                    aria-label="Mais Kids">
-
-                    ❯
-
-                </button>
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             MAIS BEM AVALIADOS
-        ================================================== -->
-
-        <section
-            id="mais-avaliados"
-            class="content-section">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <span class="section-kicker">
-
-                        ⭐ CINEFAMILY
-
-                    </span>
-
-                    <h2 class="section-title">
-
-                        Mais bem avaliados
-
-                    </h2>
-
-                </div>
-
-            </div>
-
-
-            <div class="content-row-wrapper">
-
-                <button
-                    type="button"
-                    class="row-arrow row-arrow-left"
-                    data-target="top-rated-row"
-                    aria-label="Títulos anteriores">
-
-                    ❮
-
-                </button>
-
-
-                <div
-                    id="top-rated-row"
-                    class="horizontal-content-row">
-
-                    <div class="cards-loading">
-
-                        Carregando...
-
-                    </div>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    class="row-arrow row-arrow-right"
-                    data-target="top-rated-row"
-                    aria-label="Mais títulos">
-
-                    ❯
-
-                </button>
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             LANÇAMENTOS
-        ================================================== -->
-
-        <section
-            id="lancamentos"
-            class="content-section">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <span class="section-kicker">
-
-                        🆕
-
-                    </span>
-
-                    <h2 class="section-title">
-
-                        Lançamentos
-
-                    </h2>
-
-                </div>
-
-            </div>
-
-
-            <div class="content-row-wrapper">
-
-                <button
-                    type="button"
-                    class="row-arrow row-arrow-left"
-                    data-target="latest-row"
-                    aria-label="Lançamentos anteriores">
-
-                    ❮
-
-                </button>
-
-
-                <div
-                    id="latest-row"
-                    class="horizontal-content-row">
-
-                    <div class="cards-loading">
-
-                        Carregando lançamentos...
-
-                    </div>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    class="row-arrow row-arrow-right"
-                    data-target="latest-row"
-                    aria-label="Mais lançamentos">
-
-                    ❯
-
-                </button>
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             TV AO VIVO
-        ================================================== -->
-
-        <section
-            id="tv"
-            class="content-section">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <span class="section-kicker">
-
-                        AO VIVO
-
-                    </span>
-
-                    <h2 class="section-title">
-
-                        TV ao vivo
-
-                    </h2>
-
-                </div>
-
-            </div>
-
-
-            <div
-                id="live-tv-grid"
-                class="live-tv-grid">
-
-
-                <div class="live-tv-card">
-
-                    <div class="live-tv-icon">
-
-                        📺
-
-                    </div>
-
-
-                    <div class="live-tv-info">
-
-                        <strong>
-
-                            TV Aberta
-
-                        </strong>
-
-                        <span>
-
-                            Programação ao vivo
-
-                        </span>
-
-                    </div>
-
-
-                    <span class="live-badge">
-
-                        ● AO VIVO
-
-                    </span>
-
-                </div>
-
-
-                <div class="live-tv-card">
-
-                    <div class="live-tv-icon">
-
-                        📰
-
-                    </div>
-
-
-                    <div class="live-tv-info">
-
-                        <strong>
-
-                            Notícias
-
-                        </strong>
-
-                        <span>
-
-                            Informação ao vivo
-
-                        </span>
-
-                    </div>
-
-
-                    <span class="live-badge">
-
-                        ● AO VIVO
-
-                    </span>
-
-                </div>
-
-
-                <div class="live-tv-card">
-
-                    <div class="live-tv-icon">
-
-                        🎬
-
-                    </div>
-
-
-                    <div class="live-tv-info">
-
-                        <strong>
-
-                            Entretenimento
-
-                        </strong>
-
-                        <span>
-
-                            Conteúdo selecionado
-
-                        </span>
-
-                    </div>
-
-
-                    <span class="live-badge">
-
-                        ● AO VIVO
-
-                    </span>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             EXPLORAR
-        ================================================== -->
-
-        <section
-            id="explorar"
-            class="content-section">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <span class="section-kicker">
-
-                        CINEFAMILY
-
-                    </span>
-
-                    <h2 class="section-title">
-
-                        Explore por categoria
-
-                    </h2>
-
-                </div>
-
-            </div>
-
-
-            <div class="category-grid">
-
-
-                <button
-                    type="button"
-                    class="category-card"
-                    data-category="filmes">
-
-                    <span class="category-icon">
-
-                        🎬
-
-                    </span>
-
-                    <span class="category-name">
-
-                        Filmes
-
-                    </span>
-
-                </button>
-
-
-                <button
-                    type="button"
-                    class="category-card"
-                    data-category="series">
-
-                    <span class="category-icon">
-
-                        📺
-
-                    </span>
-
-                    <span class="category-name">
-
-                        Séries
-
-                    </span>
-
-                </button>
-
-
-                <button
-                    type="button"
-                    class="category-card"
-                    data-category="doramas">
-
-                    <span class="category-icon">
-
-                        🌸
-
-                    </span>
-
-                    <span class="category-name">
-
-                        Doramas
-
-                    </span>
-
-                </button>
-
-
-                <button
-                    type="button"
-                    class="category-card"
-                    data-category="gl">
-
-                    <span class="category-icon">
-
-                        💜
-
-                    </span>
-
-                    <span class="category-name">
-
-                        GL
-
-                    </span>
-
-                </button>
-
-
-                <button
-                    type="button"
-                    class="category-card"
-                    data-category="kids">
-
-                    <span class="category-icon">
-
-                        🧸
-
-                    </span>
-
-                    <span class="category-name">
-
-                        Kids
-
-                    </span>
-
-                </button>
-
-
-                <button
-                    type="button"
-                    class="category-card"
-                    data-category="tv">
-
-                    <span class="category-icon">
-
-                        📡
-
-                    </span>
-
-                    <span class="category-name">
-
-                        TV ao vivo
-
-                    </span>
-
-                </button>
-
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             FIM DA PARTE 2/4
-        ================================================== -->
-               <!-- =================================================
-             SEÇÃO DE FAVORITOS
-        ================================================== -->
-
-        <section
-            id="favorites-section"
-            class="content-section hidden">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <span class="section-kicker">
-
-                        ⭐ CINEFAMILY
-
-                    </span>
-
-                    <h2 class="section-title">
-
-                        Meus favoritos
-
-                    </h2>
-
-                </div>
-
-            </div>
-
-
-            <div
-                id="favorites-row"
-                class="horizontal-content-row">
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             MODAL DE DETALHES
-        ================================================== -->
-
-        <div
-            id="details-modal"
-            class="modal-overlay"
-            aria-hidden="true">
-
-            <div class="details-modal">
-
-                <button
-                    type="button"
-                    class="modal-close"
-                    id="details-close"
-                    aria-label="Fechar">
-
-                    ✕
-
-                </button>
-
-
-                <div
-                    class="details-backdrop"
-                    id="details-backdrop">
-                </div>
-
-
-                <div class="details-content">
-
-
-                    <div class="details-poster-wrapper">
-
-                        <img
-                            id="details-poster"
-                            class="details-poster"
-                            src=""
-                            alt="">
-
-                    </div>
-
-
-                    <div class="details-info">
-
-                        <span
-                            id="details-type"
-                            class="details-type">
-
-                            FILME
-
-                        </span>
-
-
-                        <h2
-                            id="details-title"
-                            class="details-title">
-
-                            Título
-
-                        </h2>
-
-
-                        <div
-                            id="details-meta"
-                            class="details-meta">
-
-                        </div>
-
-
-                        <p
-                            id="details-overview"
-                            class="details-overview">
-
-                        </p>
-
-
-                        <div class="details-actions">
-
-                            <button
-                                type="button"
-                                class="hero-button hero-button-primary"
-                                id="details-watch-button">
-
-                                ▶ Assistir agora
-
-                            </button>
-
-
-                            <button
-                                type="button"
-                                class="hero-button hero-button-secondary"
-                                id="details-favorite-button">
-
-                                ⭐ Favoritar
-
-                            </button>
-
-                        </div>
-
-
-                        <div
-                            id="episodes-container"
-                            class="episodes-container hidden">
-
-                            <h3 class="episodes-title">
-
-                                Episódios
-
-                            </h3>
-
-
-                            <div
-                                id="episodes-list"
-                                class="episodes-list">
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
+          </article>
 
         </div>
 
 
-        <!-- =================================================
-             MODAL DO PLAYER
-        ================================================== -->
+        <div class="hero-controls">
 
-        <div
-            id="player-modal"
-            class="modal-overlay"
-            aria-hidden="true">
+          <button
+            id="hero-prev"
+            class="hero-control-button"
+            type="button"
+            aria-label="Destaque anterior"
+            title="Anterior"
+          >
+            ❮
+          </button>
 
-            <div class="player-modal">
+          <div
+            id="hero-indicators"
+            class="hero-indicators"
+            aria-label="Indicadores dos destaques"
+          ></div>
 
-                <button
-                    type="button"
-                    class="modal-close"
-                    id="player-close"
-                    aria-label="Fechar player">
-
-                    ✕
-
-                </button>
-
-
-                <div class="player-header">
-
-                    <div
-                        id="player-title"
-                        class="player-title">
-
-                        CineFamily
-
-                    </div>
-
-                </div>
-
-
-                <div
-                    id="player-body"
-                    class="player-body">
-
-                    <div class="player-placeholder">
-
-                        <div class="player-placeholder-icon">
-
-                            🎬
-
-                        </div>
-
-
-                        <h3>
-
-                            Player CineFamily
-
-                        </h3>
-
-
-                        <p>
-
-                            O conteúdo selecionado será
-                            carregado aqui.
-
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <div class="player-controls">
-
-                    <div class="player-controls-left">
-
-                        <span
-                            class="player-control-label"
-                            id="player-status">
-
-                            Pronto para assistir
-
-                        </span>
-
-                    </div>
-
-
-                    <div class="player-controls-right">
-
-                        <button
-                            type="button"
-                            class="player-control-button"
-                            id="player-fullscreen"
-                            aria-label="Tela cheia"
-                            title="Tela cheia">
-
-                            ⛶
-
-                        </button>
-
-                    </div>
-
-                </div>
-
-            </div>
+          <button
+            id="hero-next"
+            class="hero-control-button"
+            type="button"
+            aria-label="Próximo destaque"
+            title="Próximo"
+          >
+            ❯
+          </button>
 
         </div>
 
+      </section>
 
-        <!-- =================================================
-             MODAL DE PERFIL
-        ================================================== -->
 
-        <div
-            id="profile-modal"
-            class="modal-overlay"
-            aria-hidden="true">
+      <section
+        id="search-results-section"
+        class="content-section search-results-section"
+        hidden
+      >
 
-            <div class="profile-modal">
+        <div class="section-heading">
 
-                <button
-                    type="button"
-                    class="modal-close"
-                    id="profile-close"
-                    aria-label="Fechar perfil">
-
-                    ✕
-
-                </button>
-
-
-                <div class="profile-modal-header">
-
-                    <div
-                        id="profile-avatar-large"
-                        class="profile-avatar-large">
-
-                        👤
-
-                    </div>
-
-
-                    <div>
-
-                        <h2 class="profile-modal-title">
-
-                            Meu perfil
-
-                        </h2>
-
-                    </div>
-
-                </div>
-
-
-                <form
-                    id="profile-form"
-                    class="profile-form">
-
-                    <label
-                        for="profile-name">
-
-                        Nome
-
-                    </label>
-
-
-                    <input
-                        type="text"
-                        id="profile-name"
-                        class="profile-input"
-                        maxlength="30"
-                        placeholder="Digite seu nome">
-
-
-                    <label>
-
-                        Escolha seu avatar
-
-                    </label>
-
-
-                    <div class="avatar-options">
-
-
-                        <button
-                            type="button"
-                            class="avatar-option selected"
-                            data-avatar="👤"
-                            aria-label="Avatar 1">
-
-                            👤
-
-                        </button>
-
-
-                        <button
-                            type="button"
-                            class="avatar-option"
-                            data-avatar="😀"
-                            aria-label="Avatar 2">
-
-                            😀
-
-                        </button>
-
-
-                        <button
-                            type="button"
-                            class="avatar-option"
-                            data-avatar="😎"
-                            aria-label="Avatar 3">
-
-                            😎
-
-                        </button>
-
-
-                        <button
-                            type="button"
-                            class="avatar-option"
-                            data-avatar="🧑‍💻"
-                            aria-label="Avatar 4">
-
-                            🧑‍💻
-
-                        </button>
-
-
-                        <button
-                            type="button"
-                            class="avatar-option"
-                            data-avatar="🦊"
-                            aria-label="Avatar 5">
-
-                            🦊
-
-                        </button>
-
-
-                        <button
-                            type="button"
-                            class="avatar-option"
-                            data-avatar="🐼"
-                            aria-label="Avatar 6">
-
-                            🐼
-
-                        </button>
-
-
-                        <button
-                            type="button"
-                            class="avatar-option"
-                            data-avatar="🐱"
-                            aria-label="Avatar 7">
-
-                            🐱
-
-                        </button>
-
-
-                        <button
-                            type="button"
-                            class="avatar-option"
-                            data-avatar="🐨"
-                            aria-label="Avatar 8">
-
-                            🐨
-
-                        </button>
-
-
-                    </div>
-
-
-                    <button
-                        type="submit"
-                        class="btn btn-primary profile-save-button">
-
-                        Salvar perfil
-
-                    </button>
-
-                </form>
-
-            </div>
+          <div>
+            <span class="section-kicker">RESULTADOS</span>
+            <h2>Resultados da busca</h2>
+          </div>
 
         </div>
 
-
-        <!-- =================================================
-             MENU DO USUÁRIO
-        ================================================== -->
-
         <div
-            id="user-menu"
-            class="user-menu"
-            aria-hidden="true">
+          id="search-results-row"
+          class="content-row"
+        ></div>
 
-            <div class="user-menu-profile">
-
-                <div
-                    id="user-menu-avatar"
-                    class="user-menu-avatar">
-
-                    👤
-
-                </div>
+      </section>
 
 
-                <div class="user-menu-user-info">
+      <section
+        id="continue-section"
+        class="content-section"
+        hidden
+      >
 
-                    <strong
-                        id="user-menu-name">
+        <div class="section-heading">
 
-                        Visitante
+          <div>
+            <span class="section-kicker">CINEFAMILY</span>
+            <h2>Continue assistindo</h2>
+          </div>
 
-                    </strong>
-
-
-                    <span>
-
-                        Perfil CineFamily
-
-                    </span>
-
-                </div>
-
-            </div>
-
-
-            <div class="user-menu-divider"></div>
-
+          <div class="row-controls">
 
             <button
-                type="button"
-                class="user-menu-item"
-                id="user-profile-edit">
-
-                👤 Editar perfil
-
+              class="row-control"
+              type="button"
+              data-scroll-target="continue-row"
+              data-scroll-direction="left"
+              aria-label="Voltar"
+            >
+              ❮
             </button>
-
 
             <button
-                type="button"
-                class="user-menu-item"
-                id="user-favorites-button">
-
-                ⭐ Meus favoritos
-
+              class="row-control"
+              type="button"
+              data-scroll-target="continue-row"
+              data-scroll-direction="right"
+              aria-label="Avançar"
+            >
+              ❯
             </button>
 
-
-            <button
-                type="button"
-                class="user-menu-item"
-                id="user-history-button">
-
-                🕘 Meu histórico
-
-            </button>
+          </div>
 
         </div>
-
-
-        <!-- =================================================
-             TOASTS
-        ================================================== -->
 
         <div
-            id="toast-container"
-            class="toast-container"
-            aria-live="polite"
-            aria-atomic="true">
+          id="continue-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="filmes"
+        class="content-section"
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">CINEFAMILY</span>
+            <h2>Filmes</h2>
+          </div>
+
+          <div class="section-heading-actions">
+
+            <button
+              class="view-all-button"
+              type="button"
+              data-category="filmes"
+            >
+              Ver todos →
+            </button>
+
+            <div class="row-controls">
+
+              <button
+                class="row-control"
+                type="button"
+                data-scroll-target="movies-row"
+                data-scroll-direction="left"
+                aria-label="Filmes anteriores"
+              >
+                ❮
+              </button>
+
+              <button
+                class="row-control"
+                type="button"
+                data-scroll-target="movies-row"
+                data-scroll-direction="right"
+                aria-label="Mais filmes"
+              >
+                ❯
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div
+          id="movies-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="series"
+        class="content-section"
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">CINEFAMILY</span>
+            <h2>Séries</h2>
+          </div>
+
+          <div class="section-heading-actions">
+
+            <button
+              class="view-all-button"
+              type="button"
+              data-category="series"
+            >
+              Ver todos →
+            </button>
+
+            <div class="row-controls">
+
+              <button
+                class="row-control"
+                type="button"
+                data-scroll-target="series-row"
+                data-scroll-direction="left"
+                aria-label="Séries anteriores"
+              >
+                ❮
+              </button>
+
+              <button
+                class="row-control"
+                type="button"
+                data-scroll-target="series-row"
+                data-scroll-direction="right"
+                aria-label="Mais séries"
+              >
+                ❯
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div
+          id="series-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="doramas"
+        class="content-section"
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">ORIENTAL</span>
+            <h2>Doramas</h2>
+          </div>
+
+          <div class="section-heading-actions">
+
+            <button
+              class="view-all-button"
+              type="button"
+              data-category="doramas"
+            >
+              Ver todos →
+            </button>
+
+            <div class="row-controls">
+
+              <button
+                class="row-control"
+                type="button"
+                data-scroll-target="doramas-row"
+                data-scroll-direction="left"
+                aria-label="Doramas anteriores"
+              >
+                ❮
+              </button>
+
+              <button
+                class="row-control"
+                type="button"
+                data-scroll-target="doramas-row"
+                data-scroll-direction="right"
+                aria-label="Mais doramas"
+              >
+                ❯
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div
+          id="doramas-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="gl"
+        class="content-section"
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">CATEGORIA</span>
+            <h2>GL</h2>
+          </div>
+
+          <div class="section-heading-actions">
+
+            <button
+              class="view-all-button"
+              type="button"
+              data-category="gl"
+            >
+              Ver todos →
+            </button>
+
+            <div class="row-controls">
+
+              <button
+                class="row-control"
+                type="button"
+                data-scroll-target="gl-row"
+                data-scroll-direction="left"
+                aria-label="GL anteriores"
+              >
+                ❮
+              </button>
+
+              <button
+                class="row-control"
+                type="button"
+                data-scroll-target="gl-row"
+                data-scroll-direction="right"
+                aria-label="Mais GL"
+              >
+                ❯
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div
+          id="gl-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="kids"
+        class="content-section"
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">FAMÍLIA</span>
+            <h2>Kids</h2>
+          </div>
+
+          <div class="section-heading-actions">
+
+            <button
+              class="view-all-button"
+              type="button"
+              data-category="kids"
+            >
+              Ver todos →
+            </button>
+
+            <div class="row-controls">
+
+              <button
+                class="row-control"
+                type="button"
+                data-scroll-target="kids-row"
+                data-scroll-direction="left"
+                aria-label="Kids anteriores"
+              >
+                ❮
+              </button>
+
+              <button
+                class="row-control"
+                type="button"
+                data-scroll-target="kids-row"
+                data-scroll-direction="right"
+                aria-label="Mais conteúdo Kids"
+              >
+                ❯
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div
+          id="kids-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="mais-avaliados"
+        class="content-section"
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">⭐ CINEFAMILY</span>
+            <h2>Mais bem avaliados</h2>
+          </div>
+
+          <div class="row-controls">
+
+            <button
+              class="row-control"
+              type="button"
+              data-scroll-target="top-rated-row"
+              data-scroll-direction="left"
+              aria-label="Mais bem avaliados anteriores"
+            >
+              ❮
+            </button>
+
+            <button
+              class="row-control"
+              type="button"
+              data-scroll-target="top-rated-row"
+              data-scroll-direction="right"
+              aria-label="Mais bem avaliados"
+            >
+              ❯
+            </button>
+
+          </div>
+
+        </div>
+
+        <div
+          id="top-rated-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="lancamentos"
+        class="content-section"
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">🆕</span>
+            <h2>Lançamentos</h2>
+          </div>
+
+          <div class="row-controls">
+
+            <button
+              class="row-control"
+              type="button"
+              data-scroll-target="latest-row"
+              data-scroll-direction="left"
+              aria-label="Lançamentos anteriores"
+            >
+              ❮
+            </button>
+
+            <button
+              class="row-control"
+              type="button"
+              data-scroll-target="latest-row"
+              data-scroll-direction="right"
+              aria-label="Mais lançamentos"
+            >
+              ❯
+            </button>
+
+          </div>
+
+        </div>
+
+        <div
+          id="latest-row"
+          class="content-row"
+        ></div>
+
+      </section>
+            <section
+        id="tv"
+        class="content-section"
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">AO VIVO</span>
+            <h2>TV ao vivo</h2>
+          </div>
+
+          <div class="row-controls">
+
+            <button
+              class="row-control"
+              type="button"
+              data-scroll-target="live-tv-grid"
+              data-scroll-direction="left"
+              aria-label="Canais anteriores"
+            >
+              ❮
+            </button>
+
+            <button
+              class="row-control"
+              type="button"
+              data-scroll-target="live-tv-grid"
+              data-scroll-direction="right"
+              aria-label="Mais canais"
+            >
+              ❯
+            </button>
+
+          </div>
+
+        </div>
+
+        <div
+          id="live-tv-grid"
+          class="content-row live-tv-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="explorar"
+        class="content-section explorar-section"
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">DESCUBRA</span>
+            <h2>Explorar</h2>
+          </div>
+
+        </div>
+
+        <div class="explore-grid">
+
+          <button
+            type="button"
+            class="category-card"
+            data-category="acao"
+          >
+            <span class="category-card-icon">💥</span>
+            <strong>Ação</strong>
+            <small>Adrenalina e aventura</small>
+          </button>
+
+          <button
+            type="button"
+            class="category-card"
+            data-category="aventura"
+          >
+            <span class="category-card-icon">🗺️</span>
+            <strong>Aventura</strong>
+            <small>Grandes jornadas</small>
+          </button>
+
+          <button
+            type="button"
+            class="category-card"
+            data-category="comedia"
+          >
+            <span class="category-card-icon">😂</span>
+            <strong>Comédia</strong>
+            <small>Para se divertir</small>
+          </button>
+
+          <button
+            type="button"
+            class="category-card"
+            data-category="drama"
+          >
+            <span class="category-card-icon">🎭</span>
+            <strong>Drama</strong>
+            <small>Histórias marcantes</small>
+          </button>
+
+          <button
+            type="button"
+            class="category-card"
+            data-category="romance"
+          >
+            <span class="category-card-icon">❤️</span>
+            <strong>Romance</strong>
+            <small>Histórias de amor</small>
+          </button>
+
+          <button
+            type="button"
+            class="category-card"
+            data-category="fantasia"
+          >
+            <span class="category-card-icon">🪄</span>
+            <strong>Fantasia</strong>
+            <small>Mundos extraordinários</small>
+          </button>
+
+          <button
+            type="button"
+            class="category-card"
+            data-category="terror"
+          >
+            <span class="category-card-icon">👻</span>
+            <strong>Terror</strong>
+            <small>Para sentir arrepios</small>
+          </button>
+
+          <button
+            type="button"
+            class="category-card"
+            data-category="ficcao"
+          >
+            <span class="category-card-icon">🚀</span>
+            <strong>Ficção científica</strong>
+            <small>Além da imaginação</small>
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <section
+        id="favorites-section"
+        class="content-section"
+        hidden
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">⭐ SUA LISTA</span>
+            <h2>Meus favoritos</h2>
+          </div>
+
+          <a
+            href="favoritos.html"
+            class="view-all-button"
+          >
+            Ver todos →
+          </a>
+
+        </div>
+
+        <div
+          id="favorites-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="historico-section"
+        class="content-section"
+        hidden
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">🕘 RECENTES</span>
+            <h2>Continue de onde parou</h2>
+          </div>
+
+          <a
+            href="historico.html"
+            class="view-all-button"
+          >
+            Ver histórico →
+          </a>
+
+        </div>
+
+        <div
+          id="history-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="recomendados"
+        class="content-section"
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">PARA VOCÊ</span>
+            <h2>Recomendados</h2>
+          </div>
+
+          <div class="row-controls">
+
+            <button
+              class="row-control"
+              type="button"
+              data-scroll-target="recommended-row"
+              data-scroll-direction="left"
+              aria-label="Recomendados anteriores"
+            >
+              ❮
+            </button>
+
+            <button
+              class="row-control"
+              type="button"
+              data-scroll-target="recommended-row"
+              data-scroll-direction="right"
+              aria-label="Mais recomendados"
+            >
+              ❯
+            </button>
+
+          </div>
+
+        </div>
+
+        <div
+          id="recommended-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="acao"
+        class="content-section genre-section"
+        hidden
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">GÊNERO</span>
+            <h2>Ação</h2>
+          </div>
+
+        </div>
+
+        <div
+          id="acao-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="aventura"
+        class="content-section genre-section"
+        hidden
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">GÊNERO</span>
+            <h2>Aventura</h2>
+          </div>
+
+        </div>
+
+        <div
+          id="aventura-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="comedia"
+        class="content-section genre-section"
+        hidden
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">GÊNERO</span>
+            <h2>Comédia</h2>
+          </div>
+
+        </div>
+
+        <div
+          id="comedia-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="drama"
+        class="content-section genre-section"
+        hidden
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">GÊNERO</span>
+            <h2>Drama</h2>
+          </div>
+
+        </div>
+
+        <div
+          id="drama-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="romance"
+        class="content-section genre-section"
+        hidden
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">GÊNERO</span>
+            <h2>Romance</h2>
+          </div>
+
+        </div>
+
+        <div
+          id="romance-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="fantasia"
+        class="content-section genre-section"
+        hidden
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">GÊNERO</span>
+            <h2>Fantasia</h2>
+          </div>
+
+        </div>
+
+        <div
+          id="fantasia-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="terror"
+        class="content-section genre-section"
+        hidden
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">GÊNERO</span>
+            <h2>Terror</h2>
+          </div>
+
+        </div>
+
+        <div
+          id="terror-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+      <section
+        id="ficcao"
+        class="content-section genre-section"
+        hidden
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-kicker">GÊNERO</span>
+            <h2>Ficção científica</h2>
+          </div>
+
+        </div>
+
+        <div
+          id="ficcao-row"
+          class="content-row"
+        ></div>
+
+      </section>
+
+
+    </main>
+
+
+    <div
+      id="details-modal"
+      class="modal details-modal"
+      aria-hidden="true"
+    >
+
+      <div
+        class="modal-backdrop"
+        data-close-modal="details"
+      ></div>
+
+      <div class="details-modal-content">
+
+        <button
+          id="details-close"
+          class="modal-close"
+          type="button"
+          aria-label="Fechar detalhes"
+        >
+          ✕
+        </button>
+
+        <div
+          id="details-backdrop"
+          class="details-backdrop"
+        ></div>
+
+        <div class="details-content">
+
+          <div class="details-poster-wrapper">
+
+            <img
+              id="details-poster"
+              class="details-poster"
+              src=""
+              alt=""
+              loading="lazy"
+            >
+
+          </div>
+
+          <div class="details-info">
+
+            <span
+              id="details-type"
+              class="details-type"
+            ></span>
+
+            <h2 id="details-title"></h2>
+
+            <div
+              id="details-meta"
+              class="details-meta"
+            ></div>
+
+            <p
+              id="details-overview"
+              class="details-overview"
+            ></p>
+
+            <div class="details-actions">
+
+              <button
+                id="details-watch-button"
+                class="btn-primary"
+                type="button"
+              >
+                ▶ Assistir
+              </button>
+
+              <button
+                id="details-favorite-button"
+                class="btn-secondary favorite-detail-button"
+                type="button"
+              >
+                ☆ Favoritar
+              </button>
+
+            </div>
+
+            <div
+              id="details-extra"
+              class="details-extra"
+            ></div>
+
+          </div>
+
         </div>
 
 
-        <!-- =================================================
-             FIM DA PARTE 3/4
-        ================================================== -->
-            </main>
+        <div
+          id="episodes-container"
+          class="episodes-container"
+          hidden
+        >
+
+          <div class="details-block-header">
+
+            <h3>Temporadas e episódios</h3>
+
+          </div>
+
+          <div
+            id="episodes-list"
+            class="episodes-list"
+          ></div>
+
+        </div>
+
+      </div>
+
+    </div>
 
 
-    <!-- =====================================================
-         RODAPÉ
-    ====================================================== -->
+    <div
+      id="player-modal"
+      class="modal player-modal"
+      aria-hidden="true"
+    >
+
+      <div
+        class="modal-backdrop"
+        data-close-modal="player"
+      ></div>
+
+      <div class="player-modal-content">
+
+        <button
+          id="player-close"
+          class="modal-close"
+          type="button"
+          aria-label="Fechar player"
+        >
+          ✕
+        </button>
+
+        <div class="player-header">
+
+          <h2 id="player-title">
+            Assistir
+          </h2>
+
+          <button
+            id="player-fullscreen"
+            class="player-fullscreen"
+            type="button"
+            aria-label="Tela cheia"
+            title="Tela cheia"
+          >
+            ⛶
+          </button>
+
+        </div>
+
+        <div
+          id="player-body"
+          class="player-body"
+        >
+
+          <div class="player-placeholder">
+
+            <div class="player-placeholder-icon">
+              ▶
+            </div>
+
+            <h3>CineFamily</h3>
+
+            <p>
+              O conteúdo selecionado será reproduzido aqui.
+            </p>
+
+          </div>
+
+        </div>
+
+        <div
+          id="player-status"
+          class="player-status"
+          aria-live="polite"
+        ></div>
+
+      </div>
+
+    </div>
+        <div
+      id="profile-modal"
+      class="modal profile-modal"
+      aria-hidden="true"
+    >
+
+      <div
+        class="modal-backdrop"
+        data-close-modal="profile"
+      ></div>
+
+      <div class="profile-modal-content">
+
+        <button
+          id="profile-close"
+          class="modal-close"
+          type="button"
+          aria-label="Fechar perfil"
+        >
+          ✕
+        </button>
+
+        <div class="profile-header">
+
+          <div
+            id="profile-avatar-large"
+            class="profile-avatar-large"
+          >
+            👤
+          </div>
+
+          <div class="profile-header-text">
+
+            <span class="section-kicker">
+              CINEFAMILY
+            </span>
+
+            <h2>Meu perfil</h2>
+
+            <p>
+              Personalize sua experiência no CineFamily.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <form id="profile-form" class="profile-form">
+
+          <div class="form-group">
+
+            <label for="profile-name">
+              Nome do perfil
+            </label>
+
+            <input
+              id="profile-name"
+              type="text"
+              maxlength="30"
+              placeholder="Digite seu nome"
+              autocomplete="off"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <span class="form-label">
+              Escolha seu avatar
+            </span>
+
+            <div class="avatar-options">
+
+              <button
+                type="button"
+                class="avatar-option selected"
+                data-avatar="👤"
+                aria-label="Avatar padrão"
+              >
+                👤
+              </button>
+
+              <button
+                type="button"
+                class="avatar-option"
+                data-avatar="😀"
+                aria-label="Avatar sorrindo"
+              >
+                😀
+              </button>
+
+              <button
+                type="button"
+                class="avatar-option"
+                data-avatar="😎"
+                aria-label="Avatar de óculos"
+              >
+                😎
+              </button>
+
+              <button
+                type="button"
+                class="avatar-option"
+                data-avatar="🥰"
+                aria-label="Avatar apaixonado"
+              >
+                🥰
+              </button>
+
+              <button
+                type="button"
+                class="avatar-option"
+                data-avatar="🦊"
+                aria-label="Avatar raposa"
+              >
+                🦊
+              </button>
+
+              <button
+                type="button"
+                class="avatar-option"
+                data-avatar="🐼"
+                aria-label="Avatar panda"
+              >
+                🐼
+              </button>
+
+              <button
+                type="button"
+                class="avatar-option"
+                data-avatar="🐱"
+                aria-label="Avatar gato"
+              >
+                🐱
+              </button>
+
+              <button
+                type="button"
+                class="avatar-option"
+                data-avatar="🐶"
+                aria-label="Avatar cachorro"
+              >
+                🐶
+              </button>
+
+              <button
+                type="button"
+                class="avatar-option"
+                data-avatar="🦁"
+                aria-label="Avatar leão"
+              >
+                🦁
+              </button>
+
+              <button
+                type="button"
+                class="avatar-option"
+                data-avatar="🐯"
+                aria-label="Avatar tigre"
+              >
+                🐯
+              </button>
+
+              <button
+                type="button"
+                class="avatar-option"
+                data-avatar="🐸"
+                aria-label="Avatar sapo"
+              >
+                🐸
+              </button>
+
+              <button
+                type="button"
+                class="avatar-option"
+                data-avatar="🐨"
+                aria-label="Avatar coala"
+              >
+                🐨
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <div class="profile-form-actions">
+
+            <button
+              id="profile-save"
+              class="btn-primary"
+              type="submit"
+            >
+              ✓ Salvar perfil
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+
+    <div
+      id="user-menu"
+      class="user-menu"
+      aria-hidden="true"
+    >
+
+      <div class="user-menu-header">
+
+        <div
+          id="user-menu-avatar"
+          class="user-menu-avatar"
+        >
+          👤
+        </div>
+
+        <div class="user-menu-info">
+
+          <strong id="user-menu-name">
+            Meu perfil
+          </strong>
+
+          <span>
+            CineFamily
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <div class="user-menu-divider"></div>
+
+
+      <button
+        id="user-profile-edit"
+        class="user-menu-item"
+        type="button"
+      >
+        <span>👤</span>
+        <span>Editar perfil</span>
+      </button>
+
+
+      <button
+        id="user-favorites-button"
+        class="user-menu-item"
+        type="button"
+      >
+        <span>⭐</span>
+        <span>Meus favoritos</span>
+      </button>
+
+
+      <button
+        id="user-history-button"
+        class="user-menu-item"
+        type="button"
+      >
+        <span>🕘</span>
+        <span>Meu histórico</span>
+      </button>
+
+    </div>
+
+
+    <div
+      id="category-modal"
+      class="modal category-modal"
+      aria-hidden="true"
+    >
+
+      <div
+        class="modal-backdrop"
+        data-close-modal="category"
+      ></div>
+
+      <div class="category-modal-content">
+
+        <button
+          id="category-close"
+          class="modal-close"
+          type="button"
+          aria-label="Fechar categoria"
+        >
+          ✕
+        </button>
+
+
+        <div class="category-modal-header">
+
+          <span
+            id="category-kicker"
+            class="section-kicker"
+          >
+            CATEGORIA
+          </span>
+
+          <h2 id="category-title">
+            Categoria
+          </h2>
+
+        </div>
+
+
+        <div
+          id="category-results"
+          class="category-results"
+        ></div>
+
+
+        <div
+          id="category-loading"
+          class="category-loading"
+          hidden
+        >
+          <div class="spinner"></div>
+          <p>Carregando conteúdos...</p>
+        </div>
+
+
+        <div
+          id="category-empty"
+          class="category-empty"
+          hidden
+        >
+
+          <div class="empty-icon">
+            🎬
+          </div>
+
+          <h3>Nenhum conteúdo encontrado</h3>
+
+          <p>
+            Não encontramos conteúdos para esta categoria.
+          </p>
+
+        </div>
+
+
+        <div class="category-pagination">
+
+          <button
+            id="category-prev"
+            class="pagination-button"
+            type="button"
+          >
+            ❮ Anterior
+          </button>
+
+          <span
+            id="category-page"
+            class="pagination-page"
+          >
+            1
+          </span>
+
+          <button
+            id="category-next"
+            class="pagination-button"
+            type="button"
+          >
+            Próxima ❯
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <div
+      id="toast-container"
+      class="toast-container"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+
+
+    <div
+      id="loading-overlay"
+      class="loading-overlay"
+      aria-hidden="true"
+    >
+
+      <div class="loading-box">
+
+        <div class="spinner"></div>
+
+        <p>
+          Carregando CineFamily...
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div
+      id="empty-state"
+      class="empty-state"
+      hidden
+    >
+
+      <div class="empty-state-icon">
+        🎬
+      </div>
+
+      <h3>
+        Nenhum conteúdo encontrado
+      </h3>
+
+      <p>
+        Tente novamente ou faça uma nova busca.
+      </p>
+
+      <button
+        id="empty-state-home"
+        class="btn-primary"
+        type="button"
+      >
+        Voltar ao início
+      </button>
+
+    </div>
+
 
     <footer class="site-footer">
 
-        <div class="footer-content">
+      <div class="footer-content">
 
 
-            <div class="footer-brand">
+        <div class="footer-brand">
 
-                <div class="footer-logo">
+          <a
+            href="index.html"
+            class="footer-logo"
+            aria-label="CineFamily"
+          >
+            <span class="logo-cine">Cine</span><span class="logo-family">Family</span>
+          </a>
 
-                    CineFamily
-
-                </div>
-
-
-                <p class="footer-description">
-
-                    Seu entretenimento em um só lugar.
-
-                </p>
-
-            </div>
-
-
-            <div>
-
-                <strong
-                    style="
-                        display:block;
-                        color:#ffffff;
-                        font-size:12px;
-                        margin-bottom:12px;
-                    ">
-
-                    CineFamily
-
-                </strong>
-
-
-                <div class="footer-links">
-
-                    <a href="#inicio">
-
-                        Início
-
-                    </a>
-
-
-                    <a href="favoritos.html">
-
-                        Favoritos
-
-                    </a>
-
-
-                    <a href="historico.html">
-
-                        Histórico
-
-                    </a>
-
-                </div>
-
-            </div>
-
-
-            <div>
-
-                <strong
-                    style="
-                        display:block;
-                        color:#ffffff;
-                        font-size:12px;
-                        margin-bottom:12px;
-                    ">
-
-                    Conteúdo
-
-                </strong>
-
-
-                <div class="footer-links">
-
-                    <a href="#filmes">
-
-                        Filmes
-
-                    </a>
-
-
-                    <a href="#series">
-
-                        Séries
-
-                    </a>
-
-
-                    <a href="#doramas">
-
-                        Doramas
-
-                    </a>
-
-
-                    <a href="#kids">
-
-                        Kids
-
-                    </a>
-
-                </div>
-
-            </div>
-
-
-            <div>
-
-                <strong
-                    style="
-                        display:block;
-                        color:#ffffff;
-                        font-size:12px;
-                        margin-bottom:12px;
-                    ">
-
-                    Informações
-
-                </strong>
-
-
-                <div class="footer-links">
-
-                    <a href="#inicio">
-
-                        Sobre o CineFamily
-
-                    </a>
-
-
-                    <a href="#inicio">
-
-                        Ajuda
-
-                    </a>
-
-                </div>
-
-            </div>
+          <p>
+            Seu entretenimento, do seu jeito.
+          </p>
 
         </div>
 
 
-        <div class="footer-copy">
+        <div class="footer-links">
 
-            © 2026 CineFamily.
-            Todos os direitos reservados.
-            Conteúdo organizado para uma experiência familiar.
+          <div class="footer-column">
+
+            <h3>CineFamily</h3>
+
+            <a href="#inicio">
+              Início
+            </a>
+
+            <a href="#destaques">
+              Destaques
+            </a>
+
+            <a href="#filmes">
+              Filmes
+            </a>
+
+            <a href="#series">
+              Séries
+            </a>
+
+          </div>
+
+
+          <div class="footer-column">
+
+            <h3>Conteúdo</h3>
+
+            <a href="#doramas">
+              Doramas
+            </a>
+
+            <a href="#gl">
+              GL
+            </a>
+
+            <a href="#kids">
+              Kids
+            </a>
+
+            <a href="#tv">
+              TV ao vivo
+            </a>
+
+          </div>
+
+
+          <div class="footer-column">
+
+            <h3>Minha conta</h3>
+
+            <a href="favoritos.html">
+              Favoritos
+            </a>
+
+            <a href="historico.html">
+              Histórico
+            </a>
+
+            <button
+              id="footer-profile-button"
+              type="button"
+            >
+              Meu perfil
+            </button>
+
+          </div>
 
         </div>
+
+
+        <div class="footer-info">
+
+          <p>
+            Filmes, séries, doramas, GL, Kids e muito mais.
+          </p>
+
+          <p class="footer-copy">
+            © 2026 CineFamily. Projeto pessoal.
+          </p>
+
+        </div>
+
+      </div>
 
     </footer>
 
 
-    <!-- =====================================================
-         SCRIPT PRINCIPAL
-    ====================================================== -->
-
+  </div>
     <script src="script.js"></script>
 
-
-</body>
-
+  </body>
 </html>
