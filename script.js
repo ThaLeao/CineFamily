@@ -1086,25 +1086,219 @@ function obterIdSeguro(conteudo) {
    MODAL DE DETALHES
    ========================================================= */
 
-async function abrirDetalhes(
-    conteudo,
-    tipo
-) {
-    if (!conteudo) {
-        return;
+function preencherDetalhes(modal, detalhes, tipo) {
+  if (!modal || !detalhes) {
+    return;
+  }
+
+  const posterContainer = modal.querySelector(".details-poster");
+  const infoContainer = modal.querySelector(".details-info");
+
+  if (!posterContainer || !infoContainer) {
+    console.error("❌ Containers do modal não encontrados.");
+    return;
+  }
+
+  const titulo =
+    detalhes.title ||
+    detalhes.name ||
+    detalhes.original_title ||
+    detalhes.original_name ||
+    "Sem título";
+
+  const posterPath =
+    detalhes.poster_path ||
+    detalhes.poster ||
+    detalhes.posterPath ||
+    "";
+
+  const backdropPath =
+    detalhes.backdrop_path ||
+    detalhes.backdrop ||
+    detalhes.backdropPath ||
+    "";
+
+  const nota =
+    detalhes.vote_average !== undefined
+      ? Number(detalhes.vote_average)
+      : Number(detalhes.rating || detalhes.nota || 0);
+
+  const dataLancamento =
+    detalhes.release_date ||
+    detalhes.first_air_date ||
+    detalhes.releaseDate ||
+    "";
+
+  const ano = dataLancamento
+    ? String(dataLancamento).substring(0, 4)
+    : "N/A";
+
+  const sinopse =
+    detalhes.overview ||
+    detalhes.sinopse ||
+    detalhes.description ||
+    "Sinopse não disponível.";
+
+  const generos = Array.isArray(detalhes.genres)
+    ? detalhes.genres
+    : [];
+
+  const generosTexto = generos
+    .map(function(genero) {
+      if (typeof genero === "string") {
+        return genero;
+      }
+
+      return genero && genero.name
+        ? genero.name
+        : "";
+    })
+    .filter(Boolean)
+    .join(", ");
+
+  const posterURL = posterPath
+    ? (
+        String(posterPath).startsWith("http")
+          ? posterPath
+          : IMG + posterPath
+      )
+    : "";
+
+  const backdropURL = backdropPath
+    ? (
+        String(backdropPath).startsWith("http")
+          ? backdropPath
+          : "https://image.tmdb.org/t/p/original" + backdropPath
+      )
+    : "";
+
+  if (posterURL) {
+    posterContainer.innerHTML = `
+      <img
+        class="details-poster-img"
+        src="${escaparAtributo(posterURL)}"
+        alt="${escaparAtributo(titulo)}"
+      >
+    `;
+
+    const imagemPoster = posterContainer.querySelector("img");
+
+    if (imagemPoster) {
+      imagemPoster.addEventListener("error", function() {
+        posterContainer.innerHTML = `
+          <div class="detalhes-poster-sem-imagem">
+            <span>🎬</span>
+          </div>
+        `;
+      });
     }
 
-    const id =
-        obterIdSeguro(conteudo);
+  } else {
+    posterContainer.innerHTML = `
+      <div class="detalhes-poster-sem-imagem">
+        <span>🎬</span>
+      </div>
+    `;
+  }
 
-    if (!id) {
-        console.error(
-            "Conteúdo sem ID válido:",
-            conteudo
-        );
+  let tipoTexto = tipo === "serie" ? "Série" : "Filme";
 
-        return;
+  let html = "";
+
+  html += `
+    <div class="categoria">
+      ${tipoTexto}
+    </div>
+  `;
+
+  html += `
+    <h1 class="details-title">
+      ${escaparHTML(titulo)}
+    </h1>
+  `;
+
+  html += `
+    <div class="details-meta detalhes-meta">
+      <span>⭐ ${nota > 0 ? nota.toFixed(1) : "N/A"}</span>
+      <span>📅 ${escaparHTML(ano)}</span>
+  `;
+
+  if (generosTexto) {
+    html += `
+      <span>🎭 ${escaparHTML(generosTexto)}</span>
+    `;
+  }
+
+  html += `
+    </div>
+  `;
+
+  html += `
+    <div class="sinopse">
+      <h3>Sinopse</h3>
+      <p>${escaparHTML(sinopse)}</p>
+    </div>
+  `;
+
+  html += `
+    <div class="botoes-detalhes">
+
+      <button
+        type="button"
+        class="details-button favorito"
+      >
+        ☆ Favoritar
+      </button>
+
+      <button
+        type="button"
+        class="details-button assistir"
+      >
+        ▶ Assistir
+      </button>
+
+    </div>
+  `;
+
+  if (tipo === "serie") {
+    html += `
+      <div class="informacoes-serie">
+        <h3>Temporadas</h3>
+
+        <div class="lista-temporadas">
+          <p>Carregando temporadas...</p>
+        </div>
+      </div>
+    `;
+  }
+
+  infoContainer.innerHTML = html;
+
+  if (backdropURL) {
+    const modalPrincipal =
+      modal.querySelector(".cinefamily-details-modal");
+
+    if (modalPrincipal) {
+      modalPrincipal.style.backgroundImage =
+        "linear-gradient(rgba(5,5,5,0.88), rgba(5,5,5,0.98)), url('" +
+        escaparCSS(backdropURL) +
+        "')";
+
+      modalPrincipal.style.backgroundSize = "cover";
+      modalPrincipal.style.backgroundPosition = "center";
     }
+  }
+
+  configurarBotaoFavorito(modal, detalhes);
+
+  configurarBotaoAssistir(modal, detalhes);
+
+  if (tipo === "serie") {
+    carregarTemporadas(modal, detalhes);
+  }
+
+  carregarElenco(modal, detalhes, tipo);
+}
 
     fecharDetalhes();
 
