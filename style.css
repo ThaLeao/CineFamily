@@ -2206,3 +2206,18 @@ footer a:hover {
 .loading-overlay[aria-hidden="true"] {
   display: none !important;
 }
+.modal[aria-hidden="true"] {
+  display: none !important;
+}
+
+.modal[aria-hidden="false"] {
+  display: flex !important;
+}
+
+.user-menu[aria-hidden="true"] {
+  display: none !important;
+}
+
+.user-menu[aria-hidden="false"] {
+  display: block !important;
+}
