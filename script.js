@@ -9,19 +9,18 @@ const IMG =
 const BACKDROP =
     "https://image.tmdb.org/t/p/w1280";
 
-const STORAGE_FAVORITOS =
-    "cinefamily_favoritos";
+const STORAGE_KEYS = {
+    FAVORITOS: "cinefamily_favoritos",
+    HISTORICO: "cinefamily_historico",
+    PERFIL: "cinefamily_perfil"
+};
 
-const STORAGE_HISTORICO =
-    "cinefamily_historico";
+const LEGACY_STORAGE_KEYS = {
+    FAVORITOS: "cinefamilyFavoritos",
+    HISTORICO: "cinefamilyHistorico"
+};
 
-const LEGACY_FAVORITOS =
-    "cinefamilyFavoritos";
-
-const LEGACY_HISTORICO =
-    "cinefamilyHistorico";
-
-const MAX_ITENS_SECAO = 10;
+const MAX_ITENS_SECAO = 20;
 
 const appState = {
     filmes: [],
@@ -29,83 +28,81 @@ const appState = {
     favoritos: [],
     historico: [],
     buscaAtiva: false,
-    slideAtual: 0,
-    intervaloSlider: null
+    sliderIndex: 0,
+    sliderTimer: null,
+    detalhesAtual: null
 };
 
-function textoOuPadrao(valor, padrao = "") {
+
+function obterValorSeguro(valor, padrao = "") {
     if (
-        valor === undefined ||
         valor === null ||
-        String(valor).trim() === ""
+        valor === undefined
     ) {
         return padrao;
     }
 
-    return String(valor);
+    return valor;
 }
 
-function obterTitulo(item) {
-    if (!item) {
+
+function obterTitulo(conteudo) {
+    if (!conteudo) {
         return "Sem título";
     }
 
-    return textoOuPadrao(
-        item.title ||
-        item.name ||
-        item.original_title ||
-        item.original_name,
+    return (
+        conteudo.title ||
+        conteudo.name ||
+        conteudo.original_title ||
+        conteudo.original_name ||
         "Sem título"
     );
 }
 
-function obterTituloOriginal(item) {
-    if (!item) {
+
+function obterData(conteudo) {
+    if (!conteudo) {
         return "";
     }
 
-    return textoOuPadrao(
-        item.original_title ||
-        item.original_name,
+    return (
+        conteudo.release_date ||
+        conteudo.first_air_date ||
         ""
     );
 }
 
-function obterData(item) {
-    if (!item) {
+
+function obterAno(conteudo) {
+    const data = obterData(conteudo);
+
+    if (!data) {
         return "";
     }
 
-    return textoOuPadrao(
-        item.release_date ||
-        item.first_air_date,
-        ""
-    );
+    return String(data).slice(0, 4);
 }
 
-function obterAno(item) {
-    const data = obterData(item);
 
-    if (!data || data.length < 4) {
-        return "";
+function obterNota(conteudo) {
+    if (!conteudo) {
+        return 0;
     }
 
-    return data.substring(0, 4);
-}
-
-function obterNota(item) {
     const nota = Number(
-        item?.vote_average || 0
+        conteudo.vote_average || 0
     );
 
     if (!Number.isFinite(nota)) {
-        return "0.0";
+        return 0;
     }
 
-    return nota.toFixed(1);
+    return nota;
 }
 
-function descobrirTipo(item, tipoForcado) {
+
+function obterTipo(conteudo, tipoForcado = "") {
     if (tipoForcado === "movie") {
         return "movie";
     }
@@ -114,9 +111,28 @@ function descobrirTipo(item, tipoForcado) {
         return "tv";
     }
 
+    if (!conteudo) {
+        return "movie";
+    }
+
     if (
-        item?.type === "tv" ||
-        item?.media_type === "tv"
+        conteudo.type === "movie" ||
+        conteudo.media_type === "movie"
+    ) {
+        return "movie";
+    }
+
+    if (
+        conteudo.type === "tv" ||
+        conteudo.media_type === "tv"
+    ) {
+        return "tv";
+    }
+
+    if (
+        conteudo.first_air_date ||
+        conteudo.name ||
+        conteudo.original_name
     ) {
         return "tv";
     }
@@ -124,76 +140,67 @@ function descobrirTipo(item, tipoForcado) {
     return "movie";
 }
 
-function conteudoPermitido(item) {
-    if (!item) {
+
+function ehAdulto(conteudo) {
+    return (
+        !!conteudo &&
+        conteudo.adult === true
+    );
+}
+
+
+function conteudoPermitido(conteudo) {
+    if (!conteudo) {
         return false;
     }
 
-    return item.adult !== true;
-}
-
-function filtrarConteudos(lista, tipo) {
-    if (!Array.isArray(lista)) {
-        return [];
+    if (ehAdulto(conteudo)) {
+        return false;
     }
 
-    return lista.filter(function (item) {
-        if (!conteudoPermitido(item)) {
-            return false;
-        }
+    const id = Number(
+        conteudo.id || 0
+    );
 
-        if (tipo === "movie") {
-            return descobrirTipo(item) === "movie";
-        }
-
-        if (tipo === "tv") {
-            return descobrirTipo(item) === "tv";
-        }
-
-        return true;
-    });
+    return Number.isFinite(id) && id > 0;
 }
 
-function obterImagem(item) {
-    if (!item) {
+
+function obterPoster(conteudo) {
+    if (!conteudo) {
         return "";
     }
 
-    if (
-        item.poster_path &&
-        String(item.poster_path).startsWith("http")
-    ) {
-        return item.poster_path;
-    }
-
-    if (item.poster_path) {
-        return IMG + item.poster_path;
-    }
-
-    return "";
+    return (
+        conteudo.poster_path ||
+        conteudo.poster ||
+        conteudo.posterUrl ||
+        conteudo.image ||
+        ""
+    );
 }
 
-function obterBackdrop(item) {
-    if (!item) {
+
+function obterBackdrop(conteudo) {
+    if (!conteudo) {
         return "";
     }
 
-    if (
-        item.backdrop_path &&
-        String(item.backdrop_path).startsWith("http")
-    ) {
-        return item.backdrop_path;
-    }
-
-    if (item.backdrop_path) {
-        return BACKDROP + item.backdrop_path;
-    }
-
-    return "";
+    return (
+        conteudo.backdrop_path ||
+        conteudo.backdrop ||
+        ""
+    );
 }
+
 
 function escaparHTML(valor) {
-    return String(valor ?? "")
+    return String(
+        valor === null ||
+        valor === undefined
+            ? ""
+            : valor
+    )
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
@@ -201,34 +208,82 @@ function escaparHTML(valor) {
         .replace(/'/g, "&#039;");
 }
 
-function escaparAtributo(valor) {
-    return escaparHTML(valor);
+
+function formatarData(data) {
+    if (!data) {
+        return "";
+    }
+
+    const partes =
+        String(data).split("-");
+
+    if (partes.length !== 3) {
+        return String(data);
+    }
+
+    return (
+        partes[2] +
+        "/" +
+        partes[1] +
+        "/" +
+        partes[0]
+    );
 }
 
+
+function formatarNota(nota) {
+    const valor = Number(nota || 0);
+
+    if (!Number.isFinite(valor) || valor <= 0) {
+        return "";
+    }
+
+    return valor.toFixed(1);
+}
+
+
+function formatarDuracao(minutos) {
+    const valor = Number(
+        minutos || 0
+    );
+
+    if (!Number.isFinite(valor) || valor <= 0) {
+        return "";
+    }
+
+    const horas =
+        Math.floor(valor / 60);
+
+    const restantes =
+        valor % 60;
+
+    if (horas <= 0) {
+        return `${restantes} min`;
+    }
+
+    if (restantes <= 0) {
+        return `${horas}h`;
+    }
+
+    return `${horas}h ${restantes}min`;
+}
+
+
 async function buscarTMDB(endpoint) {
-    const caminho = String(endpoint || "");
-
-    const url =
-        caminho.startsWith("http://") ||
-        caminho.startsWith("https://")
-            ? caminho
-            : TMDB_WORKER +
-              (
-                  caminho.startsWith("/")
-                      ? caminho
-                      : "/" + caminho
-              );
-
     try {
-        const response = await fetch(url, {
-            method: "GET",
-            headers: {
-                Accept: "application/json"
+        const resposta = await fetch(
+            `${TMDB_WORKER}${endpoint}`,
+            {
+                method: "GET",
+                headers: {
+                    Accept:
+                        "application/json"
+                }
             }
-        });
+        );
 
         const texto =
-            await response.text();
+            await resposta.text();
 
         let dados = {};
 
@@ -237,36 +292,52 @@ async function buscarTMDB(endpoint) {
                 ? JSON.parse(texto)
                 : {};
         } catch (erro) {
-            throw new Error(
-                "Resposta inválida do Worker."
+            console.error(
+                "Resposta inválida do Worker:",
+                erro
             );
+
+            return {
+                ok: false,
+                erro:
+                    "Resposta inválida do servidor.",
+                results: []
+            };
         }
 
-        if (!response.ok) {
-            throw new Error(
-                dados.erro ||
-                dados.message ||
-                `Erro HTTP ${response.status}`
+        if (!resposta.ok) {
+            console.error(
+                "Erro do Worker:",
+                resposta.status,
+                dados
             );
+
+            return {
+                ok: false,
+                erro:
+                    dados.erro ||
+                    "Erro ao consultar o servidor.",
+                results: []
+            };
         }
 
         return dados;
+
     } catch (erro) {
         console.error(
-            "Erro no Worker:",
-            caminho,
+            "Erro de conexão com o Worker:",
             erro
         );
 
         return {
             ok: false,
             erro:
-                erro?.message ||
-                "Erro ao acessar o Worker.",
+                "Não foi possível conectar ao servidor.",
             results: []
         };
     }
 }
+
 
 function extrairResultados(resposta) {
     if (!resposta) {
@@ -281,59 +352,75 @@ function extrairResultados(resposta) {
         return resposta.results;
     }
 
-    if (Array.isArray(resposta.data)) {
-        return resposta.data;
-    }
-
-    if (Array.isArray(resposta.items)) {
-        return resposta.items;
-    }
-
     return [];
 }
 
+
 function encontrarSecao(id) {
-    const possibilidades = [
-        id,
-        `secao-${id}`,
-        `${id}-section`,
-        `${id}-section-container`
-    ];
-
-    for (const valor of possibilidades) {
-        const elemento =
-            document.getElementById(valor);
-
-        if (elemento) {
-            return elemento;
-        }
+    if (!id) {
+        return null;
     }
 
-    const seletores = [
-        `[data-secao="${id}"]`,
-        `[data-section="${id}"]`,
-        `section.${id}`,
-        `section[data-id="${id}"]`
+    const elemento =
+        document.getElementById(id);
+
+    if (elemento) {
+        return elemento;
+    }
+
+    const alternativas = [
+        `[data-section-id="${id}"]`,
+        `[data-section="${id}"]`
     ];
 
-    for (const seletor of seletores) {
-        const elemento =
+    for (
+        const seletor of alternativas
+    ) {
+        const encontrado =
             document.querySelector(seletor);
 
-        if (elemento) {
-            return elemento;
+        if (encontrado) {
+            return encontrado;
         }
     }
 
     return null;
 }
 
+
 function encontrarContainerCards(secao) {
     if (!secao) {
         return null;
     }
 
-    const seletores = [
+    if (
+        secao.classList &&
+        secao.classList.contains(
+            "content-row"
+        )
+    ) {
+        return secao;
+    }
+
+    const rowDireto =
+        secao.querySelector(
+            ":scope > .content-row"
+        );
+
+    if (rowDireto) {
+        return rowDireto;
+    }
+
+    const rowInterno =
+        secao.querySelector(
+            ".content-row"
+        );
+
+    if (rowInterno) {
+        return rowInterno;
+    }
+
+    const seletoresAntigos = [
         ".cards",
         ".cards-container",
         ".card-container",
@@ -346,33 +433,38 @@ function encontrarContainerCards(secao) {
         ".grid"
     ];
 
-    for (const seletor of seletores) {
-        const elemento =
+    for (
+        const seletor of seletoresAntigos
+    ) {
+        const encontrado =
             secao.querySelector(seletor);
 
-        if (elemento) {
-            return elemento;
+        if (encontrado) {
+            return encontrado;
         }
     }
 
-    return secao;
+    return null;
 }
 
-function criarCard(conteudo, tipoForcado) {
+
+function criarCard(
+    conteudo,
+    tipoForcado = ""
+) {
     if (!conteudoPermitido(conteudo)) {
         return null;
     }
 
     const id =
-        conteudo.id ||
-        conteudo.tmdb_id;
+        Number(conteudo.id);
 
-    if (!id) {
+    if (!Number.isFinite(id) || id <= 0) {
         return null;
     }
 
     const tipo =
-        descobrirTipo(
+        obterTipo(
             conteudo,
             tipoForcado
         );
@@ -381,7 +473,7 @@ function criarCard(conteudo, tipoForcado) {
         obterTitulo(conteudo);
 
     const poster =
-        obterImagem(conteudo);
+        obterPoster(conteudo);
 
     const ano =
         obterAno(conteudo);
@@ -394,39 +486,160 @@ function criarCard(conteudo, tipoForcado) {
 
     card.className = "card";
 
-    card.dataset.id = String(id);
-    card.dataset.tipo = tipo;
+    card.dataset.id =
+        String(id);
+
+    card.dataset.type =
+        tipo;
+
     card.tabIndex = 0;
 
+    const posterWrapper =
+        document.createElement("div");
+
+    posterWrapper.className =
+        "card-poster";
+
     const imagem =
-        poster ||
-        "https://via.placeholder.com/500x750/111111/ffffff?text=CineFamily";
+        document.createElement("img");
 
-    card.innerHTML = `
-        <div class="card-poster">
-            <img
-                src="${escaparAtributo(imagem)}"
-                alt="${escaparAtributo(titulo)}"
-                loading="lazy"
-            >
-            <div class="card-overlay">
-                <span class="card-nota">
-                    ★ ${escaparHTML(nota)}
-                </span>
-            </div>
-        </div>
+    imagem.alt =
+        titulo;
 
-        <div class="card-info">
-            <h3>${escaparHTML(titulo)}</h3>
-            ${
-                ano
-                    ? `<span>${escaparHTML(ano)}</span>`
-                    : ""
-            }
-        </div>
-    `;
+    imagem.loading =
+        "lazy";
 
-    function abrir() {
+    imagem.decoding =
+        "async";
+
+    if (poster) {
+        imagem.src =
+            poster;
+    } else {
+        imagem.classList.add(
+            "no-image"
+        );
+    }
+
+    imagem.addEventListener(
+        "error",
+        function () {
+            imagem.removeAttribute(
+                "src"
+            );
+
+            imagem.classList.add(
+                "no-image"
+            );
+        }
+    );
+
+    posterWrapper.appendChild(
+        imagem
+    );
+
+    const overlay =
+        document.createElement("div");
+
+    overlay.className =
+        "card-overlay";
+
+    const tipoBadge =
+        document.createElement("span");
+
+    tipoBadge.className =
+        "card-tipo";
+
+    tipoBadge.textContent =
+        tipo === "tv"
+            ? "SÉRIE"
+            : "FILME";
+
+    overlay.appendChild(
+        tipoBadge
+    );
+
+    if (nota > 0) {
+        const notaElemento =
+            document.createElement("span");
+
+        notaElemento.className =
+            "card-nota";
+
+        notaElemento.textContent =
+            `⭐ ${formatarNota(nota)}`;
+
+        overlay.appendChild(
+            notaElemento
+        );
+    }
+
+    posterWrapper.appendChild(
+        overlay
+    );
+
+    const info =
+        document.createElement("div");
+
+    info.className =
+        "card-info";
+
+    const tituloElemento =
+        document.createElement("h3");
+
+    tituloElemento.className =
+        "card-title";
+
+    tituloElemento.textContent =
+        titulo;
+
+    info.appendChild(
+        tituloElemento
+    );
+
+    const meta =
+        document.createElement("div");
+
+    meta.className =
+        "card-meta";
+
+    if (ano) {
+        const anoElemento =
+            document.createElement("span");
+
+        anoElemento.textContent =
+            ano;
+
+        meta.appendChild(
+            anoElemento
+        );
+    }
+
+    if (nota > 0) {
+        const notaMeta =
+            document.createElement("span");
+
+        notaMeta.textContent =
+            `⭐ ${formatarNota(nota)}`;
+
+        meta.appendChild(
+            notaMeta
+        );
+    }
+
+    info.appendChild(
+        meta
+    );
+
+    card.appendChild(
+        posterWrapper
+    );
+
+    card.appendChild(
+        info
+    );
+
+    function abrirCard() {
         abrirDetalhes(
             conteudo,
             tipo
@@ -435,7 +648,7 @@ function criarCard(conteudo, tipoForcado) {
 
     card.addEventListener(
         "click",
-        abrir
+        abrirCard
     );
 
     card.addEventListener(
@@ -446,13 +659,14 @@ function criarCard(conteudo, tipoForcado) {
                 event.key === " "
             ) {
                 event.preventDefault();
-                abrir();
+                abrirCard();
             }
         }
     );
 
     return card;
 }
+
 
 function mostrarNaSecao(
     lista,
@@ -463,6 +677,10 @@ function mostrarNaSecao(
         encontrarSecao(secaoId);
 
     if (!secao) {
+        console.warn(
+            `Seção não encontrada: ${secaoId}`
+        );
+
         return;
     }
 
@@ -470,6 +688,10 @@ function mostrarNaSecao(
         encontrarContainerCards(secao);
 
     if (!container) {
+        console.warn(
+            `Container de cards não encontrado: ${secaoId}`
+        );
+
         return;
     }
 
@@ -478,1272 +700,21 @@ function mostrarNaSecao(
     const itens =
         Array.isArray(lista)
             ? lista
+                .filter(
+                    conteudoPermitido
+                )
+                .slice(
+                    0,
+                    MAX_ITENS_SECAO
+                )
             : [];
 
-    itens
-        .filter(conteudoPermitido)
-        .slice(
-            0,
-            MAX_ITENS_SECAO
-        )
-        .forEach(function (item) {
-            const card =
-                criarCard(item, tipo);
-
-            if (card) {
-                container.appendChild(card);
-            }
-        });
-}
-
-async function carregarFilmes() {
-    try {
-        const resposta =
-            await buscarTMDB(
-                "/api/movies?page=1&sort_by=popularity.desc"
-            );
-
-        if (
-            !resposta ||
-            resposta.ok === false
-        ) {
-            console.error(
-                "Erro ao carregar filmes:",
-                resposta
-            );
-
-            return;
-        }
-
-        const filmes =
-            filtrarConteudos(
-                extrairResultados(resposta),
-                "movie"
-            );
-
-        appState.filmes = filmes;
-
-        mostrarNaSecao(
-            filmes,
-            "filmes",
-            "movie"
-        );
-
-        const populares =
-            await buscarTMDB(
-                "/api/movies?page=1&sort_by=vote_average.desc"
-            );
-
-        if (
-            populares &&
-            populares.ok !== false
-        ) {
-            mostrarNaSecao(
-                filtrarConteudos(
-                    extrairResultados(
-                        populares
-                    ),
-                    "movie"
-                ),
-                "top-rated",
-                "movie"
-            );
-        }
-
-        const recentes =
-            await buscarTMDB(
-                "/api/movies?page=1&sort_by=primary_release_date.desc"
-            );
-
-        if (
-            recentes &&
-            recentes.ok !== false
-        ) {
-            mostrarNaSecao(
-                filtrarConteudos(
-                    extrairResultados(
-                        recentes
-                    ),
-                    "movie"
-                ),
-                "latest",
-                "movie"
-            );
-        }
-    } catch (erro) {
-        console.error(
-            "Erro ao carregar filmes:",
-            erro
-        );
-    }
-}
-
-async function carregarSeries() {
-    try {
-        const resposta =
-            await buscarTMDB(
-                "/api/series?page=1&sort_by=popularity.desc"
-            );
-
-        if (
-            !resposta ||
-            resposta.ok === false
-        ) {
-            console.error(
-                "Erro ao carregar séries:",
-                resposta
-            );
-
-            return;
-        }
-
-        const series =
-            filtrarConteudos(
-                extrairResultados(resposta),
-                "tv"
-            );
-
-        appState.series = series;
-
-        mostrarNaSecao(
-            series,
-            "series",
-            "tv"
-        );
-
-        const populares =
-            await buscarTMDB(
-                "/api/series?page=1&sort_by=vote_average.desc"
-            );
-
-        if (
-            populares &&
-            populares.ok !== false
-        ) {
-            mostrarNaSecao(
-                filtrarConteudos(
-                    extrairResultados(
-                        populares
-                    ),
-                    "tv"
-                ),
-                "series-populares",
-                "tv"
-            );
-        }
-    } catch (erro) {
-        console.error(
-            "Erro ao carregar séries:",
-            erro
-        );
-    }
-}
-
-function iniciarSlider() {
-    const slides =
-        document.querySelectorAll(
-            ".slide, .hero-slide, .destaque-slide"
-        );
-
-    if (slides.length <= 1) {
-        return;
-    }
-
-    appState.slideAtual = 0;
-
-    slides.forEach(
-        function (slide, index) {
-            slide.classList.toggle(
-                "active",
-                index === 0
-            );
-        }
-    );
-
-    clearInterval(
-        appState.intervaloSlider
-    );
-
-    appState.intervaloSlider =
-        setInterval(
-            function () {
-                mostrarProximoSlide(
-                    slides
-                );
-            },
-            7000
-        );
-}
-
-function mostrarProximoSlide(
-    slides
-) {
-    if (!slides || !slides.length) {
-        return;
-    }
-
-    slides[
-        appState.slideAtual
-    ].classList.remove("active");
-
-    appState.slideAtual =
-        (
-            appState.slideAtual + 1
-        ) % slides.length;
-
-    slides[
-        appState.slideAtual
-    ].classList.add("active");
-}
-async function executarBusca() {
-    const campos = [
-        "#campo-busca",
-        "#search",
-        "#search-input",
-        ".campo-busca"
-    ];
-
-    let campo = null;
-
-    for (const seletor of campos) {
-        campo =
-            document.querySelector(seletor);
-
-        if (campo) {
-            break;
-        }
-    }
-
-    if (!campo) {
-        return;
-    }
-
-    const termo =
-        String(
-            campo.value || ""
-        ).trim();
-
-    if (!termo) {
-        return;
-    }
-
-    const resposta =
-        await buscarTMDB(
-            "/api/search?q=" +
-            encodeURIComponent(termo)
-        );
-
-    const resultados =
-        filtrarConteudos(
-            extrairResultados(resposta)
-        );
-
-    let container =
-        document.querySelector(
-            "#resultados-busca"
-        );
-
-    if (!container) {
-        container =
-            document.querySelector(
-                "#resultados"
-            );
-    }
-
-    if (!container) {
-        container =
-            document.querySelector(
-                ".resultados-busca"
-            );
-    }
-
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML = "";
-
-    if (!resultados.length) {
-        container.innerHTML = `
-            <div class="mensagem-vazia">
-                Nenhum resultado encontrado.
-            </div>
-        `;
-
-        return;
-    }
-
-    resultados.forEach(
-        function (item) {
-            const tipo =
-                descobrirTipo(item);
-
+    itens.forEach(
+        function (conteudo) {
             const card =
                 criarCard(
-                    item,
+                    conteudo,
                     tipo
-                );
-
-            if (card) {
-                container.appendChild(card);
-            }
-        }
-    );
-
-    appState.buscaAtiva = true;
-}
-
-function abrirAreaBusca() {
-    const elementos = [
-        "#area-busca",
-        "#busca-area",
-        ".area-busca",
-        ".busca-container",
-        ".search-container"
-    ];
-
-    for (const seletor of elementos) {
-        const elemento =
-            document.querySelector(seletor);
-
-        if (elemento) {
-            elemento.classList.add("ativa");
-            elemento.classList.add("aberta");
-            elemento.style.display = "";
-        }
-    }
-
-    const campo =
-        document.querySelector(
-            "#campo-busca, #search, #search-input"
-        );
-
-    if (campo) {
-        setTimeout(
-            function () {
-                campo.focus();
-            },
-            50
-        );
-    }
-}
-
-function fecharAreaBusca() {
-    const elementos = [
-        "#area-busca",
-        "#busca-area",
-        ".area-busca",
-        ".busca-container",
-        ".search-container"
-    ];
-
-    for (const seletor of elementos) {
-        const elemento =
-            document.querySelector(seletor);
-
-        if (elemento) {
-            elemento.classList.remove(
-                "ativa"
-            );
-
-            elemento.classList.remove(
-                "aberta"
-            );
-        }
-    }
-}
-
-function configurarBusca() {
-    document.addEventListener(
-        "keydown",
-        function (event) {
-            if (
-                event.key === "Enter" &&
-                document.activeElement &&
-                (
-                    document.activeElement.matches(
-                        "#campo-busca"
-                    ) ||
-                    document.activeElement.matches(
-                        "#search"
-                    ) ||
-                    document.activeElement.matches(
-                        "#search-input"
-                    )
-                )
-            ) {
-                event.preventDefault();
-                executarBusca();
-            }
-        }
-    );
-
-    document.addEventListener(
-        "click",
-        function (event) {
-            const botao =
-                event.target.closest(
-                    "#botao-busca, #btn-busca, #btn-search, .botao-busca, .abrir-busca"
-                );
-
-            if (botao) {
-                event.preventDefault();
-                abrirAreaBusca();
-            }
-        }
-    );
-}
-
-function normalizarConteudo(
-    conteudo,
-    tipo
-) {
-    if (!conteudo) {
-        return null;
-    }
-
-    const resultado = {
-        ...conteudo
-    };
-
-    resultado.id =
-        Number(
-            conteudo.id ||
-            conteudo.tmdb_id ||
-            0
-        );
-
-    resultado.type =
-        descobrirTipo(
-            conteudo,
-            tipo
-        );
-
-    resultado.media_type =
-        resultado.type;
-
-    resultado.title =
-        conteudo.title ||
-        conteudo.name ||
-        conteudo.original_title ||
-        conteudo.original_name ||
-        "Sem título";
-
-    resultado.original_title =
-        conteudo.original_title ||
-        conteudo.original_name ||
-        "";
-
-    resultado.poster_path =
-        conteudo.poster_path ||
-        "";
-
-    resultado.backdrop_path =
-        conteudo.backdrop_path ||
-        "";
-
-    resultado.overview =
-        conteudo.overview ||
-        "";
-
-    resultado.vote_average =
-        Number(
-            conteudo.vote_average || 0
-        );
-
-    resultado.release_date =
-        conteudo.release_date ||
-        conteudo.first_air_date ||
-        "";
-
-    resultado.adult =
-        conteudo.adult === true;
-
-    return resultado;
-}
-
-function obterIdSeguro(conteudo) {
-    const id =
-        Number(
-            conteudo?.id ||
-            conteudo?.tmdb_id ||
-            0
-        );
-
-    if (
-        !Number.isFinite(id) ||
-        id <= 0
-    ) {
-        return null;
-    }
-
-    return id;
-}
-
-async function abrirDetalhes(
-    conteudo,
-    tipo
-) {
-    if (!conteudo) {
-        return;
-    }
-
-    const id =
-        obterIdSeguro(conteudo);
-
-    if (!id) {
-        console.error(
-            "Conteúdo sem ID válido:",
-            conteudo
-        );
-
-        return;
-    }
-
-    tipo =
-        descobrirTipo(
-            conteudo,
-            tipo
-        );
-
-    if (
-        tipo !== "movie" &&
-        tipo !== "tv"
-    ) {
-        return;
-    }
-
-    registrarHistorico(
-        conteudo
-    );
-
-    const modal =
-        document.getElementById(
-            "details-modal"
-        );
-
-    if (!modal) {
-        criarModalDetalhes();
-    }
-
-    const modalFinal =
-        document.getElementById(
-            "details-modal"
-        );
-
-    if (!modalFinal) {
-        return;
-    }
-
-    modalFinal.hidden = false;
-
-    modalFinal.setAttribute(
-        "aria-hidden",
-        "false"
-    );
-
-    modalFinal.style.display = "flex";
-    modalFinal.style.visibility = "visible";
-    modalFinal.style.opacity = "1";
-    modalFinal.style.pointerEvents = "auto";
-
-    const endpoint =
-        tipo === "tv"
-            ? `/api/tv/${id}`
-            : `/api/movie/${id}`;
-
-    const resposta =
-        await buscarTMDB(endpoint);
-
-    if (
-        !resposta ||
-        resposta.ok === false
-    ) {
-        preencherDetalhes(
-            modalFinal,
-            conteudo,
-            tipo
-        );
-
-        mostrarToast(
-            "Não foi possível carregar todos os detalhes."
-        );
-
-        return;
-    }
-
-    let detalhes =
-        resposta.data ||
-        resposta.result ||
-        resposta.movie ||
-        resposta.tv ||
-        resposta;
-
-    if (
-        detalhes &&
-        detalhes.ok === true &&
-        detalhes.id
-    ) {
-        detalhes = detalhes;
-    }
-
-    detalhes =
-        normalizarConteudo(
-            {
-                ...conteudo,
-                ...detalhes
-            },
-            tipo
-        );
-
-    preencherDetalhes(
-        modalFinal,
-        detalhes,
-        tipo
-    );
-}
-
-function criarModalDetalhes() {
-    if (
-        document.getElementById(
-            "details-modal"
-        )
-    ) {
-        return;
-    }
-
-    const modal =
-        document.createElement("div");
-
-    modal.id =
-        "details-modal";
-
-    modal.className =
-        "modal details-modal";
-
-    modal.setAttribute(
-        "aria-hidden",
-        "true"
-    );
-
-    modal.hidden = true;
-
-    modal.innerHTML = `
-        <div class="modal-overlay"></div>
-
-        <div class="modal-content detalhes-filme">
-            <button
-                type="button"
-                class="modal-close"
-                id="details-close"
-                aria-label="Fechar"
-            >
-                ×
-            </button>
-
-            <div class="detalhes-conteudo">
-                <div class="detalhes-poster"></div>
-
-                <div class="detalhes-info">
-                    <h2 class="detalhes-titulo"></h2>
-
-                    <div class="detalhes-meta"></div>
-
-                    <p class="detalhes-original"></p>
-
-                    <div class="detalhes-generos"></div>
-
-                    <p class="detalhes-sinopse"></p>
-
-                    <div class="detalhes-acoes">
-                        <button
-                            type="button"
-                            class="botao-favorito"
-                        >
-                            ☆ Favoritar
-                        </button>
-
-                        <button
-                            type="button"
-                            class="botao-assistir"
-                        >
-                            Marcar como assistido
-                        </button>
-                    </div>
-
-                    <div class="detalhes-temporadas"></div>
-
-                    <div class="detalhes-elenco"></div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(
-        modal
-    );
-}
-
-function preencherDetalhes(
-    modal,
-    detalhes,
-    tipo
-) {
-    if (!modal) {
-        return;
-    }
-
-    const titulo =
-        obterTitulo(detalhes);
-
-    const original =
-        obterTituloOriginal(
-            detalhes
-        );
-
-    const poster =
-        obterImagem(detalhes);
-
-    const nota =
-        obterNota(detalhes);
-
-    const ano =
-        obterAno(detalhes);
-
-    const runtime =
-        Number(
-            detalhes.runtime || 0
-        );
-
-    const tituloElemento =
-        modal.querySelector(
-            ".detalhes-titulo"
-        );
-
-    const originalElemento =
-        modal.querySelector(
-            ".detalhes-original"
-        );
-
-    const metaElemento =
-        modal.querySelector(
-            ".detalhes-meta"
-        );
-
-    const posterElemento =
-        modal.querySelector(
-            ".detalhes-poster"
-        );
-
-    const sinopseElemento =
-        modal.querySelector(
-            ".detalhes-sinopse"
-        );
-
-    const generosElemento =
-        modal.querySelector(
-            ".detalhes-generos"
-        );
-
-    if (tituloElemento) {
-        tituloElemento.textContent =
-            titulo;
-    }
-
-    if (originalElemento) {
-        originalElemento.textContent =
-            original &&
-            original !== titulo
-                ? original
-                : "";
-    }
-
-    if (metaElemento) {
-        const partes = [];
-
-        if (ano) {
-            partes.push(ano);
-        }
-
-        partes.push(
-            tipo === "tv"
-                ? "Série"
-                : "Filme"
-        );
-
-        partes.push(
-            `★ ${nota}`
-        );
-
-        if (runtime > 0) {
-            partes.push(
-                `${runtime} min`
-            );
-        }
-
-        metaElemento.textContent =
-            partes.join(" • ");
-    }
-
-    if (posterElemento) {
-        posterElemento.innerHTML =
-            poster
-                ? `
-                    <img
-                        src="${escaparAtributo(poster)}"
-                        alt="${escaparAtributo(titulo)}"
-                    >
-                `
-                : `
-                    <div class="poster-sem-imagem">
-                        CineFamily
-                    </div>
-                `;
-    }
-
-    if (sinopseElemento) {
-        sinopseElemento.textContent =
-            detalhes.overview ||
-            "Sinopse não disponível.";
-    }
-
-    if (generosElemento) {
-        const generos =
-            Array.isArray(
-                detalhes.genres
-            )
-                ? detalhes.genres
-                : [];
-
-        generosElemento.innerHTML =
-            generos
-                .map(function (genero) {
-                    return `
-                        <span class="genero">
-                            ${escaparHTML(
-                                genero.name
-                            )}
-                        </span>
-                    `;
-                })
-                .join("");
-    }
-
-    const backdrop =
-        obterBackdrop(
-            detalhes
-        );
-
-    if (backdrop) {
-        modal.style.setProperty(
-            "--detalhes-backdrop",
-            `url("${backdrop}")`
-        );
-    }
-
-    configurarBotaoFavorito(
-        modal,
-        detalhes
-    );
-
-    configurarBotaoAssistir(
-        modal,
-        detalhes
-    );
-
-    const temporadas =
-        modal.querySelector(
-            ".detalhes-temporadas"
-        );
-
-    if (temporadas) {
-        temporadas.innerHTML = "";
-    }
-
-    if (tipo === "tv") {
-        carregarTemporadas(
-            detalhes.id,
-            modal,
-            detalhes
-        );
-    }
-
-    carregarElenco(
-        detalhes.id,
-        tipo,
-        modal
-    );
-}
-function configurarBotaoFavorito(
-    modal,
-    conteudo
-) {
-    const botao =
-        modal.querySelector(
-            ".botao-favorito"
-        );
-
-    if (!botao) {
-        return;
-    }
-
-    atualizarTextoFavorito(
-        botao,
-        conteudo
-    );
-
-    botao.onclick =
-        function () {
-            alternarFavorito(
-                conteudo
-            );
-
-            atualizarTextoFavorito(
-                botao,
-                conteudo
-            );
-
-            carregarFavoritos();
-        };
-}
-
-function atualizarTextoFavorito(
-    botao,
-    conteudo
-) {
-    if (
-        estaNosFavoritos(
-            conteudo
-        )
-    ) {
-        botao.textContent =
-            "★ Remover dos favoritos";
-
-        botao.classList.add(
-            "favoritado"
-        );
-    } else {
-        botao.textContent =
-            "☆ Favoritar";
-
-        botao.classList.remove(
-            "favoritado"
-        );
-    }
-}
-
-function configurarBotaoAssistir(
-    modal,
-    conteudo
-) {
-    const botao =
-        modal.querySelector(
-            ".botao-assistir"
-        );
-
-    if (!botao) {
-        return;
-    }
-
-    botao.onclick =
-        function () {
-            registrarHistorico(
-                conteudo
-            );
-
-            botao.textContent =
-                "✓ Adicionado ao histórico";
-
-            botao.classList.add(
-                "assistido"
-            );
-
-            carregarHistorico();
-
-            mostrarToast(
-                "Adicionado ao histórico."
-            );
-        };
-}
-
-function obterChaveConteudo(
-    conteudo
-) {
-    if (!conteudo) {
-        return "";
-    }
-
-    const id =
-        obterIdSeguro(
-            conteudo
-        );
-
-    if (!id) {
-        return "";
-    }
-
-    const tipo =
-        descobrirTipo(conteudo);
-
-    return `${tipo}-${id}`;
-}
-
-function obterFavoritos() {
-    let dados = [];
-
-    try {
-        const atual =
-            localStorage.getItem(
-                STORAGE_FAVORITOS
-            );
-
-        if (atual) {
-            dados =
-                JSON.parse(atual);
-        }
-
-        if (
-            !Array.isArray(dados) ||
-            dados.length === 0
-        ) {
-            const antigo =
-                localStorage.getItem(
-                    LEGACY_FAVORITOS
-                );
-
-            if (antigo) {
-                dados =
-                    JSON.parse(antigo);
-            }
-        }
-    } catch (erro) {
-        console.error(
-            "Erro ao ler favoritos:",
-            erro
-        );
-
-        dados = [];
-    }
-
-    return Array.isArray(dados)
-        ? dados.filter(
-              conteudoPermitido
-          )
-        : [];
-}
-
-function salvarFavoritos(
-    favoritos
-) {
-    try {
-        localStorage.setItem(
-            STORAGE_FAVORITOS,
-            JSON.stringify(
-                favoritos
-            )
-        );
-    } catch (erro) {
-        console.error(
-            "Erro ao salvar favoritos:",
-            erro
-        );
-    }
-}
-
-function estaNosFavoritos(
-    conteudo
-) {
-    const chave =
-        obterChaveConteudo(
-            conteudo
-        );
-
-    if (!chave) {
-        return false;
-    }
-
-    return appState.favoritos.some(
-        function (item) {
-            return (
-                obterChaveConteudo(
-                    item
-                ) === chave
-            );
-        }
-    );
-}
-
-function adicionarFavorito(
-    conteudo
-) {
-    if (
-        !conteudo ||
-        !obterIdSeguro(conteudo)
-    ) {
-        return;
-    }
-
-    if (
-        estaNosFavoritos(
-            conteudo
-        )
-    ) {
-        return;
-    }
-
-    const favorito =
-        normalizarConteudo(
-            conteudo
-        );
-
-    appState.favoritos.unshift(
-        favorito
-    );
-
-    salvarFavoritos(
-        appState.favoritos
-    );
-
-    mostrarToast(
-        "Adicionado aos favoritos."
-    );
-}
-
-function removerFavorito(
-    conteudo
-) {
-    const chave =
-        obterChaveConteudo(
-            conteudo
-        );
-
-    if (!chave) {
-        return;
-    }
-
-    appState.favoritos =
-        appState.favoritos.filter(
-            function (item) {
-                return (
-                    obterChaveConteudo(
-                        item
-                    ) !== chave
-                );
-            }
-        );
-
-    salvarFavoritos(
-        appState.favoritos
-    );
-
-    mostrarToast(
-        "Removido dos favoritos."
-    );
-}
-
-function alternarFavorito(
-    conteudo
-) {
-    if (
-        estaNosFavoritos(
-            conteudo
-        )
-    ) {
-        removerFavorito(
-            conteudo
-        );
-    } else {
-        adicionarFavorito(
-            conteudo
-        );
-    }
-
-    atualizarListasLocais();
-}
-
-function encontrarContainerLista(
-    tipo
-) {
-    const ids =
-        tipo === "favoritos"
-            ? [
-                  "#favoritos",
-                  "#lista-favoritos",
-                  "#favoritos-container"
-              ]
-            : [
-                  "#historico",
-                  "#lista-historico",
-                  "#historico-container"
-              ];
-
-    for (const id of ids) {
-        const elemento =
-            document.querySelector(id);
-
-        if (elemento) {
-            return elemento;
-        }
-    }
-
-    const classes =
-        tipo === "favoritos"
-            ? [
-                  ".favoritos-lista",
-                  ".lista-favoritos"
-              ]
-            : [
-                  ".historico-lista",
-                  ".lista-historico"
-              ];
-
-    for (const classe of classes) {
-        const elemento =
-            document.querySelector(
-                classe
-            );
-
-        if (elemento) {
-            return elemento;
-        }
-    }
-
-    return null;
-}
-
-function carregarFavoritos() {
-    appState.favoritos =
-        obterFavoritos();
-
-    const container =
-        encontrarContainerLista(
-            "favoritos"
-        );
-
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML = "";
-
-    if (
-        !appState.favoritos.length
-    ) {
-        container.innerHTML = `
-            <div class="mensagem-vazia">
-                Você ainda não possui favoritos.
-            </div>
-        `;
-
-        return;
-    }
-
-    appState.favoritos.forEach(
-        function (item) {
-            const card =
-                criarCard(
-                    item,
-                    descobrirTipo(item)
                 );
 
             if (card) {
@@ -1755,98 +726,470 @@ function carregarFavoritos() {
     );
 }
 
-function obterHistorico() {
-    let dados = [];
 
-    try {
-        const atual =
-            localStorage.getItem(
-                STORAGE_HISTORICO
-            );
+async function carregarFilmes() {
+    const resposta =
+        await buscarTMDB(
+            "/api/movies?page=1&sort_by=popularity.desc"
+        );
 
-        if (atual) {
-            dados =
-                JSON.parse(atual);
-        }
-
-        if (
-            !Array.isArray(dados) ||
-            dados.length === 0
-        ) {
-            const antigo =
-                localStorage.getItem(
-                    LEGACY_HISTORICO
-                );
-
-            if (antigo) {
-                dados =
-                    JSON.parse(antigo);
-            }
-        }
-    } catch (erro) {
+    if (!resposta.ok) {
         console.error(
-            "Erro ao ler histórico:",
-            erro
+            "Não foi possível carregar filmes:",
+            resposta.erro
         );
 
-        dados = [];
-    }
-
-    return Array.isArray(dados)
-        ? dados.filter(
-              conteudoPermitido
-          )
-        : [];
-}
-
-function salvarHistorico(
-    historico
-) {
-    try {
-        localStorage.setItem(
-            STORAGE_HISTORICO,
-            JSON.stringify(
-                historico
-            )
-        );
-    } catch (erro) {
-        console.error(
-            "Erro ao salvar histórico:",
-            erro
-        );
-    }
-}
-
-function registrarHistorico(
-    conteudo
-) {
-    if (
-        !conteudo ||
-        !obterIdSeguro(conteudo)
-    ) {
         return;
     }
 
-    const chave =
-        obterChaveConteudo(
+    appState.filmes =
+        extrairResultados(
+            resposta
+        ).filter(
+            conteudoPermitido
+        );
+
+    mostrarNaSecao(
+        appState.filmes,
+        "filmes",
+        "movie"
+    );
+
+    const populares =
+        await buscarTMDB(
+            "/api/movies?page=1&sort_by=vote_average.desc"
+        );
+
+    if (populares.ok) {
+        mostrarNaSecao(
+            extrairResultados(
+                populares
+            ),
+            "mais-avaliados",
+            "movie"
+        );
+    }
+
+    const lancamentos =
+        await buscarTMDB(
+            "/api/movies?page=1&sort_by=primary_release_date.desc"
+        );
+
+    if (lancamentos.ok) {
+        mostrarNaSecao(
+            extrairResultados(
+                lancamentos
+            ),
+            "lancamentos",
+            "movie"
+        );
+    }
+}
+
+
+async function carregarSeries() {
+    const resposta =
+        await buscarTMDB(
+            "/api/series?page=1&sort_by=popularity.desc"
+        );
+
+    if (!resposta.ok) {
+        console.error(
+            "Não foi possível carregar séries:",
+            resposta.erro
+        );
+
+        return;
+    }
+
+    appState.series =
+        extrairResultados(
+            resposta
+        ).filter(
+            conteudoPermitido
+        );
+
+    mostrarNaSecao(
+        appState.series,
+        "series",
+        "tv"
+    );
+}
+
+
+function iniciarSlider() {
+    const slides =
+        Array.from(
+            document.querySelectorAll(
+                ".slide, .hero-slide, .destaque-slide"
+            )
+        );
+
+    if (!slides.length) {
+        return;
+    }
+
+    let indice = 0;
+
+    function mostrarSlide(numero) {
+        slides.forEach(
+            function (slide, index) {
+                slide.classList.toggle(
+                    "active",
+                    index === numero
+                );
+            }
+        );
+    }
+
+    mostrarSlide(indice);
+
+    if (appState.sliderTimer) {
+        clearInterval(
+            appState.sliderTimer
+        );
+    }
+
+    appState.sliderTimer =
+        setInterval(
+            function () {
+                indice =
+                    (indice + 1) %
+                    slides.length;
+
+                appState.sliderIndex =
+                    indice;
+
+                mostrarSlide(
+                    indice
+                );
+            },
+            6000
+        );
+}
+
+
+function obterIdSeguro(conteudo) {
+    if (!conteudo) {
+        return 0;
+    }
+
+    const id =
+        Number(conteudo.id);
+
+    if (!Number.isFinite(id)) {
+        return 0;
+    }
+
+    if (id <= 0) {
+        return 0;
+    }
+
+    return id;
+}
+
+
+function normalizarConteudo(
+    conteudo,
+    tipoForcado = ""
+) {
+    if (!conteudo) {
+        return null;
+    }
+
+    const id =
+        obterIdSeguro(conteudo);
+
+    if (!id) {
+        return null;
+    }
+
+    const tipo =
+        obterTipo(
+            conteudo,
+            tipoForcado
+        );
+
+    const titulo =
+        obterTitulo(conteudo);
+
+    const poster =
+        obterPoster(conteudo);
+
+    const backdrop =
+        obterBackdrop(conteudo);
+
+    return {
+        id,
+        type: tipo,
+        media_type: tipo,
+        title: titulo,
+        name:
+            tipo === "tv"
+                ? (
+                    conteudo.name ||
+                    titulo
+                )
+                : undefined,
+        original_title:
+            conteudo.original_title ||
+            conteudo.original_name ||
+            "",
+        poster_path: poster,
+        backdrop_path: backdrop,
+        poster,
+        backdrop,
+        overview:
+            conteudo.overview || "",
+        vote_average:
+            obterNota(conteudo),
+        release_date:
+            obterData(conteudo),
+        first_air_date:
+            tipo === "tv"
+                ? obterData(conteudo)
+                : "",
+        adult:
+            conteudo.adult === true,
+        genre_ids:
+            Array.isArray(
+                conteudo.genre_ids
+            )
+                ? conteudo.genre_ids
+                : []
+    };
+}
+function lerStorage(chave, chaveAntiga = "") {
+    try {
+        let salvo =
+            localStorage.getItem(chave);
+
+        if (!salvo && chaveAntiga) {
+            salvo =
+                localStorage.getItem(
+                    chaveAntiga
+                );
+        }
+
+        if (!salvo) {
+            return [];
+        }
+
+        const dados =
+            JSON.parse(salvo);
+
+        return Array.isArray(dados)
+            ? dados
+            : [];
+
+    } catch (erro) {
+        console.error(
+            `Erro ao ler ${chave}:`,
+            erro
+        );
+
+        return [];
+    }
+}
+
+
+function salvarStorage(chave, dados) {
+    try {
+        localStorage.setItem(
+            chave,
+            JSON.stringify(dados)
+        );
+
+        return true;
+
+    } catch (erro) {
+        console.error(
+            `Erro ao salvar ${chave}:`,
+            erro
+        );
+
+        return false;
+    }
+}
+
+
+function carregarStorage() {
+    appState.favoritos =
+        lerStorage(
+            STORAGE_KEYS.FAVORITOS,
+            LEGACY_STORAGE_KEYS.FAVORITOS
+        ).filter(
+            conteudoPermitido
+        );
+
+    appState.historico =
+        lerStorage(
+            STORAGE_KEYS.HISTORICO,
+            LEGACY_STORAGE_KEYS.HISTORICO
+        ).filter(
+            conteudoPermitido
+        );
+
+    salvarStorage(
+        STORAGE_KEYS.FAVORITOS,
+        appState.favoritos
+    );
+
+    salvarStorage(
+        STORAGE_KEYS.HISTORICO,
+        appState.historico
+    );
+}
+
+
+function isFavorito(conteudo) {
+    const id =
+        obterIdSeguro(conteudo);
+
+    const tipo =
+        obterTipo(conteudo);
+
+    if (!id) {
+        return false;
+    }
+
+    return appState.favoritos.some(
+        function (item) {
+            return (
+                obterIdSeguro(item) === id &&
+                obterTipo(item) === tipo
+            );
+        }
+    );
+}
+
+
+function adicionarFavorito(conteudo) {
+    const normalizado =
+        normalizarConteudo(
             conteudo
         );
+
+    if (!normalizado) {
+        return false;
+    }
+
+    const existe =
+        isFavorito(
+            normalizado
+        );
+
+    if (existe) {
+        return false;
+    }
+
+    appState.favoritos.unshift(
+        normalizado
+    );
+
+    salvarStorage(
+        STORAGE_KEYS.FAVORITOS,
+        appState.favoritos
+    );
+
+    return true;
+}
+
+
+function removerFavorito(conteudo) {
+    const id =
+        obterIdSeguro(conteudo);
+
+    const tipo =
+        obterTipo(conteudo);
+
+    if (!id) {
+        return false;
+    }
+
+    const antes =
+        appState.favoritos.length;
+
+    appState.favoritos =
+        appState.favoritos.filter(
+            function (item) {
+                return !(
+                    obterIdSeguro(item) === id &&
+                    obterTipo(item) === tipo
+                );
+            }
+        );
+
+    if (
+        appState.favoritos.length ===
+        antes
+    ) {
+        return false;
+    }
+
+    salvarStorage(
+        STORAGE_KEYS.FAVORITOS,
+        appState.favoritos
+    );
+
+    return true;
+}
+
+
+function alternarFavorito(conteudo) {
+    if (
+        isFavorito(conteudo)
+    ) {
+        removerFavorito(
+            conteudo
+        );
+
+        mostrarToast(
+            "Removido dos favoritos."
+        );
+
+        return false;
+    }
+
+    adicionarFavorito(
+        conteudo
+    );
+
+    mostrarToast(
+        "Adicionado aos favoritos."
+    );
+
+    return true;
+}
+
+
+function registrarHistorico(conteudo) {
+    const normalizado =
+        normalizarConteudo(
+            conteudo
+        );
+
+    if (!normalizado) {
+        return;
+    }
 
     appState.historico =
         appState.historico.filter(
             function (item) {
-                return (
-                    obterChaveConteudo(
-                        item
-                    ) !== chave
+                return !(
+                    obterIdSeguro(item) ===
+                        normalizado.id &&
+                    obterTipo(item) ===
+                        normalizado.type
                 );
             }
         );
 
+    normalizado.visto_em =
+        Date.now();
+
     appState.historico.unshift(
-        normalizarConteudo(
-            conteudo
-        )
+        normalizado
     );
 
     appState.historico =
@@ -1855,206 +1198,775 @@ function registrarHistorico(
             50
         );
 
-    salvarHistorico(
+    salvarStorage(
+        STORAGE_KEYS.HISTORICO,
         appState.historico
     );
 }
 
-function carregarHistorico() {
-    appState.historico =
-        obterHistorico();
 
-    const container =
-        encontrarContainerLista(
-            "historico"
+function mostrarToast(
+    mensagem,
+    tipo = "normal"
+) {
+    let container =
+        document.getElementById(
+            "toast-container"
         );
 
     if (!container) {
+        container =
+            document.createElement(
+                "div"
+            );
+
+        container.id =
+            "toast-container";
+
+        document.body.appendChild(
+            container
+        );
+    }
+
+    const toast =
+        document.createElement(
+            "div"
+        );
+
+    toast.className =
+        "toast";
+
+    if (tipo) {
+        toast.classList.add(
+            `toast-${tipo}`
+        );
+    }
+
+    toast.textContent =
+        mensagem;
+
+    container.appendChild(
+        toast
+    );
+
+    requestAnimationFrame(
+        function () {
+            toast.classList.add(
+                "show"
+            );
+        }
+    );
+
+    setTimeout(
+        function () {
+            toast.classList.remove(
+                "show"
+            );
+
+            setTimeout(
+                function () {
+                    if (
+                        toast.parentNode
+                    ) {
+                        toast.parentNode.removeChild(
+                            toast
+                        );
+                    }
+                },
+                300
+            );
+        },
+        2500
+    );
+}
+
+
+function obterImagemFallback(
+    elemento,
+    imagem
+) {
+    if (!elemento) {
         return;
     }
 
-    container.innerHTML = "";
+    if (!imagem) {
+        elemento.classList.add(
+            "no-image"
+        );
+
+        return;
+    }
+
+    elemento.src =
+        imagem;
+
+    elemento.onerror =
+        function () {
+            elemento.removeAttribute(
+                "src"
+            );
+
+            elemento.classList.add(
+                "no-image"
+            );
+        };
+}
+
+
+function preencherElemento(
+    seletor,
+    valor,
+    esconderSeVazio = false
+) {
+    const elemento =
+        typeof seletor === "string"
+            ? document.querySelector(
+                seletor
+            )
+            : seletor;
+
+    if (!elemento) {
+        return;
+    }
+
+    const texto =
+        valor === null ||
+        valor === undefined
+            ? ""
+            : String(valor);
+
+    elemento.textContent =
+        texto;
+
+    if (esconderSeVazio) {
+        elemento.hidden =
+            texto.trim() === "";
+    }
+}
+
+
+function configurarBotaoFavorito(
+    conteudo
+) {
+    const botao =
+        document.getElementById(
+            "details-favorite-button"
+        );
+
+    if (!botao) {
+        return;
+    }
+
+    const atualizado =
+        normalizarConteudo(
+            conteudo
+        );
+
+    if (!atualizado) {
+        return;
+    }
+
+    function atualizarTexto() {
+        const favorito =
+            isFavorito(
+                atualizado
+            );
+
+        botao.textContent =
+            favorito
+                ? "⭐ Remover dos favoritos"
+                : "☆ Adicionar aos favoritos";
+
+        botao.classList.toggle(
+            "is-favorite",
+            favorito
+        );
+
+        botao.setAttribute(
+            "aria-pressed",
+            favorito
+                ? "true"
+                : "false"
+        );
+    }
+
+    botao.onclick =
+        function () {
+            alternarFavorito(
+                atualizado
+            );
+
+            atualizarTexto();
+        };
+
+    atualizarTexto();
+}
+
+
+function configurarBotaoAssistir(
+    conteudo,
+    tipo
+) {
+    const botao =
+        document.getElementById(
+            "details-watch-button"
+        );
+
+    if (!botao) {
+        return;
+    }
+
+    const atualizado =
+        normalizarConteudo(
+            conteudo,
+            tipo
+        );
+
+    if (!atualizado) {
+        botao.hidden =
+            true;
+
+        return;
+    }
+
+    const trailer =
+        conteudo &&
+        conteudo.trailer
+            ? conteudo.trailer
+            : null;
 
     if (
-        !appState.historico.length
+        trailer &&
+        trailer.key
     ) {
-        container.innerHTML = `
-            <div class="mensagem-vazia">
-                Seu histórico está vazio.
-            </div>
-        `;
+        botao.hidden =
+            false;
+
+        botao.textContent =
+            "▶ Assistir trailer";
+
+        botao.onclick =
+            function () {
+                abrirTrailer(
+                    trailer.key
+                );
+            };
 
         return;
     }
 
-    appState.historico.forEach(
-        function (item) {
-            const card =
-                criarCard(
-                    item,
-                    descobrirTipo(item)
+    botao.hidden =
+        true;
+}
+
+
+function abrirTrailer(
+    chave
+) {
+    if (!chave) {
+        mostrarToast(
+            "Trailer não disponível."
+        );
+
+        return;
+    }
+
+    const url =
+        `https://www.youtube.com/watch?v=${encodeURIComponent(
+            chave
+        )}`;
+
+    window.open(
+        url,
+        "_blank",
+        "noopener,noreferrer"
+    );
+}
+
+
+function preencherDetalhes(
+    detalhes,
+    tipo
+) {
+    const modal =
+        document.getElementById(
+            "details-modal"
+        );
+
+    if (!modal) {
+        return;
+    }
+
+    const conteudo =
+        normalizarConteudo(
+            detalhes,
+            tipo
+        );
+
+    if (!conteudo) {
+        return;
+    }
+
+    appState.detalhesAtual =
+        detalhes;
+
+    const titulo =
+        obterTitulo(detalhes);
+
+    const tituloOriginal =
+        detalhes.original_title ||
+        detalhes.original_name ||
+        "";
+
+    const poster =
+        obterPoster(detalhes);
+
+    const backdrop =
+        obterBackdrop(detalhes);
+
+    const tipoElemento =
+        document.getElementById(
+            "details-type"
+        );
+
+    const tituloElemento =
+        document.getElementById(
+            "details-title"
+        );
+
+    const metaElemento =
+        document.getElementById(
+            "details-meta"
+        );
+
+    const overviewElemento =
+        document.getElementById(
+            "details-overview"
+        );
+
+    const posterElemento =
+        document.getElementById(
+            "details-poster"
+        );
+
+    const backdropElemento =
+        document.getElementById(
+            "details-backdrop"
+        );
+
+    if (tipoElemento) {
+        tipoElemento.textContent =
+            tipo === "tv"
+                ? "SÉRIE"
+                : "FILME";
+    }
+
+    if (tituloElemento) {
+        tituloElemento.textContent =
+            titulo;
+    }
+
+    if (metaElemento) {
+        const meta = [];
+
+        const ano =
+            obterAno(detalhes);
+
+        if (ano) {
+            meta.push(
+                ano
+            );
+        }
+
+        const nota =
+            formatarNota(
+                detalhes.vote_average
+            );
+
+        if (nota) {
+            meta.push(
+                `⭐ ${nota}`
+            );
+        }
+
+        if (
+            tipo === "movie" &&
+            detalhes.runtime
+        ) {
+            const duracao =
+                formatarDuracao(
+                    detalhes.runtime
                 );
 
-            if (card) {
-                container.appendChild(
-                    card
+            if (duracao) {
+                meta.push(
+                    duracao
                 );
             }
         }
-    );
-}
 
-function limparHistorico() {
-    appState.historico = [];
+        if (
+            tipo === "tv" &&
+            detalhes.number_of_seasons
+        ) {
+            const temporadas =
+                Number(
+                    detalhes.number_of_seasons
+                );
 
-    try {
-        localStorage.removeItem(
-            STORAGE_HISTORICO
-        );
+            meta.push(
+                temporadas === 1
+                    ? "1 temporada"
+                    : `${temporadas} temporadas`
+            );
+        }
 
-        localStorage.removeItem(
-            LEGACY_HISTORICO
-        );
-    } catch (erro) {
-        console.error(
-            "Erro ao limpar histórico:",
-            erro
+        metaElemento.textContent =
+            meta.join(" • ");
+    }
+
+    if (overviewElemento) {
+        overviewElemento.textContent =
+            detalhes.overview ||
+            "Sinopse não disponível.";
+    }
+
+    if (posterElemento) {
+        posterElemento.alt =
+            titulo;
+
+        obterImagemFallback(
+            posterElemento,
+            poster
         );
     }
 
-    carregarHistorico();
+    if (
+        backdropElemento &&
+        backdrop
+    ) {
+        backdropElemento.style.backgroundImage =
+            `url("${backdrop}")`;
+    }
 
-    mostrarToast(
-        "Histórico apagado."
+    const originalElemento =
+        document.getElementById(
+            "details-original-title"
+        );
+
+    if (originalElemento) {
+        originalElemento.textContent =
+            tituloOriginal;
+
+        originalElemento.hidden =
+            !tituloOriginal ||
+            tituloOriginal === titulo;
+    }
+
+    preencherGeneros(
+        detalhes
+    );
+
+    preencherExtraDetalhes(
+        detalhes,
+        tipo
+    );
+
+    configurarBotaoFavorito(
+        detalhes
+    );
+
+    configurarBotaoAssistir(
+        detalhes,
+        tipo
+    );
+
+    configurarTemporadas(
+        detalhes,
+        tipo
+    );
+
+    configurarElenco(
+        detalhes
     );
 }
 
-async function carregarTemporadas(
-    id,
-    modal,
+
+function preencherGeneros(
     detalhes
 ) {
     const container =
-        modal.querySelector(
-            ".detalhes-temporadas"
+        document.getElementById(
+            "details-genres"
         );
 
-    if (!container) {
-        return;
-    }
-
-    const temporadas =
-        Array.isArray(
-            detalhes?.seasons
-        )
-            ? detalhes.seasons
-            : [];
-
-    if (!temporadas.length) {
-        container.innerHTML = "";
-        return;
-    }
-
-    container.innerHTML = `
-        <h3>Temporadas</h3>
-        <div class="temporadas-lista"></div>
-        <div class="episodios-lista"></div>
-    `;
-
-    const lista =
-        container.querySelector(
-            ".temporadas-lista"
-        );
-
-    const episodios =
-        container.querySelector(
-            ".episodios-lista"
-        );
-
-    temporadas
-        .filter(function (temporada) {
-            return (
-                Number(
-                    temporada.season_number
-                ) >= 0
-            );
-        })
-        .forEach(
-            function (temporada) {
-                const botao =
-                    document.createElement(
-                        "button"
-                    );
-
-                botao.type = "button";
-                botao.className =
-                    "botao-temporada";
-
-                botao.textContent =
-                    temporada.name ||
-                    `Temporada ${temporada.season_number}`;
-
-                botao.addEventListener(
-                    "click",
-                    function () {
-                        carregarEpisodios(
-                            id,
-                            temporada.season_number,
-                            episodios
-                        );
-                    }
-                );
-
-                lista.appendChild(
-                    botao
-                );
-            }
-        );
-
-    const primeira =
-        temporadas.find(
-            function (temporada) {
-                return (
-                    Number(
-                        temporada.season_number
-                    ) === 1
-                );
-            }
-        ) ||
-        temporadas[0];
-
-    if (primeira) {
-        carregarEpisodios(
-            id,
-            primeira.season_number,
-            episodios
-        );
-    }
-}
-
-async function carregarEpisodios(
-    id,
-    numeroTemporada,
-    container
-) {
     if (!container) {
         return;
     }
 
     container.innerHTML =
-        "<p>Carregando episódios...</p>";
+        "";
+
+    const generos =
+        Array.isArray(
+            detalhes.genres
+        )
+            ? detalhes.genres
+            : [];
+
+    if (!generos.length) {
+        container.hidden =
+            true;
+
+        return;
+    }
+
+    container.hidden =
+        false;
+
+    generos.forEach(
+        function (genero) {
+            const elemento =
+                document.createElement(
+                    "span"
+                );
+
+            elemento.className =
+                "genre-tag";
+
+            elemento.textContent =
+                genero.name ||
+                "";
+
+            container.appendChild(
+                elemento
+            );
+        }
+    );
+}
+
+
+function preencherExtraDetalhes(
+    detalhes,
+    tipo
+) {
+    const container =
+        document.getElementById(
+            "details-extra"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML =
+        "";
+
+    const dados = [];
+
+    if (
+        detalhes.status
+    ) {
+        dados.push(
+            `Status: ${detalhes.status}`
+        );
+    }
+
+    if (
+        detalhes.original_language
+    ) {
+        dados.push(
+            `Idioma original: ${String(
+                detalhes.original_language
+            ).toUpperCase()}`
+        );
+    }
+
+    if (
+        tipo === "movie" &&
+        detalhes.release_date
+    ) {
+        dados.push(
+            `Lançamento: ${formatarData(
+                detalhes.release_date
+            )}`
+        );
+    }
+
+    if (
+        tipo === "tv" &&
+        detalhes.first_air_date
+    ) {
+        dados.push(
+            `Estreia: ${formatarData(
+                detalhes.first_air_date
+            )}`
+        );
+    }
+
+    dados.forEach(
+        function (texto) {
+            const elemento =
+                document.createElement(
+                    "span"
+                );
+
+            elemento.className =
+                "details-extra-item";
+
+            elemento.textContent =
+                texto;
+
+            container.appendChild(
+                elemento
+            );
+        }
+    );
+}
+function configurarTemporadas(
+    detalhes,
+    tipo
+) {
+    const container =
+        document.getElementById(
+            "episodes-container"
+        );
+
+    const lista =
+        document.getElementById(
+            "episodes-list"
+        );
+
+    if (!container || !lista) {
+        return;
+    }
+
+    lista.innerHTML = "";
+
+    if (
+        tipo !== "tv" ||
+        !Array.isArray(
+            detalhes.seasons
+        ) ||
+        !detalhes.seasons.length
+    ) {
+        container.hidden =
+            true;
+
+        return;
+    }
+
+    const temporadas =
+        detalhes.seasons.filter(
+            function (temporada) {
+                return (
+                    temporada &&
+                    Number(
+                        temporada.season_number
+                    ) >= 0
+                );
+            }
+        );
+
+    if (!temporadas.length) {
+        container.hidden =
+            true;
+
+        return;
+    }
+
+    container.hidden =
+        false;
+
+    temporadas.forEach(
+        function (temporada) {
+            const item =
+                document.createElement(
+                    "button"
+                );
+
+            item.type =
+                "button";
+
+            item.className =
+                "season-button";
+
+            const numero =
+                Number(
+                    temporada.season_number
+                );
+
+            const nome =
+                temporada.name ||
+                `Temporada ${numero}`;
+
+            const quantidade =
+                Number(
+                    temporada.episode_count ||
+                    0
+                );
+
+            item.textContent =
+                quantidade > 0
+                    ? `${nome} • ${quantidade} episódios`
+                    : nome;
+
+            item.addEventListener(
+                "click",
+                function () {
+                    carregarEpisodios(
+                        detalhes.id,
+                        numero
+                    );
+                }
+            );
+
+            lista.appendChild(
+                item
+            );
+        }
+    );
+}
+
+
+async function carregarEpisodios(
+    id,
+    temporada
+) {
+    const container =
+        document.getElementById(
+            "episodes-container"
+        );
+
+    const lista =
+        document.getElementById(
+            "episodes-list"
+        );
+
+    if (!container || !lista) {
+        return;
+    }
+
+    if (
+        !id ||
+        Number(
+            temporada
+        ) < 0
+    ) {
+        return;
+    }
+
+    lista.innerHTML =
+        "<p class=\"episodes-loading\">Carregando episódios...</p>";
 
     const resposta =
         await buscarTMDB(
-            `/api/tv/${id}/season/${numeroTemporada}`
+            `/api/tv/${id}/season/${temporada}`
         );
 
-    if (
-        !resposta ||
-        resposta.ok === false
-    ) {
-        container.innerHTML =
-            "<p>Episódios indisponíveis.</p>";
+    if (!resposta.ok) {
+        lista.innerHTML =
+            "<p class=\"episodes-empty\">Não foi possível carregar os episódios.</p>";
 
         return;
     }
@@ -2066,198 +1978,375 @@ async function carregarEpisodios(
             ? resposta.episodes
             : [];
 
+    lista.innerHTML =
+        "";
+
     if (!episodios.length) {
-        container.innerHTML =
-            "<p>Nenhum episódio encontrado.</p>";
+        lista.innerHTML =
+            "<p class=\"episodes-empty\">Nenhum episódio encontrado.</p>";
 
         return;
     }
-
-    container.innerHTML = `
-        <h4>
-            ${escaparHTML(
-                resposta.name ||
-                `Temporada ${numeroTemporada}`
-            )}
-        </h4>
-    `;
 
     episodios.forEach(
         function (episodio) {
             const item =
                 document.createElement(
-                    "div"
+                    "article"
                 );
 
             item.className =
-                "episodio";
+                "episode-item";
 
             const imagem =
-                episodio.still_path ||
-                "";
+                document.createElement(
+                    "img"
+                );
 
-            item.innerHTML = `
-                ${
-                    imagem
-                        ? `
-                            <img
-                                src="${escaparAtributo(
-                                    imagem
-                                )}"
-                                alt=""
-                                loading="lazy"
-                            >
-                        `
-                        : ""
-                }
+            imagem.className =
+                "episode-image";
 
-                <div class="episodio-info">
-                    <strong>
-                        ${escaparHTML(
-                            episodio.episode_number +
-                            ". " +
-                            episodio.name
-                        )}
-                    </strong>
+            imagem.alt =
+                episodio.name ||
+                "Episódio";
 
-                    <p>
-                        ${escaparHTML(
-                            episodio.overview ||
-                            "Sinopse não disponível."
-                        )}
-                    </p>
-                </div>
-            `;
+            imagem.loading =
+                "lazy";
 
-            container.appendChild(
+            if (
+                episodio.still_path
+            ) {
+                imagem.src =
+                    episodio.still_path.startsWith(
+                        "http"
+                    )
+                        ? episodio.still_path
+                        : `${IMG}${episodio.still_path}`;
+            }
+
+            imagem.onerror =
+                function () {
+                    imagem.removeAttribute(
+                        "src"
+                    );
+
+                    imagem.classList.add(
+                        "no-image"
+                    );
+                };
+
+            const informacoes =
+                document.createElement(
+                    "div"
+                );
+
+            informacoes.className =
+                "episode-info";
+
+            const titulo =
+                document.createElement(
+                    "h4"
+                );
+
+            titulo.textContent =
+                episodio.episode_number
+                    ? `E${episodio.episode_number} — ${episodio.name || "Episódio"}`
+                    : (
+                        episodio.name ||
+                        "Episódio"
+                    );
+
+            const sinopse =
+                document.createElement(
+                    "p"
+                );
+
+            sinopse.textContent =
+                episodio.overview ||
+                "Sinopse não disponível.";
+
+            const nota =
+                Number(
+                    episodio.vote_average ||
+                    0
+                );
+
+            const meta =
+                document.createElement(
+                    "span"
+                );
+
+            meta.className =
+                "episode-meta";
+
+            if (
+                nota > 0
+            ) {
+                meta.textContent =
+                    `⭐ ${nota.toFixed(1)}`;
+            }
+
+            informacoes.appendChild(
+                titulo
+            );
+
+            informacoes.appendChild(
+                sinopse
+            );
+
+            if (
+                meta.textContent
+            ) {
+                informacoes.appendChild(
+                    meta
+                );
+            }
+
+            item.appendChild(
+                imagem
+            );
+
+            item.appendChild(
+                informacoes
+            );
+
+            lista.appendChild(
                 item
             );
         }
     );
 }
 
-async function carregarElenco(
-    id,
-    tipo,
-    modal
+
+function configurarElenco(
+    detalhes
 ) {
     const container =
-        modal.querySelector(
-            ".detalhes-elenco"
+        document.getElementById(
+            "details-cast"
         );
 
     if (!container) {
         return;
     }
 
-    const endpoint =
-        tipo === "tv"
-            ? `/api/tv/${id}`
-            : `/api/movie/${id}`;
-
-    const resposta =
-        await buscarTMDB(endpoint);
-
-    if (
-        !resposta ||
-        resposta.ok === false
-    ) {
-        container.innerHTML = "";
-        return;
-    }
-
-    const detalhes =
-        resposta;
+    container.innerHTML =
+        "";
 
     const elenco =
         Array.isArray(
             detalhes.cast
         )
             ? detalhes.cast
-            : Array.isArray(
-                  detalhes.credits?.cast
-              )
-            ? detalhes.credits.cast
             : [];
 
     if (!elenco.length) {
-        container.innerHTML = "";
+        container.hidden =
+            true;
+
         return;
     }
 
-    container.innerHTML = `
-        <h3>Elenco</h3>
-        <div class="elenco-lista"></div>
-    `;
-
-    const lista =
-        container.querySelector(
-            ".elenco-lista"
-        );
+    container.hidden =
+        false;
 
     elenco
-        .slice(0, 12)
+        .slice(
+            0,
+            12
+        )
         .forEach(
-            function (pessoa) {
+            function (ator) {
                 const item =
                     document.createElement(
                         "div"
                     );
 
                 item.className =
-                    "elenco-item";
+                    "cast-item";
+
+                const imagem =
+                    document.createElement(
+                        "img"
+                    );
+
+                imagem.className =
+                    "cast-image";
+
+                imagem.alt =
+                    ator.name ||
+                    "Ator";
+
+                imagem.loading =
+                    "lazy";
 
                 const foto =
-                    pessoa.profile_path ||
+                    ator.profile_path ||
                     "";
 
-                item.innerHTML = `
-                    ${
-                        foto
-                            ? `
-                                <img
-                                    src="${escaparAtributo(
-                                        foto
-                                    )}"
-                                    alt="${escaparAtributo(
-                                        pessoa.name
-                                    )}"
-                                    loading="lazy"
-                                >
-                            `
-                            : `
-                                <div class="elenco-sem-foto">
-                                    ?
-                                </div>
-                            `
-                    }
+                if (foto) {
+                    imagem.src =
+                        foto.startsWith(
+                            "http"
+                        )
+                            ? foto
+                            : `${IMG}${foto}`;
+                }
 
-                    <strong>
-                        ${escaparHTML(
-                            pessoa.name ||
-                            "Desconhecido"
-                        )}
-                    </strong>
+                imagem.onerror =
+                    function () {
+                        imagem.removeAttribute(
+                            "src"
+                        );
 
-                    ${
-                        pessoa.character
-                            ? `
-                                <span>
-                                    ${escaparHTML(
-                                        pessoa.character
-                                    )}
-                                </span>
-                            `
-                            : ""
-                    }
-                `;
+                        imagem.classList.add(
+                            "no-image"
+                        );
+                    };
 
-                lista.appendChild(
+                const nome =
+                    document.createElement(
+                        "span"
+                    );
+
+                nome.className =
+                    "cast-name";
+
+                nome.textContent =
+                    ator.name ||
+                    "Nome não disponível";
+
+                item.appendChild(
+                    imagem
+                );
+
+                item.appendChild(
+                    nome
+                );
+
+                if (
+                    ator.character
+                ) {
+                    const personagem =
+                        document.createElement(
+                            "small"
+                        );
+
+                    personagem.className =
+                        "cast-character";
+
+                    personagem.textContent =
+                        ator.character;
+
+                    item.appendChild(
+                        personagem
+                    );
+                }
+
+                container.appendChild(
                     item
                 );
             }
         );
 }
+
+
+async function abrirDetalhes(
+    conteudo,
+    tipo
+) {
+    if (!conteudo) {
+        return;
+    }
+
+    const id =
+        obterIdSeguro(
+            conteudo
+        );
+
+    if (!id) {
+        console.error(
+            "Conteúdo sem ID válido:",
+            conteudo
+        );
+
+        return;
+    }
+
+    const tipoFinal =
+        obterTipo(
+            conteudo,
+            tipo
+        );
+
+    const modal =
+        document.getElementById(
+            "details-modal"
+        );
+
+    if (!modal) {
+        console.error(
+            "Modal de detalhes não encontrado."
+        );
+
+        return;
+    }
+
+    modal.hidden =
+        false;
+
+    modal.classList.add(
+        "is-open"
+    );
+
+    document.body.classList.add(
+        "modal-open"
+    );
+
+    const conteudoInicial =
+        normalizarConteudo(
+            conteudo,
+            tipoFinal
+        );
+
+    preencherDetalhes(
+        conteudoInicial,
+        tipoFinal
+    );
+
+    registrarHistorico(
+        conteudoInicial
+    );
+
+    const resposta =
+        await buscarTMDB(
+            `/api/details/${tipoFinal}/${id}`
+        );
+
+    if (!resposta.ok) {
+        console.error(
+            "Erro ao carregar detalhes:",
+            resposta.erro
+        );
+
+        preencherDetalhes(
+            conteudoInicial,
+            tipoFinal
+        );
+
+        return;
+    }
+
+    const detalhes =
+        resposta;
+
+    preencherDetalhes(
+        detalhes,
+        tipoFinal
+    );
+}
+
+
 function fecharDetalhes() {
     const modal =
         document.getElementById(
@@ -2268,338 +2357,23 @@ function fecharDetalhes() {
         return;
     }
 
-    modal.setAttribute(
-        "aria-hidden",
-        "true"
+    modal.classList.remove(
+        "is-open"
     );
 
-    modal.hidden = true;
+    modal.hidden =
+        true;
 
-    modal.style.display = "none";
-    modal.style.visibility = "hidden";
-    modal.style.opacity = "0";
-    modal.style.pointerEvents = "none";
+    document.body.classList.remove(
+        "modal-open"
+    );
+
+    appState.detalhesAtual =
+        null;
 }
 
-function mostrarToast(
-    mensagem
-) {
-    let toast =
-        document.getElementById(
-            "cinefamily-toast"
-        );
 
-    if (!toast) {
-        toast =
-            document.createElement(
-                "div"
-            );
-
-        toast.id =
-            "cinefamily-toast";
-
-        toast.className =
-            "cinefamily-toast";
-
-        document.body.appendChild(
-            toast
-        );
-    }
-
-    toast.textContent =
-        mensagem;
-
-    toast.classList.add(
-        "visivel"
-    );
-
-    clearTimeout(
-        toast._timer
-    );
-
-    toast._timer =
-        setTimeout(
-            function () {
-                toast.classList.remove(
-                    "visivel"
-                );
-            },
-            2500
-        );
-}
-
-function mostrarSecaoPorId(
-    id
-) {
-    const elemento =
-        document.getElementById(id);
-
-    if (!elemento) {
-        return;
-    }
-
-    elemento.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-    });
-}
-
-function configurarNavegacaoInterna() {
-    document.addEventListener(
-        "click",
-        function (event) {
-            const link =
-                event.target.closest(
-                    'a[href^="#"]'
-                );
-
-            if (!link) {
-                return;
-            }
-
-            const href =
-                link.getAttribute(
-                    "href"
-                );
-
-            if (
-                !href ||
-                href === "#"
-            ) {
-                return;
-            }
-
-            const id =
-                href.substring(1);
-
-            const destino =
-                document.getElementById(
-                    id
-                );
-
-            if (!destino) {
-                return;
-            }
-
-            event.preventDefault();
-
-            mostrarSecaoPorId(
-                id
-            );
-
-            document.body.classList.remove(
-                "menu-aberto"
-            );
-        }
-    );
-
-    document.addEventListener(
-        "click",
-        function (event) {
-            const elemento =
-                event.target.closest(
-                    "[data-secao]"
-                );
-
-            if (!elemento) {
-                return;
-            }
-
-            const id =
-                elemento.dataset.secao;
-
-            if (id) {
-                event.preventDefault();
-                mostrarSecaoPorId(id);
-            }
-        }
-    );
-}
-
-function configurarFechamentoModal() {
-    document.addEventListener(
-        "click",
-        function (event) {
-            const modal =
-                document.getElementById(
-                    "details-modal"
-                );
-
-            if (!modal) {
-                return;
-            }
-
-            if (
-                event.target === modal ||
-                event.target.classList.contains(
-                    "modal-overlay"
-                )
-            ) {
-                fecharDetalhes();
-                return;
-            }
-
-            const fechar =
-                event.target.closest(
-                    "#details-close, .modal-close, .fechar-modal, .fechar-detalhes"
-                );
-
-            if (fechar) {
-                event.preventDefault();
-                fecharDetalhes();
-            }
-        }
-    );
-
-    document.addEventListener(
-        "keydown",
-        function (event) {
-            if (
-                event.key === "Escape"
-            ) {
-                fecharDetalhes();
-                fecharAreaBusca();
-            }
-        }
-    );
-}
-
-function configurarMenu() {
-    document.addEventListener(
-        "click",
-        function (event) {
-            const botao =
-                event.target.closest(
-                    ".menu-toggle, .menu-btn, .hamburguer, .botao-menu"
-                );
-
-            if (!botao) {
-                return;
-            }
-
-            event.preventDefault();
-
-            document.body.classList.toggle(
-                "menu-aberto"
-            );
-
-            const topo =
-                document.querySelector(
-                    ".topo"
-                );
-
-            if (topo) {
-                topo.classList.toggle(
-                    "menu-aberto"
-                );
-            }
-        }
-    );
-}
-
-function configurarTeclaBusca() {
-    document.addEventListener(
-        "keydown",
-        function (event) {
-            if (
-                event.key === "/" &&
-                !event.ctrlKey &&
-                !event.altKey &&
-                !event.metaKey
-            ) {
-                const elemento =
-                    event.target;
-
-                if (
-                    elemento &&
-                    (
-                        elemento.tagName ===
-                            "INPUT" ||
-                        elemento.tagName ===
-                            "TEXTAREA"
-                    )
-                ) {
-                    return;
-                }
-
-                const campo =
-                    document.querySelector(
-                        "#campo-busca, #search, #search-input"
-                    );
-
-                if (campo) {
-                    event.preventDefault();
-                    abrirAreaBusca();
-                    campo.focus();
-                }
-            }
-        }
-    );
-}
-
-function configurarEventosStorage() {
-    window.addEventListener(
-        "storage",
-        function (event) {
-            if (
-                event.key ===
-                    STORAGE_FAVORITOS ||
-                event.key ===
-                    STORAGE_HISTORICO ||
-                event.key ===
-                    LEGACY_FAVORITOS ||
-                event.key ===
-                    LEGACY_HISTORICO
-            ) {
-                atualizarListasLocais();
-            }
-        }
-    );
-}
-
-function atualizarListasLocais() {
-    appState.favoritos =
-        obterFavoritos();
-
-    appState.historico =
-        obterHistorico();
-
-    carregarFavoritos();
-    carregarHistorico();
-}
-
-function configurarImagens() {
-    document.addEventListener(
-        "error",
-        function (event) {
-            const imagem =
-                event.target;
-
-            if (
-                !imagem ||
-                imagem.tagName !== "IMG"
-            ) {
-                return;
-            }
-
-            if (
-                imagem.dataset.fallback ===
-                "true"
-            ) {
-                return;
-            }
-
-            imagem.dataset.fallback =
-                "true";
-
-            imagem.src =
-                "https://via.placeholder.com/500x750/111111/ffffff?text=CineFamily";
-        },
-        true
-    );
-}
-
-function fecharModalAntigo() {
+function configurarModalDetalhes() {
     const modal =
         document.getElementById(
             "details-modal"
@@ -2609,49 +2383,530 @@ function fecharModalAntigo() {
         return;
     }
 
-    modal.hidden = true;
+    const botoesFechar =
+        modal.querySelectorAll(
+            "[data-close-modal], .modal-close, .details-close, #details-close"
+        );
 
-    modal.setAttribute(
-        "aria-hidden",
-        "true"
+    botoesFechar.forEach(
+        function (botao) {
+            botao.addEventListener(
+                "click",
+                fecharDetalhes
+            );
+        }
     );
 
-    modal.style.display = "none";
-    modal.style.visibility = "hidden";
-    modal.style.opacity = "0";
-    modal.style.pointerEvents = "none";
+    const backdrop =
+        modal.querySelector(
+            ".modal-backdrop"
+        );
+
+    if (backdrop) {
+        backdrop.addEventListener(
+            "click",
+            function (event) {
+                if (
+                    event.target ===
+                    backdrop
+                ) {
+                    fecharDetalhes();
+                }
+            }
+        );
+    }
+
+    modal.addEventListener(
+        "click",
+        function (event) {
+            if (
+                event.target === modal
+            ) {
+                fecharDetalhes();
+            }
+        }
+    );
 }
 
-async function iniciarCineFamily() {
-    fecharModalAntigo();
 
-    appState.favoritos =
-        obterFavoritos();
+function configurarTeclaEscape() {
+    document.addEventListener(
+        "keydown",
+        function (event) {
+            if (
+                event.key !== "Escape"
+            ) {
+                return;
+            }
 
-    appState.historico =
-        obterHistorico();
+            const detailsModal =
+                document.getElementById(
+                    "details-modal"
+                );
+
+            const playerModal =
+                document.getElementById(
+                    "player-modal"
+                );
+
+            const profileModal =
+                document.getElementById(
+                    "profile-modal"
+                );
+
+            if (
+                detailsModal &&
+                !detailsModal.hidden
+            ) {
+                fecharDetalhes();
+                return;
+            }
+
+            if (
+                playerModal &&
+                !playerModal.hidden
+            ) {
+                fecharModalPlayer();
+                return;
+            }
+
+            if (
+                profileModal &&
+                !profileModal.hidden
+            ) {
+                fecharModalPerfil();
+            }
+        }
+    );
+}
+
+
+function configurarBusca() {
+    const area =
+        document.getElementById(
+            "search-area"
+        );
+
+    const input =
+        document.getElementById(
+            "search-input"
+        );
+
+    const botao =
+        document.getElementById(
+            "search-button"
+        );
+
+    const fechar =
+        document.getElementById(
+            "search-close"
+        );
+
+    const toggle =
+        document.getElementById(
+            "search-toggle"
+        );
+
+    const secao =
+        document.getElementById(
+            "search-results-section"
+        );
+
+    const resultados =
+        document.getElementById(
+            "search-results-row"
+        );
+
+    if (
+        !input ||
+        !resultados
+    ) {
+        return;
+    }
+
+    async function executarBusca() {
+        const termo =
+            input.value.trim();
+
+        if (
+            termo.length < 2
+        ) {
+            resultados.innerHTML =
+                "";
+
+            if (secao) {
+                secao.hidden =
+                    true;
+            }
+
+            appState.buscaAtiva =
+                false;
+
+            return;
+        }
+
+        if (secao) {
+            secao.hidden =
+                false;
+        }
+
+        resultados.innerHTML =
+            "<div class=\"search-loading\">Buscando...</div>";
+
+        const resposta =
+            await buscarTMDB(
+                `/api/search?query=${encodeURIComponent(
+                    termo
+                )}&page=1`
+            );
+
+        const lista =
+            extrairResultados(
+                resposta
+            ).filter(
+                conteudoPermitido
+            );
+
+        resultados.innerHTML =
+            "";
+
+        if (!lista.length) {
+            resultados.innerHTML =
+                "<p class=\"search-empty\">Nenhum resultado encontrado.</p>";
+
+            appState.buscaAtiva =
+                true;
+
+            return;
+        }
+
+        lista
+            .slice(
+                0,
+                MAX_ITENS_SECAO
+            )
+            .forEach(
+                function (item) {
+                    const card =
+                        criarCard(
+                            item,
+                            obterTipo(item)
+                        );
+
+                    if (card) {
+                        resultados.appendChild(
+                            card
+                        );
+                    }
+                }
+            );
+
+        appState.buscaAtiva =
+            true;
+
+        if (secao) {
+            secao.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+        }
+    }
+
+    let timerBusca =
+        null;
+
+    function iniciarBuscaComAtraso() {
+        clearTimeout(
+            timerBusca
+        );
+
+        timerBusca =
+            setTimeout(
+                executarBusca,
+                350
+            );
+    }
+
+    input.addEventListener(
+        "input",
+        iniciarBuscaComAtraso
+    );
+
+    input.addEventListener(
+        "keydown",
+        function (event) {
+            if (
+                event.key === "Enter"
+            ) {
+                event.preventDefault();
+
+                clearTimeout(
+                    timerBusca
+                );
+
+                executarBusca();
+            }
+        }
+    );
+
+    if (botao) {
+        botao.addEventListener(
+            "click",
+            executarBusca
+        );
+    }
+
+    if (toggle) {
+        toggle.addEventListener(
+            "click",
+            function () {
+                if (!area) {
+                    return;
+                }
+
+                area.hidden =
+                    !area.hidden;
+
+                if (!area.hidden) {
+                    input.focus();
+                }
+            }
+        );
+    }
+
+    if (fechar) {
+        fechar.addEventListener(
+            "click",
+            function () {
+                input.value =
+                    "";
+
+                if (area) {
+                    area.hidden =
+                        true;
+                }
+
+                resultados.innerHTML =
+                    "";
+
+                if (secao) {
+                    secao.hidden =
+                        true;
+                }
+
+                appState.buscaAtiva =
+                    false;
+            }
+        );
+    }
+}
+
+
+function configurarMenuUsuario() {
+    const botao =
+        document.getElementById(
+            "profile-button"
+        );
+
+    const menu =
+        document.getElementById(
+            "user-menu"
+        );
+
+    if (
+        !botao ||
+        !menu
+    ) {
+        return;
+    }
+
+    botao.addEventListener(
+        "click",
+        function (event) {
+            event.stopPropagation();
+
+            menu.hidden =
+                !menu.hidden;
+        }
+    );
+
+    document.addEventListener(
+        "click",
+        function (event) {
+            if (
+                event.target === botao ||
+                menu.contains(
+                    event.target
+                )
+            ) {
+                return;
+            }
+
+            menu.hidden =
+                true;
+        }
+    );
+}
+
+
+function abrirModalPerfil() {
+    const modal =
+        document.getElementById(
+            "profile-modal"
+        );
+
+    if (!modal) {
+        return;
+    }
+
+    modal.hidden =
+        false;
+
+    modal.classList.add(
+        "is-open"
+    );
+
+    document.body.classList.add(
+        "modal-open"
+    );
+}
+
+
+function fecharModalPerfil() {
+    const modal =
+        document.getElementById(
+            "profile-modal"
+        );
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.remove(
+        "is-open"
+    );
+
+    modal.hidden =
+        true;
+
+    document.body.classList.remove(
+        "modal-open"
+    );
+}
+
+
+function configurarPerfil() {
+    const abrir =
+        document.getElementById(
+            "profile-button"
+        );
+
+    const fechar =
+        document.getElementById(
+            "profile-close"
+        );
+
+    if (abrir) {
+        abrir.addEventListener(
+            "dblclick",
+            abrirModalPerfil
+        );
+    }
+
+    if (fechar) {
+        fechar.addEventListener(
+            "click",
+            fecharModalPerfil
+        );
+    }
+}
+
+
+function fecharModalPlayer() {
+    const modal =
+        document.getElementById(
+            "player-modal"
+        );
+
+    if (!modal) {
+        return;
+    }
+
+    modal.hidden =
+        true;
+
+    modal.classList.remove(
+        "is-open"
+    );
+
+    document.body.classList.remove(
+        "modal-open"
+    );
+
+    const frame =
+        document.getElementById(
+            "player-iframe"
+        );
+
+    if (frame) {
+        frame.src =
+            "about:blank";
+    }
+}
+
+
+function configurarPlayer() {
+    const fechar =
+        document.getElementById(
+            "player-close"
+        );
+
+    if (fechar) {
+        fechar.addEventListener(
+            "click",
+            fecharModalPlayer
+        );
+    }
+}
+
+
+function atualizarAnoRodape() {
+    const elemento =
+        document.getElementById(
+            "current-year"
+        );
+
+    if (elemento) {
+        elemento.textContent =
+            new Date().getFullYear();
+    }
+}
+
+
+function inicializarApp() {
+    carregarStorage();
+
+    configurarModalDetalhes();
+
+    configurarTeclaEscape();
 
     configurarBusca();
-    configurarNavegacaoInterna();
-    configurarFechamentoModal();
-    configurarMenu();
-    configurarTeclaBusca();
-    configurarEventosStorage();
-    configurarImagens();
 
-    carregarFavoritos();
-    carregarHistorico();
+    configurarMenuUsuario();
 
-    await Promise.all([
-        carregarFilmes(),
-        carregarSeries()
-    ]);
+    configurarPerfil();
+
+    configurarPlayer();
+
+    atualizarAnoRodape();
 
     iniciarSlider();
 
-    carregarFavoritos();
-    carregarHistorico();
+    carregarFilmes();
+
+    carregarSeries();
 }
+
 
 if (
     document.readyState ===
@@ -2659,21 +2914,628 @@ if (
 ) {
     document.addEventListener(
         "DOMContentLoaded",
-        iniciarCineFamily
+        inicializarApp
     );
 } else {
-    iniciarCineFamily();
+    inicializarApp();
 }
 
+
 window.CineFamily = {
-    abrirDetalhes,
-    fecharDetalhes,
-    alternarFavorito,
-    adicionarFavorito,
-    removerFavorito,
-    registrarHistorico,
-    limparHistorico,
-    executarBusca,
-    carregarFavoritos,
-    carregarHistorico
+    openDetails:
+        abrirDetalhes,
+
+    closeDetails:
+        fecharDetalhes,
+
+    addFavorite:
+        adicionarFavorito,
+
+    removeFavorite:
+        removerFavorito,
+
+    toggleFavorite:
+        alternarFavorito,
+
+    getFavorites:
+        function () {
+            return appState.favoritos;
+        },
+
+    getHistory:
+        function () {
+            return appState.historico;
+        },
+
+    reloadStorage:
+        carregarStorage
 };
+function configurarNavegacao() {
+    const links =
+        document.querySelectorAll(
+            'a[href^="#"]'
+        );
+
+    links.forEach(
+        function (link) {
+            link.addEventListener(
+                "click",
+                function (event) {
+                    const href =
+                        link.getAttribute(
+                            "href"
+                        );
+
+                    if (
+                        !href ||
+                        href === "#"
+                    ) {
+                        return;
+                    }
+
+                    const destino =
+                        document.querySelector(
+                            href
+                        );
+
+                    if (!destino) {
+                        return;
+                    }
+
+                    event.preventDefault();
+
+                    destino.scrollIntoView({
+                        behavior:
+                            "smooth",
+                        block:
+                            "start"
+                    });
+
+                    const menu =
+                        document.getElementById(
+                            "user-menu"
+                        );
+
+                    if (menu) {
+                        menu.hidden =
+                            true;
+                    }
+                }
+            );
+        }
+    );
+}
+
+
+function configurarBotoesGerais() {
+    const botoes =
+        document.querySelectorAll(
+            "[data-action]"
+        );
+
+    botoes.forEach(
+        function (botao) {
+            const acao =
+                botao.dataset.action;
+
+            if (
+                acao ===
+                "open-profile"
+            ) {
+                botao.addEventListener(
+                    "click",
+                    abrirModalPerfil
+                );
+            }
+
+            if (
+                acao ===
+                "close-profile"
+            ) {
+                botao.addEventListener(
+                    "click",
+                    fecharModalPerfil
+                );
+            }
+
+            if (
+                acao ===
+                "close-details"
+            ) {
+                botao.addEventListener(
+                    "click",
+                    fecharDetalhes
+                );
+            }
+
+            if (
+                acao ===
+                "close-player"
+            ) {
+                botao.addEventListener(
+                    "click",
+                    fecharModalPlayer
+                );
+            }
+        }
+    );
+}
+
+
+function configurarFechamentoModais() {
+    const modais =
+        document.querySelectorAll(
+            ".modal"
+        );
+
+    modais.forEach(
+        function (modal) {
+            modal.addEventListener(
+                "click",
+                function (event) {
+                    if (
+                        event.target !==
+                        modal
+                    ) {
+                        return;
+                    }
+
+                    if (
+                        modal.id ===
+                        "details-modal"
+                    ) {
+                        fecharDetalhes();
+                    }
+
+                    if (
+                        modal.id ===
+                        "profile-modal"
+                    ) {
+                        fecharModalPerfil();
+                    }
+
+                    if (
+                        modal.id ===
+                        "player-modal"
+                    ) {
+                        fecharModalPlayer();
+                    }
+                }
+            );
+        }
+    );
+}
+
+
+function configurarLinksCards() {
+    document.addEventListener(
+        "click",
+        function (event) {
+            const card =
+                event.target.closest(
+                    ".card"
+                );
+
+            if (!card) {
+                return;
+            }
+
+            if (
+                event.target.closest(
+                    "button, a"
+                )
+            ) {
+                return;
+            }
+
+            const id =
+                Number(
+                    card.dataset.id
+                );
+
+            const tipo =
+                card.dataset.type ||
+                "movie";
+
+            if (!id) {
+                return;
+            }
+
+            const lista =
+                tipo === "tv"
+                    ? appState.series
+                    : appState.filmes;
+
+            const encontrado =
+                lista.find(
+                    function (item) {
+                        return (
+                            Number(
+                                item.id
+                            ) === id
+                        );
+                    }
+                );
+
+            if (encontrado) {
+                abrirDetalhes(
+                    encontrado,
+                    tipo
+                );
+            }
+        }
+    );
+}
+
+
+function corrigirImagensExistentes() {
+    const imagens =
+        document.querySelectorAll(
+            "img"
+        );
+
+    imagens.forEach(
+        function (imagem) {
+            if (
+                imagem.dataset.cinefamilyReady ===
+                "true"
+            ) {
+                return;
+            }
+
+            imagem.dataset.cinefamilyReady =
+                "true";
+
+            imagem.addEventListener(
+                "error",
+                function () {
+                    imagem.classList.add(
+                        "no-image"
+                    );
+                }
+            );
+        }
+    );
+}
+
+
+function observarMudancasDOM() {
+    if (
+        typeof MutationObserver ===
+        "undefined"
+    ) {
+        return;
+    }
+
+    const observer =
+        new MutationObserver(
+            function () {
+                corrigirImagensExistentes();
+            }
+        );
+
+    observer.observe(
+        document.body,
+        {
+            childList: true,
+            subtree: true
+        }
+    );
+}
+
+
+function prepararSecoes() {
+    const ids =
+        [
+            "filmes",
+            "series",
+            "doramas",
+            "gl",
+            "kids",
+            "mais-avaliados",
+            "lancamentos",
+            "tv",
+            "explorar",
+            "recomendados"
+        ];
+
+    ids.forEach(
+        function (id) {
+            const secao =
+                document.getElementById(
+                    id
+                );
+
+            if (!secao) {
+                return;
+            }
+
+            const row =
+                encontrarContainerCards(
+                    secao
+                );
+
+            if (!row) {
+                return;
+            }
+
+            row.classList.add(
+                "content-row"
+            );
+        }
+    );
+}
+
+
+async function carregarCategoriasExtras() {
+    const doramas =
+        await buscarTMDB(
+            "/api/discover/tv?with_original_language=ko&page=1"
+        );
+
+    if (doramas.ok) {
+        mostrarNaSecao(
+            extrairResultados(
+                doramas
+            ),
+            "doramas",
+            "tv"
+        );
+    }
+
+    const gl =
+        await buscarTMDB(
+            "/api/discover/tv?page=1"
+        );
+
+    if (gl.ok) {
+        const lista =
+            extrairResultados(
+                gl
+            );
+
+        mostrarNaSecao(
+            lista,
+            "gl",
+            "tv"
+        );
+    }
+
+    const kids =
+        await buscarTMDB(
+            "/api/discover/movie?certification_country=BR&certification.lte=12&page=1"
+        );
+
+    if (kids.ok) {
+        mostrarNaSecao(
+            extrairResultados(
+                kids
+            ),
+            "kids",
+            "movie"
+        );
+    }
+}
+
+
+function atualizarEstadoPagina() {
+    const body =
+        document.body;
+
+    if (!body) {
+        return;
+    }
+
+    if (
+        appState.buscaAtiva
+    ) {
+        body.classList.add(
+            "search-active"
+        );
+    } else {
+        body.classList.remove(
+            "search-active"
+        );
+    }
+}
+
+
+function configurarObservacaoBusca() {
+    const input =
+        document.getElementById(
+            "search-input"
+        );
+
+    if (!input) {
+        return;
+    }
+
+    input.addEventListener(
+        "input",
+        atualizarEstadoPagina
+    );
+}
+
+
+function mostrarErroInicial(
+    mensagem
+) {
+    const secoes =
+        [
+            "filmes",
+            "series"
+        ];
+
+    secoes.forEach(
+        function (id) {
+            const secao =
+                document.getElementById(
+                    id
+                );
+
+            if (!secao) {
+                return;
+            }
+
+            const container =
+                encontrarContainerCards(
+                    secao
+                );
+
+            if (!container) {
+                return;
+            }
+
+            if (
+                container.children.length ===
+                0
+            ) {
+                const aviso =
+                    document.createElement(
+                        "p"
+                    );
+
+                aviso.className =
+                    "content-empty";
+
+                aviso.textContent =
+                    mensagem;
+
+                container.appendChild(
+                    aviso
+                );
+            }
+        }
+    );
+}
+
+
+async function iniciarConteudo() {
+    prepararSecoes();
+
+    const resultados =
+        await Promise.allSettled(
+            [
+                carregarFilmes(),
+                carregarSeries(),
+                carregarCategoriasExtras()
+            ]
+        );
+
+    const houveErro =
+        resultados.some(
+            function (resultado) {
+                return (
+                    resultado.status ===
+                    "rejected"
+                );
+            }
+        );
+
+    if (houveErro) {
+        console.warn(
+            "Uma ou mais categorias não puderam ser carregadas."
+        );
+    }
+
+    mostrarErroInicial(
+        "Nenhum conteúdo disponível no momento."
+    );
+}
+
+
+function iniciarRecursosFinais() {
+    configurarNavegacao();
+
+    configurarBotoesGerais();
+
+    configurarFechamentoModais();
+
+    configurarLinksCards();
+
+    configurarObservacaoBusca();
+
+    corrigirImagensExistentes();
+
+    observarMudancasDOM();
+}
+
+
+const inicializacaoOriginal =
+    inicializarApp;
+
+
+inicializarApp =
+    function () {
+        carregarStorage();
+
+        configurarModalDetalhes();
+
+        configurarTeclaEscape();
+
+        configurarBusca();
+
+        configurarMenuUsuario();
+
+        configurarPerfil();
+
+        configurarPlayer();
+
+        atualizarAnoRodape();
+
+        iniciarSlider();
+
+        iniciarRecursosFinais();
+
+        iniciarConteudo();
+    };
+
+
+if (
+    document.readyState ===
+    "loading"
+) {
+    document.addEventListener(
+        "DOMContentLoaded",
+        inicializarApp,
+        {
+            once: true
+        }
+    );
+} else {
+    inicializarApp();
+}
+
+
+window.CineFamily =
+    window.CineFamily ||
+    {};
+
+
+window.CineFamily.openDetails =
+    abrirDetalhes;
+
+window.CineFamily.closeDetails =
+    fecharDetalhes;
+
+window.CineFamily.addFavorite =
+    adicionarFavorito;
+
+window.CineFamily.removeFavorite =
+    removerFavorito;
+
+window.CineFamily.toggleFavorite =
+    alternarFavorito;
+
+window.CineFamily.getFavorites =
+    function () {
+        return appState.favoritos;
+    };
+
+window.CineFamily.getHistory =
+    function () {
+        return appState.historico;
+    };
+
+window.CineFamily.reloadStorage =
+    carregarStorage;
