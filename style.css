@@ -2203,3 +2203,6 @@ footer a:hover {
         transition-duration: 0.01ms !important;
     }
 }
+.loading-overlay[aria-hidden="true"] {
+  display: none !important;
+}
