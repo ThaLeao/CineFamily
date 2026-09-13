@@ -2221,3 +2221,12 @@ footer a:hover {
 .user-menu[aria-hidden="false"] {
   display: block !important;
 }
+html,
+body {
+  overflow-x: hidden;
+  overflow-y: auto !important;
+}
+
+body {
+  min-height: 100vh;
+}
