@@ -1348,3 +1348,113 @@ body.modal-open {
         transform: translateY(0);
     }
 }
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+@media print {
+    .topo,
+    .hero-section,
+    .hero-controls,
+    .search-area,
+    .modal,
+    .topo-acoes {
+        display: none !important;
+    }
+
+    main {
+        padding-top: 0;
+    }
+
+    body {
+        background: #fff;
+        color: #000;
+    }
+}
+
+#app,
+#root,
+#main-content,
+#conteudo-principal {
+    width: 100%;
+    min-height: 100%;
+}
+
+#movies-row,
+#series-row,
+#top-rated-row,
+#latest-row,
+#doramas-row,
+#gl-row,
+#kids-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    gap: 14px !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 4px 2px 18px !important;
+}
+
+#movies-row > *,
+#series-row > *,
+#top-rated-row > *,
+#latest-row > *,
+#doramas-row > *,
+#gl-row > *,
+#kids-row > * {
+    flex: 0 0 190px !important;
+    width: 190px !important;
+    min-width: 190px !important;
+    max-width: 190px !important;
+}
+
+@media (max-width: 650px) {
+    #movies-row > *,
+    #series-row > *,
+    #top-rated-row > *,
+    #latest-row > *,
+    #doramas-row > *,
+    #gl-row > *,
+    #kids-row > * {
+        flex: 0 0 150px !important;
+        width: 150px !important;
+        min-width: 150px !important;
+        max-width: 150px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    #movies-row,
+    #series-row,
+    #top-rated-row,
+    #latest-row,
+    #doramas-row,
+    #gl-row,
+    #kids-row {
+        gap: 10px !important;
+    }
+
+    #movies-row > *,
+    #series-row > *,
+    #top-rated-row > *,
+    #latest-row > *,
+    #doramas-row > *,
+    #gl-row > *,
+    #kids-row > * {
+        flex: 0 0 135px !important;
+        width: 135px !important;
+        min-width: 135px !important;
+        max-width: 135px !important;
+    }
+}
